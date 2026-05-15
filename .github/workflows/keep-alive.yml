@@ -1,6 +1,6 @@
 name: Supabase Keep-Alive
 
-  on:
+  "on":
     schedule:
       - cron: '0 9 */3 * *'
     workflow_dispatch:
@@ -20,3 +20,36 @@ name: Supabase Keep-Alive
               exit 1
             fi
             echo "Supabase is alive!"
+
+  pages.yml de aynı sorun varsa onu da şununla değiştir:
+
+  name: Deploy to GitHub Pages
+
+  "on":
+    push:
+      branches: [main]
+    workflow_dispatch:
+
+  permissions:
+    contents: read
+    pages: write
+    id-token: write
+
+  concurrency:
+    group: pages
+    cancel-in-progress: false
+
+  jobs:
+    deploy:
+      environment:
+        name: github-pages
+        url: ${{ steps.deployment.outputs.page_url }}
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/configure-pages@v4
+        - uses: actions/upload-pages-artifact@v3
+          with:
+            path: '.'
+        - id: deployment
+          uses: actions/deploy-pages@v4
