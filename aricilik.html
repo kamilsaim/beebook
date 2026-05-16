@@ -1175,7 +1175,8 @@
           <option>Kafkas</option>
           <option>Karadeniz</option>
           <option>İtalyan</option>
-          <option>Carnica</option>
+          <option>Karniyol</option>
+          <option>Buckfast</option>
           <option>Anadolu</option>
           <option>Muğla</option>
           <option>Diğer</option>
@@ -1234,7 +1235,7 @@
         <label class="form-label">Arı Irkı</label>
         <select class="form-select" id="bulk-race">
           <option>Kafkas</option><option>Karadeniz</option><option>İtalyan</option>
-          <option>Carnica</option><option>Anadolu</option><option>Muğla</option><option>Diğer</option>
+          <option>Karniyol</option><option>Buckfast</option><option>Anadolu</option><option>Muğla</option><option>Diğer</option>
         </select>
       </div>
       <div class="form-group">
@@ -1429,7 +1430,7 @@
         <label class="form-label">Üretilen Irk</label>
         <select class="form-select" id="series-race">
           <option>Kafkas</option><option>Karadeniz</option><option>İtalyan</option>
-          <option>Carnica</option><option>Anadolu</option><option>Muğla</option><option>Diğer</option>
+          <option>Karniyol</option><option>Buckfast</option><option>Anadolu</option><option>Muğla</option><option>Diğer</option>
         </select>
       </div>
       <div class="form-group">
@@ -1508,6 +1509,7 @@
   <div class="modal-box">
     <div class="modal-handle"></div>
     <div class="modal-title">📦 Stok Girişi</div>
+    <input type="hidden" id="stock-edit-id">
     <div class="form-group">
       <label class="form-label">Ürün</label>
       <select class="form-select" id="stock-product">
@@ -1535,6 +1537,16 @@
       <button class="btn btn-secondary" style="flex:1" onclick="closeModal('stock-modal')">İptal</button>
       <button class="btn btn-success" style="flex:2" onclick="saveStockEntry()">📦 Stoka Ekle</button>
     </div>
+  </div>
+</div>
+
+<!-- OZET HIVE LIST MODAL -->
+<div class="modal-overlay" id="ozet-hive-list-modal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="ozet-hive-list-title">Kovanlar</div>
+    <div id="ozet-hive-list-content" style="max-height:60vh;overflow-y:auto"></div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="closeModal('ozet-hive-list-modal')">Kapat</button>
   </div>
 </div>
 
@@ -2044,7 +2056,7 @@ function openHiveModal() {
 
 function getColorForYear(year) {
   const d = Number(year) % 10;
-  const m = {0:'white',5:'white',1:'yellow',6:'yellow',2:'red',7:'red',3:'green',8:'green',4:'blue',9:'blue'};
+  const m = {1:'white',6:'white',2:'yellow',7:'yellow',3:'red',8:'red',4:'green',9:'green',0:'blue',5:'blue'};
   return m[d] !== undefined ? m[d] : 'white';
 }
 
@@ -2403,7 +2415,10 @@ function renderMilk() {
       </div>
       <div class="list-item-right">
         <div class="list-item-date">${fmtDate(m.date)}</div>
-        <button onclick="deleteMilk('${m.id}')" style="background:none;border:none;font-size:14px;color:#CCC;cursor:pointer;display:block;margin-top:4px">🗑️</button>
+        <div style="display:flex;gap:4px;margin-top:4px">
+          <button onclick="openEditMilk('${m.id}')" style="background:none;border:none;font-size:14px;color:#74b9ff;cursor:pointer">✏️</button>
+          <button onclick="deleteMilk('${m.id}')" style="background:none;border:none;font-size:14px;color:#CCC;cursor:pointer">🗑️</button>
+        </div>
       </div>
     </div>
   `).join('');
@@ -2434,6 +2449,17 @@ function deleteMilk(id) {
     data.milk = data.milk.filter(m => m.id !== id);
     saveData(); renderMilk(); showToast('Kayıt silindi');
   });
+}
+
+function openEditMilk(id) {
+  const m = data.milk.find(x => x.id === id);
+  if (!m) return;
+  document.getElementById('milk-edit-id').value = m.id;
+  document.getElementById('milk-amount').value = m.amount;
+  document.getElementById('milk-date').value = m.date;
+  document.getElementById('milk-hive-count').value = m.hiveCount || '';
+  document.getElementById('milk-note').value = m.note || '';
+  openModal('milk-modal');
 }
 
 function openMilkModal() {
@@ -2476,7 +2502,10 @@ function renderSales() {
       </div>
       <div class="list-item-right">
         ${amountHtml}
-        <button onclick="deleteSale('${s.id}')" style="background:none;border:none;font-size:14px;color:#CCC;cursor:pointer">🗑️</button>
+        <div style="display:flex;gap:4px;margin-top:2px">
+          <button onclick="openEditSale('${s.id}')" style="background:none;border:none;font-size:14px;color:#74b9ff;cursor:pointer">✏️</button>
+          <button onclick="deleteSale('${s.id}')" style="background:none;border:none;font-size:14px;color:#CCC;cursor:pointer">🗑️</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -2558,6 +2587,24 @@ function deleteSale(id) {
   });
 }
 
+function openEditSale(id) {
+  const s = data.sales.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('sale-edit-id').value = s.id;
+  document.getElementById('sale-type').value = s.type;
+  document.getElementById('sale-customer').value = s.customer || '';
+  document.getElementById('sale-date').value = s.date;
+  document.getElementById('sale-qty').value = s.qty;
+  document.getElementById('sale-unit').value = s.unit || 'kg';
+  document.getElementById('sale-price').value = s.price || '';
+  document.getElementById('sale-total-display').value = s.total ? fmt(s.total, 2) + ' ₺' : '';
+  document.getElementById('sale-payment').value = s.payment || 'paid';
+  document.getElementById('sale-note').value = s.note || '';
+  updateSaleStockInfo();
+  onPaymentChange();
+  openModal('sale-modal');
+}
+
 // Auto-calculate total in sale modal
 document.addEventListener('input', function(e) {
   if (e.target.id === 'sale-qty' || e.target.id === 'sale-price') {
@@ -2609,7 +2656,10 @@ function renderStockList() {
       </div>
       <div class="list-item-right">
         <div class="list-item-amount ${e.action==='out'?'expense':''}">${e.action==='in'?'+':'-'}${fmt(e.amount)} ${e.unit||p.unit}</div>
-        <button onclick="deleteStockEntry('${e.id}')" style="background:none;border:none;font-size:14px;color:#CCC;cursor:pointer">🗑️</button>
+        <div style="display:flex;gap:4px;margin-top:2px">
+          <button onclick="openEditStockEntry('${e.id}')" style="background:none;border:none;font-size:14px;color:#74b9ff;cursor:pointer">✏️</button>
+          <button onclick="deleteStockEntry('${e.id}')" style="background:none;border:none;font-size:14px;color:#CCC;cursor:pointer">🗑️</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -2623,6 +2673,7 @@ function setStockFilter(f, el) {
 }
 
 function openStockAddModal() {
+  document.getElementById('stock-edit-id').value = '';
   document.getElementById('stock-amount').value = '';
   document.getElementById('stock-date').value = today();
   document.getElementById('stock-note').value = '';
@@ -2632,11 +2683,25 @@ function openStockAddModal() {
 function saveStockEntry() {
   const amount = parseFloat(document.getElementById('stock-amount').value);
   if (!amount || amount <= 0) { showToast('Geçerli bir miktar girin'); return; }
+  const editId = document.getElementById('stock-edit-id').value;
   const product = document.getElementById('stock-product').value;
   const unit = STOCK_PRODS[product]?.unit || 'adet';
   if (!data.stock) data.stock = [];
-  data.stock.push({ id: genId(), product, action: 'in', amount, unit, date: document.getElementById('stock-date').value || today(), note: document.getElementById('stock-note').value });
-  saveData(); closeModal('stock-modal'); renderStock(); showToast('Stok eklendi');
+  const entry = { id: editId || genId(), product, action: 'in', amount, unit, date: document.getElementById('stock-date').value || today(), note: document.getElementById('stock-note').value };
+  if (editId) { const idx = data.stock.findIndex(x => x.id === editId); if (idx >= 0) data.stock[idx] = entry; }
+  else data.stock.push(entry);
+  saveData(); closeModal('stock-modal'); renderStock(); showToast(editId ? 'Stok güncellendi' : 'Stok eklendi');
+}
+
+function openEditStockEntry(id) {
+  const e = (data.stock||[]).find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('stock-edit-id').value = e.id;
+  document.getElementById('stock-product').value = e.product;
+  document.getElementById('stock-amount').value = e.amount;
+  document.getElementById('stock-date').value = e.date;
+  document.getElementById('stock-note').value = e.note || '';
+  openModal('stock-modal');
 }
 
 function deleteStockEntry(id) {
@@ -2715,7 +2780,10 @@ function renderExpenses() {
       </div>
       <div class="list-item-right">
         <div class="list-item-amount expense">${fmt(e.amount)} ₺</div>
-        <button onclick="deleteExpense('${e.id}')" style="background:none;border:none;font-size:14px;color:#CCC;cursor:pointer">🗑️</button>
+        <div style="display:flex;gap:4px;margin-top:2px">
+          <button onclick="openEditExpense('${e.id}')" style="background:none;border:none;font-size:14px;color:#74b9ff;cursor:pointer">✏️</button>
+          <button onclick="deleteExpense('${e.id}')" style="background:none;border:none;font-size:14px;color:#CCC;cursor:pointer">🗑️</button>
+        </div>
       </div>
     </div>
   `).join('');
@@ -2757,6 +2825,17 @@ function deleteExpense(id) {
     data.expenses = data.expenses.filter(e => e.id !== id);
     saveData(); renderExpenses(); renderDashboard(); showToast('Gider silindi');
   });
+}
+
+function openEditExpense(id) {
+  const e = data.expenses.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('exp-edit-id').value = e.id;
+  document.getElementById('exp-type').value = e.type;
+  document.getElementById('exp-amount').value = e.amount;
+  document.getElementById('exp-date').value = e.date;
+  document.getElementById('exp-desc').value = e.desc || '';
+  openModal('expense-modal');
 }
 
 // ======================== TASKS ========================
@@ -3073,6 +3152,32 @@ function showToast(msg) {
 }
 
 // ======================== OZET ========================
+function showOzetHives(filterType, filterValue, label) {
+  const hives = data.hives;
+  let filtered;
+  if (filterType === 'queen') filtered = filterValue === 'bakire'
+    ? hives.filter(h => h.queenStatus === 'bakire' || h.queenStatus === 'new')
+    : hives.filter(h => h.queenStatus === filterValue);
+  else if (filterType === 'race') filtered = hives.filter(h => (h.race || '') === filterValue);
+  else if (filterType === 'gen') filtered = hives.filter(h => (h.generation || 'Belirtilmemiş') === filterValue);
+  else filtered = [];
+
+  document.getElementById('ozet-hive-list-title').textContent = label + ' (' + filtered.length + ' kovan)';
+  const queenLabel = { yes:'Ana Arı Var ✅', no:'Ana Arısız ❌', bakire:'Bakire 🐝', new:'Bakire 🐝', meme:'Meme Var 🫙', unknown:'Bilinmiyor ❓' };
+  document.getElementById('ozet-hive-list-content').innerHTML = filtered.length
+    ? filtered.map(h => `
+      <div class="list-item" style="cursor:pointer" onclick="closeModal('ozet-hive-list-modal');navigate('hives');setTimeout(()=>showHiveDetail('${h.id}'),300)">
+        <div class="list-item-icon">🏠</div>
+        <div class="list-item-content">
+          <div class="list-item-title">Kovan #${h.num}</div>
+          <div class="list-item-sub">${h.type || ''} · ${h.race || ''} ${h.generation ? '· ' + h.generation : ''}</div>
+        </div>
+        <div class="list-item-right" style="font-size:12px;text-align:right;color:var(--text-soft)">${queenLabel[h.queenStatus] || ''}</div>
+      </div>`).join('')
+    : '<div class="text-muted text-sm" style="padding:16px;text-align:center">Bu kategoride kovan yok</div>';
+  openModal('ozet-hive-list-modal');
+}
+
 function renderOzet() {
   const hives = data.hives;
   const total = hives.length;
@@ -3091,17 +3196,21 @@ function renderOzet() {
   // Queen status distribution
   const qStatuses = [
     { key:'yes', label:'Ana Arı Var', color:'#00B894' },
-    { key:'bakire', label:'Bakire', color:'#6C5CE7' },
-    { key:'new', label:'Bakire (eski)', color:'#6C5CE7' },
+    { key:'bakire', label:'Bakire Ana', color:'#6C5CE7' },
     { key:'meme', label:'Meme Var', color:'#E17055' },
     { key:'no', label:'Ana Arısız', color:'#D63031' },
     { key:'unknown', label:'Bilinmiyor', color:'#B2BEC3' },
   ];
-  const qCounts = qStatuses.map(s => ({ ...s, count: hives.filter(h => h.queenStatus === s.key).length })).filter(s => s.count > 0);
+  const qCounts = qStatuses.map(s => ({
+    ...s,
+    count: s.key === 'bakire'
+      ? hives.filter(h => h.queenStatus === 'bakire' || h.queenStatus === 'new').length
+      : hives.filter(h => h.queenStatus === s.key).length
+  })).filter(s => s.count > 0);
   document.getElementById('ozet-queen-dist').innerHTML = qCounts.length ? qCounts.map(s => `
-    <div style="margin-bottom:8px">
+    <div style="margin-bottom:8px;cursor:pointer" onclick="showOzetHives('queen','${s.key}','${s.label}')">
       <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:3px">
-        <span>${s.label}</span><span>${s.count} kovan</span>
+        <span>${s.label}</span><span style="color:${s.color}">${s.count} kovan ›</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${total ? (s.count/total*100) : 0}%;background:${s.color}"></div></div>
     </div>
@@ -3113,9 +3222,9 @@ function renderOzet() {
   const raceEntries = Object.entries(races).sort((a,b)=>b[1]-a[1]);
   const maxRace = Math.max(...Object.values(races), 1);
   document.getElementById('ozet-race-dist').innerHTML = raceEntries.length ? raceEntries.map(([race, cnt]) => `
-    <div style="margin-bottom:8px">
+    <div style="margin-bottom:8px;cursor:pointer" onclick="showOzetHives('race','${race.replace(/'/g,"\\'")}','${race.replace(/'/g,"\\'")} Irkı')">
       <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:3px">
-        <span>${race}</span><span>${cnt} kovan (${Math.round(cnt/total*100)}%)</span>
+        <span>${race}</span><span style="color:var(--honey-dark)">${cnt} kovan (${Math.round(cnt/total*100)}%) ›</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${cnt/maxRace*100}%"></div></div>
     </div>
@@ -3127,9 +3236,9 @@ function renderOzet() {
   const genEntries = Object.entries(gens).sort((a,b)=>b[1]-a[1]);
   const maxGen = Math.max(...Object.values(gens), 1);
   document.getElementById('ozet-gen-dist').innerHTML = genEntries.length ? genEntries.map(([gen, cnt]) => `
-    <div style="margin-bottom:8px">
+    <div style="margin-bottom:8px;cursor:pointer" onclick="showOzetHives('gen','${gen.replace(/'/g,"\\'")}','${gen.replace(/'/g,"\\'")} Kuşağı')">
       <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:3px">
-        <span>${gen}</span><span>${cnt} kovan</span>
+        <span>${gen}</span><span style="color:var(--purple-special)">${cnt} kovan ›</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${cnt/maxGen*100}%;background:linear-gradient(90deg,var(--purple-special),#a29bfe)"></div></div>
     </div>
@@ -3311,7 +3420,7 @@ function loadDemoData() {
     { id: genId(), num: '1', type: 'Langstroth', queenStatus: 'yes', queenColor: 'yellow', strength: '4', race: 'Kafkas', generation: 'F1', year: '2024', notes: 'Güçlü koloni', createdAt: today() },
     { id: genId(), num: '2', type: 'Langstroth', queenStatus: 'yes', queenColor: 'green', strength: '5', race: 'Kafkas', generation: 'F2', year: '2025', notes: '', createdAt: today() },
     { id: genId(), num: '3', type: 'Dadant', queenStatus: 'no', queenColor: 'white', strength: '2', race: 'Anadolu', generation: '', year: '', notes: 'Ana arı çıktı', createdAt: today() },
-    { id: genId(), num: '4', type: 'Langstroth', queenStatus: 'yes', queenColor: 'blue', strength: '3', race: 'Carnica', generation: 'F1', year: '2025', notes: '', createdAt: today() },
+    { id: genId(), num: '4', type: 'Langstroth', queenStatus: 'yes', queenColor: 'blue', strength: '3', race: 'Karniyol', generation: 'F1', year: '2025', notes: '', createdAt: today() },
     { id: genId(), num: '5', type: 'Langstroth', queenStatus: 'new', queenColor: 'red', strength: '4', race: 'Kafkas', generation: 'F3', year: '2025', notes: 'Yeni ana arı konuldu', createdAt: today() },
     { id: genId(), num: '6', type: 'Yerli', queenStatus: 'unknown', queenColor: 'white', strength: '3', race: 'Muğla', generation: '', year: '', notes: '', createdAt: today() },
   ];
