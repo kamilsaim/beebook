@@ -266,6 +266,27 @@
   .hive-strength-dot { width: 8px; height: 8px; border-radius: 50%; background: #EEE; }
   .hive-strength-dot.filled { background: var(--honey); }
   .hive-card-race { font-size: 10px; color: var(--text-soft); margin-top: 4px; }
+  .fab-btn {
+    position: fixed;
+    bottom: calc(var(--nav-height) + 16px);
+    right: 16px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--honey), var(--amber));
+    color: white;
+    font-size: 26px;
+    font-weight: 300;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(232,160,32,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .fab-btn:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(232,160,32,0.4); }
 
   /* COLOR PICKER */
   .color-picker { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -688,9 +709,10 @@
 
     <!-- HIVES PAGE -->
     <div class="page" id="page-hives">
-      <div class="search-bar">
+      <div class="search-bar" style="position:relative">
         <span class="search-icon">🔍</span>
-        <input type="text" placeholder="Kovan ara..." id="hive-search" oninput="filterHives()">
+        <input type="text" placeholder="Kovan ara..." id="hive-search" oninput="filterHives();toggleSearchClear()">
+        <button id="hive-search-clear" onclick="clearHiveSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;color:var(--text-soft);cursor:pointer;line-height:1;padding:0">✕</button>
       </div>
       <div class="filter-chips">
         <div class="chip active" onclick="setHiveFilter('all', this)">Tümü</div>
@@ -1800,6 +1822,8 @@ function monthStr(d) {
 let currentPage = 'dashboard';
 function navigate(page) {
   currentPage = page;
+  const fab = document.getElementById('fab-add-hive');
+  if (fab) fab.style.display = page === 'hives' ? 'flex' : 'none';
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
@@ -2018,6 +2042,17 @@ function setHiveFilter(f, el) {
 function setHiveRaceFilter(v) { currentRaceFilter = v; renderHives(); }
 function setHiveGenFilter(v) { currentGenFilter = v; renderHives(); }
 function filterHives() { renderHives(); }
+function toggleSearchClear() {
+  const val = document.getElementById('hive-search').value;
+  const btn = document.getElementById('hive-search-clear');
+  if (btn) btn.style.display = val ? 'block' : 'none';
+}
+function clearHiveSearch() {
+  document.getElementById('hive-search').value = '';
+  const btn = document.getElementById('hive-search-clear');
+  if (btn) btn.style.display = 'none';
+  renderHives();
+}
 
 function showHiveDetail(id) {
   const h = data.hives.find(x => x.id === id);
@@ -3947,5 +3982,6 @@ function startApp() {
 }
 init();
 </script>
+<button class="fab-btn" id="fab-add-hive" style="display:none" onclick="openHiveModal()" title="Kovan Ekle">+</button>
 </body>
 </html>
