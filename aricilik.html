@@ -1098,7 +1098,7 @@
         <div class="card-title">🏠 Kovan Tipleri</div>
         <div id="setting-hive-types-list"></div>
         <div style="display:flex;gap:8px;margin-top:10px">
-          <input class="form-input" id="new-hive-type-input" placeholder="Yeni kovan tipi..." style="flex:1" autocapitalize="sentences" oninput="capitalizeFirst(this)" oninput="capitalizeFirst(this)">
+          <input class="form-input" id="new-hive-type-input" placeholder="Yeni kovan tipi..." style="flex:1" autocapitalize="sentences" oninput="capitalizeFirst(this)">
           <button class="btn btn-primary btn-sm" onclick="addHiveTypeItem()">+ Ekle</button>
         </div>
       </div>
@@ -1107,7 +1107,7 @@
         <div class="card-title">🐝 Arı Irkları</div>
         <div id="setting-bee-races-list"></div>
         <div style="display:flex;gap:8px;margin-top:10px">
-          <input class="form-input" id="new-bee-race-input" placeholder="Yeni arı ırkı..." style="flex:1" autocapitalize="sentences" oninput="capitalizeFirst(this)" oninput="capitalizeFirst(this)">
+          <input class="form-input" id="new-bee-race-input" placeholder="Yeni arı ırkı..." style="flex:1" autocapitalize="sentences" oninput="capitalizeFirst(this)">
           <button class="btn btn-primary btn-sm" onclick="addBeeRaceItem()">+ Ekle</button>
         </div>
       </div>
@@ -1121,7 +1121,7 @@
         <div class="card-title">💸 Gider Türleri</div>
         <div id="setting-expense-types-list"></div>
         <div style="display:flex;gap:8px;margin-top:10px">
-          <input class="form-input" id="new-expense-type-input" placeholder="Yeni gider türü (emoji + ad)..." style="flex:1" autocapitalize="sentences" oninput="capitalizeFirst(this)" oninput="capitalizeFirst(this)">
+          <input class="form-input" id="new-expense-type-input" placeholder="Yeni gider türü (emoji + ad)..." style="flex:1" autocapitalize="sentences" oninput="capitalizeFirst(this)">
           <button class="btn btn-primary btn-sm" onclick="addExpenseType()">+ Ekle</button>
         </div>
       </div>
@@ -1130,7 +1130,7 @@
         <div class="card-title">📦 Stok Türleri</div>
         <div id="setting-stock-types-list"></div>
         <div style="display:flex;gap:8px;margin-top:10px">
-          <input class="form-input" id="new-stock-type-input" placeholder="Yeni stok türü..." style="flex:1" autocapitalize="sentences" oninput="capitalizeFirst(this)" oninput="capitalizeFirst(this)">
+          <input class="form-input" id="new-stock-type-input" placeholder="Yeni stok türü..." style="flex:1" autocapitalize="sentences" oninput="capitalizeFirst(this)">
           <input class="form-input" id="new-stock-unit-input" placeholder="Birim (kg, gr...)" style="width:80px">
           <button class="btn btn-primary btn-sm" onclick="addStockTypeItem()">+ Ekle</button>
         </div>
@@ -2923,9 +2923,10 @@ function getStockLevel(product) {
 }
 
 function renderStock() {
-  document.getElementById('stock-overview').innerHTML = Object.entries(STOCK_PRODS).map(([key, p]) => {
-    const level = getStockLevel(key);
-    return `<div class="stat-box"><div class="stat-icon">${p.icon}</div><div class="stat-val" style="color:${p.color}">${fmt(level)}</div><div class="stat-lbl">${p.label} (${p.unit})</div></div>`;
+  document.getElementById('stock-overview').innerHTML = getStockTypes().map(st => {
+    const p = STOCK_PRODS[st.v] || { icon: '📦', color: 'var(--honey)' };
+    const level = getStockLevel(st.v);
+    return `<div class="stat-box"><div class="stat-icon">${p.icon}</div><div class="stat-val" style="color:${p.color}">${fmt(level)}</div><div class="stat-lbl">${st.l.replace(/^[\p{Emoji}\s]+/u,'').trim()} (${st.unit})</div></div>`;
   }).join('');
   renderStockList();
 }
@@ -2970,6 +2971,7 @@ function openStockAddModal() {
   document.getElementById('stock-amount').value = '';
   document.getElementById('stock-date').value = today();
   document.getElementById('stock-note').value = '';
+  populateSelect('stock-product', getStockTypes().map(st => ({v: st.v, l: st.l})), '');
   openModal('stock-modal');
 }
 
@@ -2990,7 +2992,7 @@ function openEditStockEntry(id) {
   const e = (data.stock||[]).find(x => x.id === id);
   if (!e) return;
   document.getElementById('stock-edit-id').value = e.id;
-  document.getElementById('stock-product').value = e.product;
+  populateSelect('stock-product', getStockTypes().map(st => ({v: st.v, l: st.l})), e.product);
   document.getElementById('stock-amount').value = e.amount;
   document.getElementById('stock-date').value = e.date;
   document.getElementById('stock-note').value = e.note || '';
@@ -3347,12 +3349,13 @@ function createNewSeason() {
         .filter(s => s.product === product)
         .reduce((sum, s) => s.action === 'in' ? sum + Number(s.amount) : sum - Number(s.amount), 0);
       if (balance > 0) {
+        const stockUnit = getStockTypes().find(st => st.v === product)?.unit || 'kg';
         data.stock.push({
           id: genId(),
           product,
           action: 'in',
           amount: balance,
-          unit: 'kg',
+          unit: stockUnit,
           date: year + '-01-01',
           note: (year - 1) + ' sezonu devri'
         });
