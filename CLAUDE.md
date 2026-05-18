@@ -193,7 +193,7 @@ Karanlık tema: `[data-theme="dark"]` ile override edilir.
 
 ## Versiyon Geçmişi
 
-- **v1.6** (Mayıs 2026) — Mevcut durum
+- **v1.7** (Mayıs 2026) — Mevcut durum
   - Dashboard hızlı erişim: "Arı Sütü Kaydet" → "Ayarlar" butonu
   - Arı ırkları: Buckfast eklendi, Carnica → Karniyol
   - Ana yılı renk haritası düzeltildi (2026→Beyaz; 1,6=Beyaz; 2,7=Sarı; 3,8=Kırmızı; 4,9=Yeşil; 0,5=Mavi)
