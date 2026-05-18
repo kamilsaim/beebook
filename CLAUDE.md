@@ -199,6 +199,10 @@ Karanlık tema: `[data-theme="dark"]` ile override edilir.
   - Ana yılı renk haritası düzeltildi (2026→Beyaz; 1,6=Beyaz; 2,7=Sarı; 3,8=Kırmızı; 4,9=Yeşil; 0,5=Mavi)
   - Arı sütü, satış, stok ve gider kayıtlarına ✏️ düzenleme butonu eklendi
   - Özet sayfası: ana arı durumu, ırk ve kuşak dağılım barları tıklanabilir — o kategorideki kovanlar listeleniyor
+  - Ayarlar: kovan tipi, arı ırkı, satış türü, gider türü listeleri ayarlanabilir ve sıralanabilir
+  - Kovan ekle formuna çerçeve sayısı ve kat sayısı alanları eklendi
+  - Kovanlar: ırk ve kuşak filtre dropdown'ları eklendi
+  - Özet sayfasına ana arı yılı dağılım kartı eklendi (renk kodu ile, tıklanabilir)
 - **v1.5** (Mayıs 2026)
   - Supabase sync kritik hataları giderildi: `.single()` → `.maybeSingle()` (406 fix), `updated_at` upsert'e eklendi
   - Sync sonrası aktif sayfa otomatik yenilenir

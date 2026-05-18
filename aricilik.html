@@ -699,6 +699,14 @@
         <div class="chip" onclick="setHiveFilter('strong', this)">Güçlü (4+)</div>
         <div class="chip" onclick="setHiveFilter('weak', this)">Zayıf (-3)</div>
       </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <select class="form-select" id="hive-race-filter" onchange="setHiveRaceFilter(this.value)" style="flex:1;font-size:12px;padding:5px 10px;height:34px">
+          <option value="">Tüm Irklar</option>
+        </select>
+        <select class="form-select" id="hive-gen-filter" onchange="setHiveGenFilter(this.value)" style="flex:1;font-size:12px;padding:5px 10px;height:34px">
+          <option value="">Tüm Kuşaklar</option>
+        </select>
+      </div>
       <div class="flex-between" style="margin-bottom:12px">
         <div style="display:flex; align-items:center; gap:8px">
           <div style="font-size:13px; color:var(--text-soft); font-weight:700"><span id="hive-count">0</span> kovan</div>
@@ -891,15 +899,7 @@
         </div>
       </div>
 
-      <div class="filter-chips">
-        <div class="chip active" onclick="setExpFilter('all',this)">Tümü</div>
-        <div class="chip" onclick="setExpFilter('yem',this)">🌾 Yem</div>
-        <div class="chip" onclick="setExpFilter('seker',this)">🍬 Şeker</div>
-        <div class="chip" onclick="setExpFilter('ilac',this)">💊 İlaç</div>
-        <div class="chip" onclick="setExpFilter('mazot',this)">⛽ Mazot</div>
-        <div class="chip" onclick="setExpFilter('ekipman',this)">🔧 Ekipman</div>
-        <div class="chip" onclick="setExpFilter('diger',this)">📦 Diğer</div>
-      </div>
+      <div class="filter-chips" id="expense-filter-chips"></div>
 
       <div class="card">
         <div class="card-title">Aylık Gider Dağılımı</div>
@@ -945,6 +945,11 @@
       <div class="card">
         <div class="card-title">🔬 Kuşak Dağılımı</div>
         <div id="ozet-gen-dist"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🗓️ Ana Arı Yılı</div>
+        <div id="ozet-year-dist"></div>
       </div>
 
       <div class="card">
@@ -1047,6 +1052,38 @@
           <label class="form-label">Telefon</label>
           <input class="form-input" id="setting-phone" placeholder="0xxx xxx xx xx">
           <button class="btn btn-primary btn-sm mt-8" onclick="saveProfile()">Profili Kaydet</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🏠 Kovan Tipleri</div>
+        <div id="setting-hive-types-list"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input class="form-input" id="new-hive-type-input" placeholder="Yeni kovan tipi..." style="flex:1">
+          <button class="btn btn-primary btn-sm" onclick="addHiveTypeItem()">+ Ekle</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🐝 Arı Irkları</div>
+        <div id="setting-bee-races-list"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input class="form-input" id="new-bee-race-input" placeholder="Yeni arı ırkı..." style="flex:1">
+          <button class="btn btn-primary btn-sm" onclick="addBeeRaceItem()">+ Ekle</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">💰 Satış Türleri <span style="font-size:11px;color:var(--text-soft);font-weight:400">(sıralama)</span></div>
+        <div id="setting-sale-types-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">💸 Gider Türleri</div>
+        <div id="setting-expense-types-list"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input class="form-input" id="new-expense-type-input" placeholder="Yeni gider türü (emoji + ad)..." style="flex:1">
+          <button class="btn btn-primary btn-sm" onclick="addExpenseType()">+ Ekle</button>
         </div>
       </div>
 
@@ -1186,6 +1223,16 @@
     <div class="form-group">
       <label class="form-label">Kuşak</label>
       <input class="form-input" id="hive-generation" placeholder="F1, F2...">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Çerçeve Sayısı</label>
+        <input class="form-input" type="number" id="hive-frames" placeholder="10">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Kat Sayısı</label>
+        <input class="form-input" type="number" id="hive-floors" placeholder="2">
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">Notlar</label>
@@ -1632,6 +1679,11 @@ let isOfflineMode = false;
 let syncPending = false;
 let appReady = false;
 
+const DEFAULT_HIVE_TYPES = ['Langstroth','Dadant','Yerli','Çerçeveli','Ana Arı Kovanı','Nükleus (Ruşet)','Diğer'];
+const DEFAULT_BEE_RACES = ['Kafkas','Karadeniz','İtalyan','Karniyol','Buckfast','Anadolu','Muğla','Diğer'];
+const DEFAULT_SALE_TYPES = [{v:'honey',l:'🍯 Bal'},{v:'queen',l:'👑 Ana Arı'},{v:'milk',l:'🥛 Arı Sütü'},{v:'bee',l:'🐝 Arı Satışı'},{v:'other',l:'📦 Diğer'}];
+const DEFAULT_EXPENSE_TYPES = [{v:'yem',l:'🌾 Yem'},{v:'seker',l:'🍬 Şeker'},{v:'ilac',l:'💊 İlaç / Varroa'},{v:'mazot',l:'⛽ Mazot / Yakıt'},{v:'ekipman',l:'🔧 Ekipman'},{v:'diger',l:'📦 Diğer'}];
+
 let data = {
   hives: [],
   sales: [],
@@ -1658,7 +1710,24 @@ let currentSaleFilter = 'all';
 let currentExpFilter = 'all';
 let currentQFilter = 'all';
 let currentStockFilter = 'all';
+let currentRaceFilter = '';
+let currentGenFilter = '';
 let selectedQueenColor = 'white';
+
+function getHiveTypes() { return (settings.hiveTypes && settings.hiveTypes.length) ? settings.hiveTypes : [...DEFAULT_HIVE_TYPES]; }
+function getBeeRaces() { return (settings.beeRaces && settings.beeRaces.length) ? settings.beeRaces : [...DEFAULT_BEE_RACES]; }
+function getSaleTypes() {
+  if (!settings.saleTypeOrder || !settings.saleTypeOrder.length) return DEFAULT_SALE_TYPES;
+  const ordered = settings.saleTypeOrder.map(v => DEFAULT_SALE_TYPES.find(d => d.v === v)).filter(Boolean);
+  const missing = DEFAULT_SALE_TYPES.filter(d => !settings.saleTypeOrder.includes(d.v));
+  return [...ordered, ...missing];
+}
+function getExpenseTypes() { return (settings.expenseTypes && settings.expenseTypes.length) ? settings.expenseTypes : [...DEFAULT_EXPENSE_TYPES]; }
+function populateSelect(selId, options, curVal) {
+  const sel = document.getElementById(selId); if (!sel) return;
+  const cur = curVal !== undefined ? curVal : sel.value;
+  sel.innerHTML = options.map(o => { const v = typeof o==='string'?o:o.v; const l = typeof o==='string'?o:o.l; return `<option value="${v}"${v===cur?' selected':''}>${l}</option>`; }).join('');
+}
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 
@@ -1825,6 +1894,22 @@ function renderHives() {
   else if (currentHiveFilter === 'noqueen') hives = hives.filter(h => h.queenStatus === 'no');
   else if (currentHiveFilter === 'strong') hives = hives.filter(h => Number(h.strength) >= 4);
   else if (currentHiveFilter === 'weak') hives = hives.filter(h => Number(h.strength) <= 2);
+  if (currentRaceFilter) hives = hives.filter(h => (h.race || '') === currentRaceFilter);
+  if (currentGenFilter) hives = hives.filter(h => (h.generation || '') === currentGenFilter);
+
+  // Populate race/gen filter dropdowns from data
+  const races = [...new Set(data.hives.map(h => h.race || '').filter(Boolean))].sort();
+  const gens = [...new Set(data.hives.map(h => h.generation || '').filter(Boolean))].sort();
+  const raceEl = document.getElementById('hive-race-filter');
+  const genEl = document.getElementById('hive-gen-filter');
+  if (raceEl) {
+    const cur = currentRaceFilter;
+    raceEl.innerHTML = `<option value="">Tüm Irklar</option>` + races.map(r => `<option value="${r}"${r===cur?' selected':''}>${r}</option>`).join('');
+  }
+  if (genEl) {
+    const cur = currentGenFilter;
+    genEl.innerHTML = `<option value="">Tüm Kuşaklar</option>` + gens.map(g => `<option value="${g}"${g===cur?' selected':''}>${g}</option>`).join('');
+  }
 
   document.getElementById('hive-count').textContent = hives.length;
   const grid = document.getElementById('hive-grid');
@@ -1909,6 +1994,8 @@ function setHiveFilter(f, el) {
   renderHives();
 }
 
+function setHiveRaceFilter(v) { currentRaceFilter = v; renderHives(); }
+function setHiveGenFilter(v) { currentGenFilter = v; renderHives(); }
 function filterHives() { renderHives(); }
 
 function showHiveDetail(id) {
@@ -1931,6 +2018,8 @@ function showHiveDetail(id) {
       <div class="stat-box"><div class="hive-strength" style="justify-content:center">${dots}</div><div class="stat-lbl">Güç: ${h.strength}/5</div></div>
       <div class="stat-box"><div style="font-weight:800; font-size:14px">${h.race || '—'}</div><div class="stat-lbl">Irk</div></div>
       <div class="stat-box"><div style="font-weight:800; font-size:14px">${h.generation || '—'}</div><div class="stat-lbl">Kuşak</div></div>
+      ${h.frames ? `<div class="stat-box"><div style="font-weight:800; font-size:14px">${h.frames}</div><div class="stat-lbl">Çerçeve</div></div>` : ''}
+      ${h.floors ? `<div class="stat-box"><div style="font-weight:800; font-size:14px">${h.floors}</div><div class="stat-lbl">Kat</div></div>` : ''}
     </div>
     ${h.notes ? `<div class="card card-honey" style="margin-bottom:16px"><div class="card-title">📝 Notlar</div><div style="font-size:14px; line-height:1.6">${h.notes}</div></div>` : ''}
     <div style="display:flex; gap:10px">
@@ -1946,15 +2035,19 @@ function editHive(id) {
   closeModal('hive-detail-modal');
   const h = data.hives.find(x => x.id === id);
   if (!h) return;
+  populateSelect('hive-type', getHiveTypes(), h.type);
+  populateSelect('hive-race', getBeeRaces(), h.race || getBeeRaces()[0]);
   document.getElementById('hive-modal-title').textContent = '✏️ Kovan Düzenle';
   document.getElementById('hive-edit-id').value = h.id;
   document.getElementById('hive-num').value = h.num;
   document.getElementById('hive-type').value = h.type;
   document.getElementById('hive-queen-status').value = h.queenStatus;
   document.getElementById('hive-strength').value = h.strength;
-  document.getElementById('hive-race').value = h.race || 'Kafkas';
+  document.getElementById('hive-race').value = h.race || getBeeRaces()[0];
   document.getElementById('hive-generation').value = h.generation || '';
   document.getElementById('hive-year').value = h.year || '';
+  document.getElementById('hive-frames').value = h.frames || '';
+  document.getElementById('hive-floors').value = h.floors || '';
   document.getElementById('hive-notes').value = h.notes || '';
   selectedQueenColor = h.queenColor || 'white';
   document.querySelectorAll('#queen-color-picker .color-dot').forEach(d => d.classList.remove('selected'));
@@ -1987,6 +2080,8 @@ function saveHive() {
     race: document.getElementById('hive-race').value,
     generation: document.getElementById('hive-generation').value,
     year: document.getElementById('hive-year').value,
+    frames: document.getElementById('hive-frames').value,
+    floors: document.getElementById('hive-floors').value,
     notes: document.getElementById('hive-notes').value,
     createdAt: editId ? undefined : today()
   };
@@ -2007,6 +2102,8 @@ function openBulkHiveModal() {
   const nums = data.hives.map(h => parseInt(h.num)).filter(n => !isNaN(n));
   document.getElementById('bulk-start-num').value = nums.length ? Math.max(...nums) + 1 : 1;
   document.getElementById('bulk-count').value = 5;
+  populateSelect('bulk-type', getHiveTypes(), getHiveTypes()[0]);
+  populateSelect('bulk-race', getBeeRaces(), getBeeRaces()[0]);
   updateBulkPreview();
   openModal('bulk-hive-modal');
 }
@@ -2045,7 +2142,10 @@ function openHiveModal() {
   document.getElementById('hive-notes').value = '';
   document.getElementById('hive-generation').value = '';
   document.getElementById('hive-year').value = '';
-  document.getElementById('hive-type').value = 'Langstroth';
+  document.getElementById('hive-frames').value = '';
+  document.getElementById('hive-floors').value = '';
+  populateSelect('hive-type', getHiveTypes(), getHiveTypes()[0]);
+  populateSelect('hive-race', getBeeRaces(), getBeeRaces()[0]);
   document.getElementById('hive-queen-status').value = 'yes';
   document.getElementById('hive-strength').value = '3';
   selectedQueenColor = 'white';
@@ -2519,6 +2619,7 @@ function setSaleFilter(f, el) {
 }
 
 function openSaleModal() {
+  populateSelect('sale-type', getSaleTypes(), getSaleTypes()[0]?.v || 'honey');
   document.getElementById('sale-edit-id').value = '';
   document.getElementById('sale-customer').value = '';
   document.getElementById('sale-date').value = today();
@@ -2526,7 +2627,6 @@ function openSaleModal() {
   document.getElementById('sale-price').value = '';
   document.getElementById('sale-total-display').value = '';
   document.getElementById('sale-note').value = '';
-  document.getElementById('sale-type').value = 'honey';
   document.getElementById('sale-payment').value = 'paid';
   updateSaleStockInfo();
   onPaymentChange();
@@ -2590,6 +2690,7 @@ function deleteSale(id) {
 function openEditSale(id) {
   const s = data.sales.find(x => x.id === id);
   if (!s) return;
+  populateSelect('sale-type', getSaleTypes(), s.type);
   document.getElementById('sale-edit-id').value = s.id;
   document.getElementById('sale-type').value = s.type;
   document.getElementById('sale-customer').value = s.customer || '';
@@ -2734,16 +2835,28 @@ function updateSaleStockInfo() {
 
 // ======================== EXPENSES ========================
 function expIcon(type) {
-  const icons = { yem:'🌾', seker:'🍬', ilac:'💊', mazot:'⛽', ekipman:'🔧', diger:'📦' };
-  return icons[type] || '📦';
+  const found = getExpenseTypes().find(t => t.v === type);
+  if (found && found.l) { const m = found.l.match(/^([^\s]+)/); return m ? m[1] : '📦'; }
+  return '📦';
 }
 
 function expLabel(type) {
-  const labels = { yem:'Yem', seker:'Şeker', ilac:'İlaç', mazot:'Mazot', ekipman:'Ekipman', diger:'Diğer' };
-  return labels[type] || type;
+  const found = getExpenseTypes().find(t => t.v === type);
+  if (!found) return type;
+  const idx = found.l.indexOf(' ');
+  return idx >= 0 ? found.l.slice(idx + 1) : found.l;
+}
+
+function renderExpenseFilterChips() {
+  const el = document.getElementById('expense-filter-chips');
+  if (!el) return;
+  const types = getExpenseTypes();
+  el.innerHTML = `<div class="chip${currentExpFilter==='all'?' active':''}" onclick="setExpFilter('all',this)">Tümü</div>`
+    + types.map(t => `<div class="chip${currentExpFilter===t.v?' active':''}" onclick="setExpFilter('${t.v}',this)">${t.l}</div>`).join('');
 }
 
 function renderExpenses() {
+  renderExpenseFilterChips();
   let expenses = [...data.expenses];
   if (currentExpFilter !== 'all') expenses = expenses.filter(e => e.type === currentExpFilter);
   const total = data.expenses.reduce((s, x) => s + Number(x.amount||0), 0);
@@ -2752,7 +2865,7 @@ function renderExpenses() {
   document.getElementById('exp-month').textContent = fmt(thisMonth) + ' ₺';
 
   // Category chart
-  const cats = ['yem','seker','ilac','mazot','ekipman','diger'];
+  const cats = getExpenseTypes().map(t => t.v);
   const catTotals = cats.map(c => ({ cat: c, total: data.expenses.filter(e => e.type === c).reduce((s,x) => s + Number(x.amount||0), 0) }));
   const maxCat = Math.max(...catTotals.map(c => c.total), 1);
   document.getElementById('exp-chart').innerHTML = catTotals.filter(c => c.total > 0).map(c => `
@@ -2791,12 +2904,13 @@ function renderExpenses() {
 
 function setExpFilter(f, el) {
   currentExpFilter = f;
-  document.querySelectorAll('#page-expenses .chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#expense-filter-chips .chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   renderExpenses();
 }
 
 function openExpenseModal() {
+  populateSelect('exp-type', getExpenseTypes(), getExpenseTypes()[0]?.v || 'yem');
   document.getElementById('exp-edit-id').value = '';
   document.getElementById('exp-amount').value = '';
   document.getElementById('exp-date').value = today();
@@ -2830,6 +2944,7 @@ function deleteExpense(id) {
 function openEditExpense(id) {
   const e = data.expenses.find(x => x.id === id);
   if (!e) return;
+  populateSelect('exp-type', getExpenseTypes(), e.type);
   document.getElementById('exp-edit-id').value = e.id;
   document.getElementById('exp-type').value = e.type;
   document.getElementById('exp-amount').value = e.amount;
@@ -2990,6 +3105,89 @@ function renderSettings() {
   renderBackup();
   renderSeasonsInSettings();
   renderAuthInfoCard();
+  renderSettingLists();
+}
+
+// ======================== SETTINGS LIST MANAGEMENT ========================
+function _listItemHtml(label, i, total, moveUpFn, moveDownFn, removeFn) {
+  const isFirst = i === 0, isLast = i === total - 1;
+  return `<div style="display:flex;align-items:center;gap:5px;padding:7px 0;border-bottom:1px solid var(--smoke)">
+    <span style="flex:1;font-size:13px;font-weight:600">${label}</span>
+    <button onclick="${moveUpFn}(${i})" style="background:none;border:1px solid #DDD;border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer;${isFirst?'opacity:0.3;':''}" ${isFirst?'disabled':''}>↑</button>
+    <button onclick="${moveDownFn}(${i})" style="background:none;border:1px solid #DDD;border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer;${isLast?'opacity:0.3;':''}" ${isLast?'disabled':''}>↓</button>
+    ${removeFn && total > 1 ? `<button onclick="${removeFn}(${i})" style="background:none;border:none;font-size:19px;cursor:pointer;color:var(--red-warn);line-height:1;padding:0 3px">×</button>` : '<span style="display:inline-block;width:22px"></span>'}
+  </div>`;
+}
+
+function renderSettingLists() {
+  const ht = getHiveTypes(), br = getBeeRaces(), st = getSaleTypes(), et = getExpenseTypes();
+  const htEl = document.getElementById('setting-hive-types-list');
+  if (htEl) htEl.innerHTML = ht.map((t,i) => _listItemHtml(t,i,ht.length,'moveHiveTypeUp','moveHiveTypeDown','removeHiveType')).join('');
+  const brEl = document.getElementById('setting-bee-races-list');
+  if (brEl) brEl.innerHTML = br.map((t,i) => _listItemHtml(t,i,br.length,'moveBeeRaceUp','moveBeeRaceDown','removeBeeRace')).join('');
+  const stEl = document.getElementById('setting-sale-types-list');
+  if (stEl) stEl.innerHTML = st.map((t,i) => _listItemHtml(t.l,i,st.length,'moveSaleTypeUp','moveSaleTypeDown',null)).join('');
+  const etEl = document.getElementById('setting-expense-types-list');
+  if (etEl) etEl.innerHTML = et.map((t,i) => _listItemHtml(t.l,i,et.length,'moveExpTypeUp','moveExpTypeDown','removeExpType')).join('');
+}
+
+function moveHiveTypeUp(i) { _moveStringItem('hiveTypes',i,-1,DEFAULT_HIVE_TYPES); }
+function moveHiveTypeDown(i) { _moveStringItem('hiveTypes',i,1,DEFAULT_HIVE_TYPES); }
+function removeHiveType(i) { _removeStringItem('hiveTypes',i,DEFAULT_HIVE_TYPES); }
+function addHiveTypeItem() {
+  const inp = document.getElementById('new-hive-type-input'), v = inp?.value.trim(); if (!v) return;
+  const list = [...(settings.hiveTypes||DEFAULT_HIVE_TYPES)]; list.push(v);
+  settings.hiveTypes = list; inp.value = ''; saveSettings(); renderSettingLists(); showToast('Kovan tipi eklendi');
+}
+
+function moveBeeRaceUp(i) { _moveStringItem('beeRaces',i,-1,DEFAULT_BEE_RACES); }
+function moveBeeRaceDown(i) { _moveStringItem('beeRaces',i,1,DEFAULT_BEE_RACES); }
+function removeBeeRace(i) { _removeStringItem('beeRaces',i,DEFAULT_BEE_RACES); }
+function addBeeRaceItem() {
+  const inp = document.getElementById('new-bee-race-input'), v = inp?.value.trim(); if (!v) return;
+  const list = [...(settings.beeRaces||DEFAULT_BEE_RACES)]; list.push(v);
+  settings.beeRaces = list; inp.value = ''; saveSettings(); renderSettingLists(); showToast('Irk eklendi');
+}
+
+function _moveStringItem(key, idx, dir, def) {
+  const list = [...(settings[key]||def)]; const ni = idx+dir;
+  if (ni<0||ni>=list.length) return;
+  [list[ni],list[idx]]=[list[idx],list[ni]];
+  settings[key]=list; saveSettings(); renderSettingLists();
+}
+function _removeStringItem(key, idx, def) {
+  const list = [...(settings[key]||def)];
+  if (list.length<=1) { showToast('En az 1 öğe olmalı'); return; }
+  list.splice(idx,1); settings[key]=list; saveSettings(); renderSettingLists();
+}
+
+function moveSaleTypeUp(i) { _moveSaleItem(i,-1); }
+function moveSaleTypeDown(i) { _moveSaleItem(i,1); }
+function _moveSaleItem(idx, dir) {
+  const list = getSaleTypes().map(t=>t.v); const ni=idx+dir;
+  if (ni<0||ni>=list.length) return;
+  [list[ni],list[idx]]=[list[idx],list[ni]];
+  settings.saleTypeOrder=list; saveSettings(); renderSettingLists();
+}
+
+function moveExpTypeUp(i) { _moveExpItem(i,-1); }
+function moveExpTypeDown(i) { _moveExpItem(i,1); }
+function removeExpType(i) {
+  const list=[...(settings.expenseTypes||DEFAULT_EXPENSE_TYPES)];
+  if (list.length<=1) { showToast('En az 1 öğe olmalı'); return; }
+  list.splice(i,1); settings.expenseTypes=list; saveSettings(); renderSettingLists(); renderExpenseFilterChips();
+}
+function _moveExpItem(idx, dir) {
+  const list=[...(settings.expenseTypes||DEFAULT_EXPENSE_TYPES)]; const ni=idx+dir;
+  if (ni<0||ni>=list.length) return;
+  [list[ni],list[idx]]=[list[idx],list[ni]];
+  settings.expenseTypes=list; saveSettings(); renderSettingLists(); renderExpenseFilterChips();
+}
+function addExpenseType() {
+  const inp = document.getElementById('new-expense-type-input'), lbl = inp?.value.trim(); if (!lbl) return;
+  const v = ('exp_'+lbl.toLowerCase().replace(/[^a-z0-9çğışöü]/gi,'_').replace(/_+/g,'_')).replace(/^_|_$/g,'') || 'exp_'+Date.now();
+  const list=[...(settings.expenseTypes||DEFAULT_EXPENSE_TYPES)]; list.push({v,l:lbl});
+  settings.expenseTypes=list; inp.value=''; saveSettings(); renderSettingLists(); renderExpenseFilterChips(); showToast('Gider türü eklendi');
 }
 
 function renderSeasonsInSettings() {
@@ -3160,6 +3358,7 @@ function showOzetHives(filterType, filterValue, label) {
     : hives.filter(h => h.queenStatus === filterValue);
   else if (filterType === 'race') filtered = hives.filter(h => (h.race || '') === filterValue);
   else if (filterType === 'gen') filtered = hives.filter(h => (h.generation || 'Belirtilmemiş') === filterValue);
+  else if (filterType === 'year') filtered = hives.filter(h => (h.year || 'Belirtilmemiş') === filterValue);
   else filtered = [];
 
   document.getElementById('ozet-hive-list-title').textContent = label + ' (' + filtered.length + ' kovan)';
@@ -3291,6 +3490,32 @@ function renderOzet() {
       <div class="stat-box"><div class="stat-icon">👑</div><div class="stat-val color-honey">${fmt(totalQueenSales)}</div><div class="stat-lbl">Ana Arı Satışı</div></div>
     </div>
   `;
+
+  // Queen year distribution
+  const years = {};
+  hives.forEach(h => { const y = h.year || 'Belirtilmemiş'; years[y] = (years[y]||0)+1; });
+  const yearEntries = Object.entries(years).sort((a,b) => {
+    if (a[0]==='Belirtilmemiş') return 1; if (b[0]==='Belirtilmemiş') return -1;
+    return Number(b[0]) - Number(a[0]);
+  });
+  const maxYear = Math.max(...Object.values(years), 1);
+  const queenColorMap2 = {1:'#FFFFFF',6:'#FFFFFF',2:'#FFD700',7:'#FFD700',3:'#E74C3C',8:'#E74C3C',4:'#27AE60',9:'#27AE60',0:'#3498DB',5:'#3498DB'};
+  document.getElementById('ozet-year-dist').innerHTML = yearEntries.length ? yearEntries.map(([year, cnt]) => {
+    const d = Number(year) % 10;
+    const barColor = queenColorMap2[d] || 'var(--blue-info)';
+    const borderColor = barColor === '#FFFFFF' ? '#DDD' : barColor;
+    return `
+    <div style="margin-bottom:8px;cursor:pointer" onclick="showOzetHives('year','${year}','${year} Yılı Ana Arısı')">
+      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:3px;align-items:center">
+        <span style="display:flex;align-items:center;gap:6px">
+          <span style="width:10px;height:10px;border-radius:50%;background:${barColor};border:1.5px solid ${borderColor};display:inline-block"></span>
+          ${year}
+        </span>
+        <span style="color:var(--blue-info)">${cnt} kovan ›</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${cnt/maxYear*100}%;background:${barColor==='#FFFFFF'?'#DDD':barColor}"></div></div>
+    </div>`;
+  }).join('') : '<div class="text-muted text-sm" style="padding:8px">Veri yok</div>';
 
   // Queens production
   const totalSeries = data.queens.length;
