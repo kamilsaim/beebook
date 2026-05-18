@@ -3230,19 +3230,24 @@ function addStockTypeItem() {
   const uInp = document.getElementById('new-stock-unit-input');
   const l = lInp.value.trim(); const u = uInp.value.trim() || 'adet';
   if (!l) return;
-  const v = l.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
-  const list = getStockTypes(); list.push({v, l, unit: u});
+  let v = l.toLowerCase()
+    .replace(/\s+/g,'_')
+    .replace(/[^a-z0-9çğışöü_]/g,'');
+  if (!v) v = 'stock_' + Date.now();
+  const list = [...(settings.stockTypes || DEFAULT_STOCK_TYPES)]; list.push({v, l, unit: u});
   settings.stockTypes = list; lInp.value = ''; uInp.value = '';
   saveSettings(); renderSettingLists(); showToast('Stok türü eklendi');
 }
 function moveStockType(i, dir) {
-  const list = getStockTypes(); const j = i + dir;
+  const list = [...(settings.stockTypes || DEFAULT_STOCK_TYPES)]; const j = i + dir;
   if (j < 0 || j >= list.length) return;
   [list[i], list[j]] = [list[j], list[i]];
   settings.stockTypes = list; saveSettings(); renderSettingLists();
 }
 function deleteStockType(i) {
-  const list = getStockTypes(); list.splice(i, 1);
+  const list = [...(settings.stockTypes || DEFAULT_STOCK_TYPES)];
+  if (list.length <= 1) { showToast('En az 1 stok türü olmalı'); return; }
+  list.splice(i, 1);
   settings.stockTypes = list; saveSettings(); renderSettingLists(); showToast('Stok türü silindi');
 }
 
@@ -3802,6 +3807,8 @@ function useOfflineMode() {
   if (!data.hives.length && !data.sales.length) loadDemoData();
   renderDashboard();
   renderAuthInfoCard();
+  const adminSec = document.getElementById('admin-list-section');
+  if (adminSec) adminSec.style.display = isAdmin() ? '' : 'none';
 }
 
 function showAuthScreen() {
