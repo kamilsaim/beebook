@@ -689,8 +689,11 @@
       <div class="card">
         <div class="section-header mb-0">
           <div class="section-title">Son İşlemler</div>
-          <div class="section-action" onclick="navigate('sales')">Tümü →</div>
+          <div class="section-action" onclick="navigate('hives')">Tümü →</div>
         </div>
+        <div style="font-size:11px;font-weight:800;color:var(--text-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Son Kovan İşlemleri</div>
+        <div id="recent-hive-ops" style="margin-bottom:16px"></div>
+        <div style="font-size:11px;font-weight:800;color:var(--text-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Son Finansal İşlemler</div>
         <div id="recent-transactions" class="mt-12"></div>
       </div>
 
@@ -1381,6 +1384,10 @@
         <option value="karakovan_bal">🫙 Karakovan Bal</option>
       </select>
     </div>
+    <div class="form-group" id="sale-bee-hives-group" style="display:none">
+      <label class="form-label">Satılan Kovan(lar)</label>
+      <div id="sale-bee-hive-select" style="max-height:150px;overflow-y:auto;border:1px solid var(--comb-dark);border-radius:10px;padding:8px;background:var(--smoke)"></div>
+    </div>
     <div id="sale-stock-info" style="display:none; margin-bottom:12px; padding:10px 12px; background:var(--smoke); border-radius:10px; border-left:3px solid var(--honey)">
       <div style="font-size:11px; color:var(--text-soft); font-weight:700; text-transform:uppercase; letter-spacing:0.5px">Mevcut Stok</div>
       <div style="font-size:16px; font-weight:900; color:var(--honey-dark); margin-top:2px" id="sale-stock-level">0</div>
@@ -1898,6 +1905,32 @@ function navigate(page) {
 }
 
 // ======================== DASHBOARD ========================
+function renderRecentHiveOps() {
+  const el = document.getElementById('recent-hive-ops');
+  if (!el) return;
+  const ops = [...data.hives]
+    .filter(h => h.updatedAt || h.createdAt)
+    .sort((a, b) => {
+      const da = a.updatedAt || a.createdAt || '';
+      const db = b.updatedAt || b.createdAt || '';
+      return db.localeCompare(da);
+    })
+    .slice(0, 4);
+  if (!ops.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-soft);padding:4px 0">Henüz kovan işlemi yok</div>';
+    return;
+  }
+  el.innerHTML = ops.map(h => `
+    <div class="list-item" style="padding:8px 0;background:none;box-shadow:none;border-bottom:1px solid #F5EDD8">
+      <div class="list-item-icon">🏠</div>
+      <div class="list-item-content">
+        <div class="list-item-title">Kovan #${h.num} — ${h.lastAction || 'Eklendi'}</div>
+        <div class="list-item-sub">${fmtDate(h.updatedAt || h.createdAt)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
 function renderDashboard() {
   const hives = data.hives;
   const total = hives.length;
@@ -1951,6 +1984,8 @@ function renderDashboard() {
       </div>
     `).join('');
   }
+
+  renderRecentHiveOps();
 
   // Season info
   const activeSeason = data.seasons.find(s => s.id === settings.activeSeason) || data.seasons[0];
@@ -2210,7 +2245,9 @@ function saveHive() {
     frames: document.getElementById('hive-frames').value,
     floors: document.getElementById('hive-floors').value,
     notes: document.getElementById('hive-notes').value,
-    createdAt: editId ? undefined : today()
+    createdAt: editId ? undefined : today(),
+    updatedAt: today(),
+    lastAction: editId ? 'Kovan düzenlendi' : 'Kovan eklendi'
   };
   if (editId) {
     const idx = data.hives.findIndex(h => h.id === editId);
@@ -2731,11 +2768,15 @@ function renderSales() {
     const amountHtml = isFree
       ? `<div style="font-weight:700;font-size:13px;color:var(--purple-special)">${s.payment === 'hediye' ? '🎁' : '🌙'} Ücretsiz</div>`
       : `<div class="list-item-amount">${fmt(s.total)} ₺</div>`;
+    const soldHiveNums = (s.soldHives||[])
+      .map(hid => { const h = data.hives.find(x => x.id === hid); return h ? '#'+h.num : null; })
+      .filter(Boolean);
+    const hiveStr = soldHiveNums.length ? ` · Kovan: ${soldHiveNums.join(', ')}` : '';
     return `<div class="list-item">
       <div class="list-item-icon">${typeIcon[s.type]||'📦'}</div>
       <div class="list-item-content">
         <div class="list-item-title">${s.customer || 'Müşteri'}</div>
-        <div class="list-item-sub">${s.qty} ${s.unit} · ${fmtDate(s.date)} ${payBadge[s.payment]||''}</div>
+        <div class="list-item-sub">${s.qty} ${s.unit} · ${fmtDate(s.date)}${hiveStr} ${payBadge[s.payment]||''}</div>
       </div>
       <div class="list-item-right">
         ${amountHtml}
@@ -2789,6 +2830,9 @@ function saveSale() {
   if (!isFree && !price) { showToast('Miktar ve fiyat gerekli'); return; }
   const editId = document.getElementById('sale-edit-id').value;
   const total = isFree ? 0 : Number(qty) * Number(price);
+  const soldHives = document.getElementById('sale-type')?.value === 'bee'
+    ? [...document.querySelectorAll('.bee-hive-cb:checked')].map(cb => cb.value)
+    : [];
   const s = {
     id: editId || genId(),
     type: document.getElementById('sale-type').value,
@@ -2799,7 +2843,8 @@ function saveSale() {
     price: isFree ? 0 : Number(price),
     total,
     payment,
-    note: document.getElementById('sale-note').value
+    note: document.getElementById('sale-note').value,
+    soldHives
   };
   if (editId) { const idx = data.sales.findIndex(x => x.id === editId); if (idx >= 0) data.sales[idx] = s; }
   else {
@@ -2840,6 +2885,12 @@ function openEditSale(id) {
   document.getElementById('sale-note').value = s.note || '';
   updateSaleStockInfo();
   onPaymentChange();
+  // Restore bee hive checkboxes if editing a bee sale
+  if (s.type === 'bee' && s.soldHives && s.soldHives.length) {
+    document.querySelectorAll('.bee-hive-cb').forEach(cb => {
+      cb.checked = s.soldHives.includes(cb.value);
+    });
+  }
   openModal('sale-modal');
 }
 
@@ -2949,6 +3000,21 @@ function deleteStockEntry(id) {
   });
 }
 
+function renderBeeHiveSelect() {
+  const el = document.getElementById('sale-bee-hive-select');
+  if (!el) return;
+  if (!data.hives.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-soft)">Kovan bulunamadı</div>';
+    return;
+  }
+  el.innerHTML = data.hives.map(h => `
+    <label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;font-weight:600">
+      <input type="checkbox" class="bee-hive-cb" value="${h.id}" style="width:16px;height:16px;accent-color:var(--honey)">
+      Kovan #${h.num}${h.type ? ' ('+h.type+')' : ''}
+    </label>
+  `).join('');
+}
+
 function updateSaleStockInfo() {
   const type = document.getElementById('sale-type')?.value;
   const honeyGroup = document.getElementById('sale-honey-type-group');
@@ -2967,6 +3033,12 @@ function updateSaleStockInfo() {
   } else {
     honeyGroup.style.display = 'none';
     info.style.display = 'none';
+  }
+  const isBee = type === 'bee';
+  const beeGroup = document.getElementById('sale-bee-hives-group');
+  if (beeGroup) {
+    beeGroup.style.display = isBee ? '' : 'none';
+    if (isBee) renderBeeHiveSelect();
   }
 }
 
