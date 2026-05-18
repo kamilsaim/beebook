@@ -451,6 +451,10 @@
   .cal-day.other-month { color: #CCC; }
   .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .cal-month { font-weight: 800; font-size: 15px; }
+  .cal-day.has-task::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--honey-dark); }
+  .cal-day.selected { background: var(--honey); color: white; }
+  .cal-day.today-mini { background: var(--honey-light); color: var(--text-dark); }
+  .cal-header-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 
   /* MILK PRODUCTION CHART */
   .bar-chart { display: flex; align-items: flex-end; gap: 4px; height: 100px; padding-top: 10px; }
@@ -673,8 +677,13 @@
 
       <div class="card card-honey">
         <div class="card-title">📋 Günlük Görevler</div>
+        <div style="font-size:11px;font-weight:800;color:var(--text-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Hızlı Görevler</div>
         <div id="task-list"></div>
-        <button class="btn btn-secondary btn-sm mt-8" onclick="addTask()">+ Görev Ekle</button>
+        <button class="btn btn-secondary btn-sm mt-8" onclick="addTask()">+ Hızlı Görev</button>
+
+        <div style="font-size:11px;font-weight:800;color:var(--text-soft);margin:16px 0 6px;text-transform:uppercase;letter-spacing:0.5px">Takvimli Görevler</div>
+        <div id="cal-mini" style="margin-bottom:10px"></div>
+        <div id="cal-task-list"></div>
       </div>
 
       <div class="card">
@@ -1652,6 +1661,24 @@
   </div>
 </div>
 
+<!-- CAL TASK MODAL -->
+<div class="modal-overlay" id="cal-task-modal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📅 Takvimli Görev Ekle</div>
+    <input type="hidden" id="cal-task-date">
+    <div style="font-size:13px;font-weight:700;color:var(--honey-dark);margin-bottom:12px" id="cal-task-date-label"></div>
+    <div class="form-group">
+      <label class="form-label">Görev</label>
+      <input class="form-input" id="cal-task-text" placeholder="Görev açıklaması..." autocapitalize="sentences">
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('cal-task-modal')">İptal</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveCalTask()">Ekle</button>
+    </div>
+  </div>
+</div>
+
 <!-- SEASON MODAL -->
 <div class="modal-overlay" id="season-modal">
   <div class="modal-box">
@@ -1772,6 +1799,8 @@ let settings = {
 
 let currentHiveFilter = 'all';
 let currentHiveView = 'grid';
+let calCurrentMonth = new Date();
+let calSelectedDate = null;
 let currentSaleFilter = 'all';
 let currentExpFilter = 'all';
 let currentQFilter = 'all';
@@ -1897,6 +1926,7 @@ function renderDashboard() {
 
   // Tasks
   renderTaskList();
+  renderMiniCal();
 
   // Recent transactions
   const allTx = [
@@ -3072,12 +3102,107 @@ function saveTask() {
 
 function toggleTask(id) {
   const t = data.tasks.find(x => x.id === id);
-  if (t) { t.done = !t.done; saveData(); renderTaskList(); }
+  if (t) { t.done = !t.done; saveData(); renderTaskList(); renderCalTaskList(); renderMiniCal(); }
 }
 
 function deleteTask(id) {
   data.tasks = data.tasks.filter(t => t.id !== id);
   saveData(); renderTaskList();
+  renderCalTaskList();
+  renderMiniCal();
+}
+
+// ======================== MINI CALENDAR TASKS ========================
+function renderMiniCal() {
+  const el = document.getElementById('cal-mini');
+  if (!el) return;
+  const y = calCurrentMonth.getFullYear();
+  const m = calCurrentMonth.getMonth();
+  const now = new Date(); now.setHours(0,0,0,0);
+  const firstDow = (new Date(y, m, 1).getDay() + 6) % 7;
+  const lastDate = new Date(y, m+1, 0).getDate();
+  const taskDates = new Set(data.tasks.filter(t => t.dueDate).map(t => t.dueDate));
+  const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+  const days = ['Pt','Sa','Ça','Pe','Cu','Ct','Pz'];
+
+  let cells = days.map(d => `<div style="text-align:center;font-size:10px;font-weight:800;color:var(--text-soft);padding:2px">${d}</div>`).join('');
+  for (let i = 0; i < firstDow; i++) cells += `<div class="cal-day other-month"></div>`;
+  for (let d = 1; d <= lastDate; d++) {
+    const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = new Date(y,m,d).getTime() === now.getTime();
+    const isSel = calSelectedDate === ds;
+    const hasTsk = taskDates.has(ds);
+    cells += `<div class="cal-day${isToday?' today':''}${isSel?' selected':''}${hasTsk?' has-task':''}" onclick="selectCalDay('${ds}')">${d}</div>`;
+  }
+
+  el.innerHTML = `
+    <div class="cal-header-nav">
+      <button onclick="changeCalMonth(-1)" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-mid);padding:0 6px">‹</button>
+      <div style="font-weight:800;font-size:13px">${months[m]} ${y}</div>
+      <button onclick="changeCalMonth(1)" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-mid);padding:0 6px">›</button>
+    </div>
+    <div class="cal-grid">${cells}</div>
+  `;
+  renderCalTaskList();
+}
+
+function changeCalMonth(dir) {
+  calCurrentMonth = new Date(calCurrentMonth.getFullYear(), calCurrentMonth.getMonth() + dir, 1);
+  renderMiniCal();
+}
+
+function selectCalDay(ds) {
+  calSelectedDate = calSelectedDate === ds ? null : ds;
+  renderMiniCal();
+  if (calSelectedDate) openCalTaskModal(calSelectedDate);
+}
+
+function renderCalTaskList() {
+  const el = document.getElementById('cal-task-list');
+  if (!el) return;
+  const calTasks = data.tasks.filter(t => t.dueDate);
+  if (!calTasks.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-soft);padding:4px 0">Takvimde bir güne tıklayarak görev ekleyin.</div>';
+    return;
+  }
+  const todayStr = new Date().toISOString().split('T')[0];
+  const grouped = {};
+  calTasks.forEach(t => { (grouped[t.dueDate] = grouped[t.dueDate] || []).push(t); });
+  const sortedDates = Object.keys(grouped).sort();
+  el.innerHTML = sortedDates.map(date => {
+    const isOverdue = date < todayStr && !grouped[date].every(t => t.done);
+    const isToday = date === todayStr;
+    const label = isToday ? 'Bugün' : fmtDate(date);
+    const color = isOverdue ? 'var(--red-warn)' : isToday ? 'var(--honey-dark)' : 'var(--text-soft)';
+    const prefix = isOverdue ? '⚠️ ' : '';
+    const items = grouped[date].map(t => `
+      <div class="task-item">
+        <div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div>
+        <div class="task-text ${t.done?'done':''}">${t.text}</div>
+        <button onclick="deleteTask('${t.id}')" style="background:none;border:none;font-size:16px;color:#CCC;cursor:pointer">✕</button>
+      </div>
+    `).join('');
+    return `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:800;color:${color};margin-bottom:4px">${prefix}${label}</div>${items}</div>`;
+  }).join('');
+}
+
+function openCalTaskModal(ds) {
+  document.getElementById('cal-task-date').value = ds;
+  document.getElementById('cal-task-date-label').textContent = fmtDate(ds);
+  document.getElementById('cal-task-text').value = '';
+  openModal('cal-task-modal');
+}
+
+function saveCalTask() {
+  const text = document.getElementById('cal-task-text').value.trim();
+  const dueDate = document.getElementById('cal-task-date').value;
+  if (!text) { showToast('Görev yazın'); return; }
+  data.tasks.push({ id: genId(), text, done: false, dueDate });
+  saveData();
+  closeModal('cal-task-modal');
+  renderCalTaskList();
+  renderMiniCal();
+  showToast('Takvimli görev eklendi');
 }
 
 // ======================== SEASONS ========================
