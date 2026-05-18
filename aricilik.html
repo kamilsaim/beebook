@@ -722,6 +722,8 @@
         <div class="chip" onclick="setHiveFilter('noqueen', this)">Ana Arısız</div>
         <div class="chip" onclick="setHiveFilter('strong', this)">Güçlü (4+)</div>
         <div class="chip" onclick="setHiveFilter('weak', this)">Zayıf (-3)</div>
+        <div class="chip" onclick="setHiveFilter('bakire', this)">Bakire 🐝</div>
+        <div class="chip" onclick="setHiveFilter('meme', this)">Meme Var 🫙</div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:10px">
         <select class="form-select" id="hive-race-filter" onchange="setHiveRaceFilter(this.value)" style="flex:1;font-size:12px;padding:5px 10px;height:34px">
@@ -1942,6 +1944,8 @@ function renderHives() {
   else if (currentHiveFilter === 'noqueen') hives = hives.filter(h => h.queenStatus === 'no');
   else if (currentHiveFilter === 'strong') hives = hives.filter(h => Number(h.strength) >= 4);
   else if (currentHiveFilter === 'weak') hives = hives.filter(h => Number(h.strength) <= 2);
+  else if (currentHiveFilter === 'bakire') hives = hives.filter(h => h.queenStatus === 'bakire');
+  else if (currentHiveFilter === 'meme') hives = hives.filter(h => h.queenStatus === 'meme');
   if (currentRaceFilter) hives = hives.filter(h => (h.race || '') === currentRaceFilter);
   if (currentGenFilter) hives = hives.filter(h => (h.generation || '') === currentGenFilter);
 
@@ -1974,20 +1978,23 @@ function renderHives() {
       const qIcon = h.queenStatus === 'yes' ? '🟢' : h.queenStatus === 'bakire' ? '🐝' : h.queenStatus === 'new' ? '🐝' : h.queenStatus === 'meme' ? '🫙' : h.queenStatus === 'no' ? '🔴' : '❓';
       const dots = [1,2,3,4,5].map(i => `<div class="hive-strength-dot ${i <= Number(h.strength) ? 'filled' : ''}"></div>`).join('');
       const qColor = queenColorMap[h.queenColor] || '#DDD';
-      const qDotStyle = h.queenColor === 'unpainted' ? 'background:white;border:1.5px dashed #999' : `background:${qColor};border:1.5px solid #DDD`;
+      const qDotStyle = h.queenColor === 'unpainted' ? 'background:white;border:2px dashed #999' : `background:${qColor};border:2.5px solid rgba(0,0,0,0.2);box-shadow:0 1px 4px rgba(0,0,0,0.15)`;
       const queenLabel = { yes:'Ana Arı Var', no:'Ana Arı Yok', unknown:'Bilinmiyor', new:'Bakire Ana Arı', bakire:'Bakire Ana Arı', meme:'Meme Var' };
       return `
         <div class="list-item" style="border-left:4px solid ${hasQueen ? 'var(--green-ok)' : h.queenStatus === 'no' ? 'var(--red-warn)' : 'var(--comb-dark)'}; cursor:pointer" onclick="showHiveDetail('${h.id}')">
-          <div class="hive-type-svg-list">${getHiveTypeSvg(h.type)}</div>
+          <div class="hive-type-svg-list">${getHiveTypeSvg(h.type, h.floors)}</div>
           <div class="list-item-content">
             <div style="display:flex; align-items:center; gap:6px">
               <div class="list-item-title">#${h.num} — ${h.type}</div>
-              <div style="width:10px;height:10px;border-radius:50%;${qDotStyle};flex-shrink:0"></div>
+              <div style="width:16px;height:16px;border-radius:50%;${qDotStyle};flex-shrink:0"></div>
             </div>
             <div class="list-item-sub">${h.race || ''}${h.generation ? ' · ' + h.generation : ''} · ${queenLabel[h.queenStatus] || ''}</div>
             <div class="hive-strength" style="margin-top:5px">${dots}</div>
           </div>
-          <div style="font-size:13px; color:var(--text-soft); font-weight:700">${h.strength}/5</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0">
+            <div style="font-size:18px;line-height:1">${qIcon}</div>
+            <div style="font-size:12px; color:var(--text-soft); font-weight:700">${h.strength}/5</div>
+          </div>
         </div>
       `;
     }).join('');
@@ -1998,14 +2005,14 @@ function renderHives() {
       const qIcon = h.queenStatus === 'yes' ? '🟢' : h.queenStatus === 'bakire' ? '🐝' : h.queenStatus === 'new' ? '🐝' : h.queenStatus === 'meme' ? '🫙' : h.queenStatus === 'no' ? '🔴' : '❓';
       const dots = [1,2,3,4,5].map(i => `<div class="hive-strength-dot ${i <= Number(h.strength) ? 'filled' : ''}"></div>`).join('');
       const qColor = queenColorMap[h.queenColor] || '#DDD';
-      const qDotStyle = h.queenColor === 'unpainted' ? 'background:white;border:1.5px dashed #999' : `background:${qColor};border:1.5px solid #DDD`;
+      const qDotStyle = h.queenColor === 'unpainted' ? 'background:white;border:2px dashed #999' : `background:${qColor};border:2.5px solid rgba(0,0,0,0.2);box-shadow:0 1px 4px rgba(0,0,0,0.15)`;
       return `
         <div class="hive-card ${hasQueen ? 'has-queen' : h.queenStatus === 'no' ? 'no-queen' : ''}" onclick="showHiveDetail('${h.id}')">
           <div class="hive-queen-badge">${qIcon}</div>
-          <div class="hive-type-svg">${getHiveTypeSvg(h.type)}</div>
+          <div class="hive-type-svg">${getHiveTypeSvg(h.type, h.floors)}</div>
           <div style="display:flex; align-items:center; gap:6px">
             <div class="hive-card-num">#${h.num}</div>
-            <div style="width:12px;height:12px;border-radius:50%;${qDotStyle};flex-shrink:0"></div>
+            <div style="width:20px;height:20px;border-radius:50%;${qDotStyle};flex-shrink:0"></div>
           </div>
           <div class="hive-card-type">${h.type}</div>
           <div class="hive-card-race">${h.race || ''} ${h.generation ? '· ' + h.generation : ''}</div>
@@ -2016,11 +2023,18 @@ function renderHives() {
   }
 }
 
-function getHiveTypeSvg(type) {
+function getHiveTypeSvg(type, floors) {
   const c = { body:'#D4A017', body2:'#F0C040', roof:'#C47A1E', peak:'#9A5A10', base:'#8B5E3C', frame:'#F5E090', log:'#A0703A' };
+  const twoFloor = Number(floors) >= 2;
+  const langstroth = twoFloor
+    ? `<svg viewBox="0 0 40 64" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="56" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="42" width="34" height="14" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="49" x2="37" y2="49" stroke="${c.base}" stroke-width="1"/><rect x="3" y="28" width="34" height="14" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="35" x2="37" y2="35" stroke="${c.base}" stroke-width="1"/><rect x="1" y="23" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,23 20,13 40,23" fill="${c.peak}"/></svg>`
+    : `<svg viewBox="0 0 40 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="30" width="34" height="14" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="37" x2="37" y2="37" stroke="${c.base}" stroke-width="1"/><rect x="3" y="20" width="34" height="10" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="1" y="15" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,15 20,5 40,15" fill="${c.peak}"/></svg>`;
+  const dadant = twoFloor
+    ? `<svg viewBox="0 0 44 64" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="56" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="40" width="40" height="16" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="48" x2="42" y2="48" stroke="${c.base}" stroke-width="1"/><rect x="2" y="24" width="40" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="32" x2="42" y2="32" stroke="${c.base}" stroke-width="1"/><rect x="3" y="19" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="2,19 22,10 42,19" fill="${c.peak}"/></svg>`
+    : `<svg viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="26" width="40" height="18" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="35" x2="42" y2="35" stroke="${c.base}" stroke-width="1"/><rect x="6" y="18" width="32" height="8" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="3" y="13" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="2,13 22,4 42,13" fill="${c.peak}"/></svg>`;
   const svgs = {
-    'Langstroth': `<svg viewBox="0 0 40 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="30" width="34" height="14" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="37" x2="37" y2="37" stroke="${c.base}" stroke-width="1"/><rect x="3" y="20" width="34" height="10" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="1" y="15" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,15 20,5 40,15" fill="${c.peak}"/></svg>`,
-    'Dadant': `<svg viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="26" width="40" height="18" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="35" x2="42" y2="35" stroke="${c.base}" stroke-width="1"/><rect x="6" y="18" width="32" height="8" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="3" y="13" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="2,13 22,4 42,13" fill="${c.peak}"/></svg>`,
+    'Langstroth': langstroth,
+    'Dadant': dadant,
     'Yerli': `<svg viewBox="0 0 50 38" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="6" width="38" height="26" rx="13" fill="${c.log}" stroke="#5A3A20" stroke-width="1.5"/><line x1="6" y1="14" x2="42" y2="14" stroke="#5A3A20" stroke-width="0.8"/><line x1="5" y1="19" x2="43" y2="19" stroke="#5A3A20" stroke-width="0.8"/><line x1="6" y1="24" x2="42" y2="24" stroke="#5A3A20" stroke-width="0.8"/><ellipse cx="43" cy="19" rx="6" ry="11.5" fill="#C4956A" stroke="#5A3A20" stroke-width="1.5"/><circle cx="8" cy="24" r="2.5" fill="#3A2010"/></svg>`,
     'Çerçeveli': `<svg viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="16" width="38" height="28" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><rect x="7" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="15" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="23" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="31" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="1" y="11" width="42" height="5" rx="1" fill="${c.roof}"/><polygon points="0,11 22,2 44,11" fill="${c.peak}"/></svg>`,
     'Ana Arı Kovanı': `<svg viewBox="0 0 36 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="32" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="26" width="30" height="18" rx="2" fill="#F5C842" stroke="${c.base}" stroke-width="1.5"/><text x="18" y="40" font-size="13" text-anchor="middle" fill="${c.base}" font-family="serif">♛</text><rect x="5" y="18" width="26" height="8" rx="2" fill="#F8D860" stroke="${c.base}" stroke-width="1.5"/><rect x="2" y="13" width="32" height="5" rx="1" fill="${c.roof}"/><polygon points="1,13 18,4 35,13" fill="${c.peak}"/></svg>`,
