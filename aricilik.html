@@ -1675,6 +1675,24 @@
       <label class="form-label">Sezon Adı</label>
       <input class="form-input" id="new-season-name" placeholder="2025 İlkbahar Sezonu">
     </div>
+    <div class="form-group">
+      <label class="form-label" style="margin-bottom:8px">Yeni sezona aktarılacaklar</label>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;cursor:pointer">
+          <input type="checkbox" id="transfer-hives" checked style="width:18px;height:18px;accent-color:var(--honey)">
+          🏠 Kovanlar
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;cursor:pointer">
+          <input type="checkbox" id="transfer-stock" style="width:18px;height:18px;accent-color:var(--honey)">
+          📦 Stok (mevcut bakiyeler devir kaydı)
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;cursor:pointer">
+          <input type="checkbox" id="transfer-tasks" style="width:18px;height:18px;accent-color:var(--honey)">
+          📋 Tamamlanmamış görevler
+        </label>
+      </div>
+      <div style="font-size:11px;color:var(--text-soft);margin-top:8px">Satış ve gider tarihe bağlı, aktarılmaz.</div>
+    </div>
     <div style="display:flex; gap:10px">
       <button class="btn btn-secondary" style="flex:1" onclick="closeModal('new-season-modal')">İptal</button>
       <button class="btn btn-primary" style="flex:2" onclick="createNewSeason()">Oluştur</button>
@@ -3105,12 +3123,55 @@ function openNewSeasonModal() {
 }
 
 function createNewSeason() {
-  const year = document.getElementById('new-season-year').value;
+  const year = parseInt(document.getElementById('new-season-year').value);
   const name = document.getElementById('new-season-name').value.trim();
-  if (!year || !name) { showToast('Yıl ve isim gerekli'); return; }
-  const s = { id: 's' + year + genId(), year: Number(year), name, active: false };
+  if (!year || !name) { showToast('Yıl ve ad zorunlu'); return; }
+
+  const newSeasonId = 'season_' + genId();
+  const s = { id: newSeasonId, year, name, active: false };
   data.seasons.push(s);
-  saveData(); closeModal('new-season-modal'); renderSeasons(); renderSeasonsInSettings(); showToast('Sezon oluşturuldu');
+
+  const notes = [];
+
+  // Kovan aktarımı (bilgisel — kovanlar zaten tüm sezonlarda)
+  const transferHives = document.getElementById('transfer-hives')?.checked;
+  if (transferHives) notes.push(data.hives.length + ' kovan');
+
+  // Stok devir kaydı
+  const transferStock = document.getElementById('transfer-stock')?.checked;
+  if (transferStock) {
+    const products = [...new Set(data.stock.map(s => s.product))];
+    products.forEach(product => {
+      const balance = data.stock
+        .filter(s => s.product === product)
+        .reduce((sum, s) => s.action === 'in' ? sum + Number(s.amount) : sum - Number(s.amount), 0);
+      if (balance > 0) {
+        data.stock.push({
+          id: genId(),
+          product,
+          action: 'in',
+          amount: balance,
+          unit: 'kg',
+          date: year + '-01-01',
+          note: (year - 1) + ' sezonu devri'
+        });
+      }
+    });
+    notes.push('stok devri');
+  }
+
+  // Görev bilgisi
+  const transferTasks = document.getElementById('transfer-tasks')?.checked;
+  if (transferTasks) {
+    const pending = data.tasks.filter(t => !t.done).length;
+    if (pending > 0) notes.push(pending + ' bekleyen görev');
+  }
+
+  saveData();
+  closeModal('new-season-modal');
+  renderSeasons();
+  renderSeasonsInSettings();
+  showToast('Sezon oluşturuldu' + (notes.length ? ' (' + notes.join(', ') + ')' : ''));
 }
 
 function deleteSeason(id) {
