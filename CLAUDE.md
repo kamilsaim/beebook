@@ -23,8 +23,10 @@ Beebook, arıcılar için mobil-öncelikli bir yönetim uygulaması. Slogan: "Ar
 - **Hava durumu API:** open-meteo.com (ücretsiz, anahtar gerektirmez)
 - **Harita/Geocoding:** geocoding-api.open-meteo.com
 - **QR okuma:** BarcodeDetector API (Chrome/Android öncelikli) + jsQR fallback (iOS/Firefox dahil tüm tarayıcılar)
-- **Hosting:** GitHub Pages (`kamilsaim/beebook`)
-- **Satır sayısı:** ~3500 satır
+- **Hosting:** GitHub Pages (`kamilsaim/beebook`) — **`main` branch'ten yayınlanır**
+- **Satır sayısı:** ~3900 satır
+
+> ⚠️ GitHub Pages **`main`** branch'inden deploy eder. Değişiklikler her zaman hem `master` hem `main`'e push edilmeli: `git push origin master && git push origin master:main`
 
 ---
 
@@ -45,7 +47,8 @@ Beebook, arıcılar için mobil-öncelikli bir yönetim uygulaması. Slogan: "Ar
 data = {
   hives: [{
     id, num, type, queenStatus, queenColor, strength,
-    race, generation, year, notes, createdAt
+    race, generation, year, frames, floors,  // frames/floors v1.7'de eklendi
+    notes, createdAt
   }],
   sales: [{
     id, type, customer, date, qty, unit, price, total, payment, note
@@ -84,7 +87,12 @@ settings = {
   userName,
   userPhone,
   activeSeason,
-  lastBackup
+  lastBackup,
+  // v1.7'de eklendi — tanımsızsa DEFAULT_* sabitleri kullanılır:
+  hiveTypes,     // string[] — özelleştirilebilir kovan tipi listesi
+  beeRaces,      // string[] — özelleştirilebilir arı ırkı listesi
+  saleTypeOrder, // string[] — satış türü sıralama (değerler: honey/queen/milk/bee/other)
+  expenseTypes   // {v, l}[] — özelleştirilebilir gider türleri
 }
 ```
 
@@ -102,7 +110,7 @@ settings = {
 | Satışlar | sales | Satış kayıtları |
 | Stok | stock | Ürün stok yönetimi |
 | Giderler | expenses | Gider kayıtları ve kategori grafikleri |
-| Ayarlar | settings | Profil, hava, görünüm, sezon yönetimi, yedekleme, hesap |
+| Ayarlar | settings | Profil, hava, görünüm, sezon, yedekleme, liste yönetimi, hesap |
 
 > Sezon ve Yedek alt menüde YOK — Ayarlar sayfasına taşındı.
 
@@ -115,9 +123,11 @@ settings = {
 - Her kovan tipine özel SVG illüstrasyon (Langstroth, Dadant, Yerli, Çerçeveli, Ana Arı Kovanı, Nükleus/Ruşet)
 - QR kod okuma ile kovan arama ve numara girişi (📷 butonu)
 - Ana arı durumları: Var, Yok, Bakire, Meme Var, Bilinmiyor
-- Kovan tipleri: Langstroth, Dadant, Yerli, Çerçeveli, Ana Arı Kovanı, Nükleus (Ruşet), Diğer
+- Kovan tipleri: Ayarlardan özelleştirilebilir (varsayılan: Langstroth, Dadant, Yerli, Çerçeveli, Ana Arı Kovanı, Nükleus, Diğer)
 - Ana arı renk kodu sistemi (5 renk, yıla göre otomatik)
 - Toplu kovan ekleme (başlangıç no + adet)
+- Çerçeve sayısı ve kat sayısı alanı (v1.7)
+- Irk ve kuşak dropdown filtresi (v1.7)
 
 ### Ana Arı Üretimi
 - Seri bazlı takip: ırk, kuşak, damızlık kovan, başlatıcı kovan seçimi
@@ -131,15 +141,21 @@ settings = {
 - open-meteo.com API
 
 ### Finansal
-- Satış türleri: Bal, Ana Arı, Arı Sütü, Petek Bal, Karakovan Bal, 🐝 Arı Satışı
+- Satış türleri: Ayarlardan sıralanabilir (Bal, Ana Arı, Arı Sütü, Arı Satışı, Diğer)
 - Ödeme türleri: Nakit, Havale, Veresiye, Hediye 🎁, Zekat 🌙
 - Hediye/Zekat: fiyat=0, stok yine düşer
-- Gider kayıtları ve kategori grafikleri
+- Gider türleri: Ayarlardan eklenebilir/silinebilir/sıralanabilir (v1.7)
 
 ### Stok Yönetimi
 - Ürünler: Süzme Bal (kg), Petek Bal (kg), Arı Sütü (gr), Karakovan Bal (kg)
 - Arı sütü hasatı otomatik stoğa eklenir
 - Satışlarda stoktan otomatik düşme
+
+### Ayarlar — Liste Yönetimi (v1.7)
+- **Kovan Tipleri**: ekle / sil / ↑↓ sırala — tüm kovan modallarına yansır
+- **Arı Irkları**: ekle / sil / ↑↓ sırala — tüm kovan modallarına yansır
+- **Satış Türleri**: ↑↓ sırala (değerler sabit, satış modalına yansır)
+- **Gider Türleri**: ekle / sil / ↑↓ sırala — modal ve filtre chiplerine yansır
 
 ### Auth & Sync (v1.5)
 - Google ile giriş (Supabase OAuth)
@@ -188,21 +204,31 @@ Karanlık tema: `[data-theme="dark"]` ile override edilir.
 | `buildQueenTimeline(date)` | Transfer tarihinden gelişim aşamaları |
 | `saveData()` / `loadData()` | localStorage okuma/yazma + Supabase sync tetikleme |
 | `exportData()` / `importData()` | JSON yedek indir/yükle |
+| `getHiveTypes()` | Ayarlardan kovan tipi listesi (v1.7) |
+| `getBeeRaces()` | Ayarlardan arı ırkı listesi (v1.7) |
+| `getSaleTypes()` | Ayar sırasına göre satış türleri `{v,l}[]` (v1.7) |
+| `getExpenseTypes()` | Ayarlardan gider türleri `{v,l}[]` (v1.7) |
+| `populateSelect(selId, opts, cur)` | Select elementini dinamik doldurur (v1.7) |
+| `renderSettingLists()` | Ayarlar liste yönetimi UI'ını render eder (v1.7) |
+| `renderExpenseFilterChips()` | Gider filtre chiplerini dinamik render eder (v1.7) |
+| `renderOzet()` | Özet sayfası — yıl dağılımı dahil (v1.7) |
 
 ---
 
 ## Versiyon Geçmişi
 
 - **v1.7** (Mayıs 2026) — Mevcut durum
+  - Ayarlar: kovan tipi, arı ırkı, satış türü, gider türü listeleri ekle/sil/sırala
+  - Kovan ekle formuna çerçeve sayısı ve kat sayısı alanları eklendi; kovan detayında görünür
+  - Kovanlar: ırk ve kuşak dropdown filtresi eklendi
+  - Özet: ana arı yılı dağılım kartı eklendi (ana arı renk koduyla, tıklanabilir)
+  - GitHub Pages deploy sorunu tespit edildi: `main` branch'e de push zorunlu
+- **v1.6** (Mayıs 2026)
   - Dashboard hızlı erişim: "Arı Sütü Kaydet" → "Ayarlar" butonu
   - Arı ırkları: Buckfast eklendi, Carnica → Karniyol
-  - Ana yılı renk haritası düzeltildi (2026→Beyaz; 1,6=Beyaz; 2,7=Sarı; 3,8=Kırmızı; 4,9=Yeşil; 0,5=Mavi)
+  - Ana yılı renk haritası düzeltildi (1,6=Beyaz; 2,7=Sarı; 3,8=Kırmızı; 4,9=Yeşil; 0,5=Mavi)
   - Arı sütü, satış, stok ve gider kayıtlarına ✏️ düzenleme butonu eklendi
   - Özet sayfası: ana arı durumu, ırk ve kuşak dağılım barları tıklanabilir — o kategorideki kovanlar listeleniyor
-  - Ayarlar: kovan tipi, arı ırkı, satış türü, gider türü listeleri ayarlanabilir ve sıralanabilir
-  - Kovan ekle formuna çerçeve sayısı ve kat sayısı alanları eklendi
-  - Kovanlar: ırk ve kuşak filtre dropdown'ları eklendi
-  - Özet sayfasına ana arı yılı dağılım kartı eklendi (renk kodu ile, tıklanabilir)
 - **v1.5** (Mayıs 2026)
   - Supabase sync kritik hataları giderildi: `.single()` → `.maybeSingle()` (406 fix), `updated_at` upsert'e eklendi
   - Sync sonrası aktif sayfa otomatik yenilenir
