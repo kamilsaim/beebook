@@ -2980,7 +2980,7 @@ function saveStockEntry() {
   if (!amount || amount <= 0) { showToast('Geçerli bir miktar girin'); return; }
   const editId = document.getElementById('stock-edit-id').value;
   const product = document.getElementById('stock-product').value;
-  const unit = STOCK_PRODS[product]?.unit || 'adet';
+  const unit = getStockTypes().find(st => st.v === product)?.unit || 'adet';
   if (!data.stock) data.stock = [];
   const entry = { id: editId || genId(), product, action: 'in', amount, unit, date: document.getElementById('stock-date').value || today(), note: document.getElementById('stock-note').value };
   if (editId) { const idx = data.stock.findIndex(x => x.id === editId); if (idx >= 0) data.stock[idx] = entry; }
