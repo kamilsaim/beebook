@@ -299,6 +299,8 @@
   .qc-red { background: #E74C3C; }
   .qc-green { background: #27AE60; }
   .qc-blue { background: #3498DB; }
+  .color-dot.qc-unpainted { background: white; border: 2px dashed #999 !important; }
+  .color-dot.qc-unpainted.selected { box-shadow: 0 0 0 3px #999; }
 
   /* LISTS */
   .list-item {
@@ -1206,7 +1208,7 @@
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Ana Arı Durumu</label>
-        <select class="form-select" id="hive-queen-status">
+        <select class="form-select" id="hive-queen-status" onchange="onQueenStatusChange()">
           <option value="yes">Ana Arı Var ✅</option>
           <option value="no">Ana Arı Yok ❌</option>
           <option value="unknown">Bilinmiyor ❓</option>
@@ -1214,12 +1216,12 @@
           <option value="meme">Meme Var 🫙</option>
         </select>
       </div>
-      <div class="form-group">
+      <div class="form-group" id="hive-year-group">
         <label class="form-label">Çıkış Yılı</label>
         <input class="form-input" type="number" id="hive-year" placeholder="2025" oninput="onHiveYearChange()">
       </div>
     </div>
-    <div class="form-group">
+    <div class="form-group" id="hive-queen-color-group">
       <label class="form-label">Ana Arı Rengi <span style="font-size:10px;color:var(--text-soft);font-weight:600">(Yıl girilince otomatik)</span></label>
       <div class="color-picker" id="queen-color-picker">
         <div class="color-dot qc-white selected" onclick="selectQueenColor('white', this)" title="Beyaz (0/5)"></div>
@@ -1227,6 +1229,7 @@
         <div class="color-dot qc-red" onclick="selectQueenColor('red', this)" title="Kırmızı (2/7)"></div>
         <div class="color-dot qc-green" onclick="selectQueenColor('green', this)" title="Yeşil (3/8)"></div>
         <div class="color-dot qc-blue" onclick="selectQueenColor('blue', this)" title="Mavi (4/9)"></div>
+        <div class="color-dot qc-unpainted" onclick="selectQueenColor('unpainted', this)" title="Boyasız ⭕"></div>
       </div>
     </div>
     <div class="form-row">
@@ -1240,7 +1243,7 @@
           <option value="5">5 - Çok Güçlü</option>
         </select>
       </div>
-      <div class="form-group">
+      <div class="form-group" id="hive-race-group">
         <label class="form-label">Arı Irkı</label>
         <select class="form-select" id="hive-race">
           <option>Kafkas</option>
@@ -1254,7 +1257,7 @@
         </select>
       </div>
     </div>
-    <div class="form-group">
+    <div class="form-group" id="hive-generation-group">
       <label class="form-label">Kuşak</label>
       <input class="form-input" id="hive-generation" placeholder="F1, F2...">
     </div>
@@ -1962,7 +1965,7 @@ function renderHives() {
   if (!hives.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
 
-  const queenColorMap = { white:'#FFFFFF', yellow:'#FFD700', red:'#E74C3C', green:'#27AE60', blue:'#3498DB' };
+  const queenColorMap = { white:'#FFFFFF', yellow:'#FFD700', red:'#E74C3C', green:'#27AE60', blue:'#3498DB', unpainted:'transparent' };
 
   if (currentHiveView === 'list') {
     grid.style.display = 'block';
@@ -1971,6 +1974,7 @@ function renderHives() {
       const qIcon = h.queenStatus === 'yes' ? '🟢' : h.queenStatus === 'bakire' ? '🐝' : h.queenStatus === 'new' ? '🐝' : h.queenStatus === 'meme' ? '🫙' : h.queenStatus === 'no' ? '🔴' : '❓';
       const dots = [1,2,3,4,5].map(i => `<div class="hive-strength-dot ${i <= Number(h.strength) ? 'filled' : ''}"></div>`).join('');
       const qColor = queenColorMap[h.queenColor] || '#DDD';
+      const qDotStyle = h.queenColor === 'unpainted' ? 'background:white;border:1.5px dashed #999' : `background:${qColor};border:1.5px solid #DDD`;
       const queenLabel = { yes:'Ana Arı Var', no:'Ana Arı Yok', unknown:'Bilinmiyor', new:'Bakire Ana Arı', bakire:'Bakire Ana Arı', meme:'Meme Var' };
       return `
         <div class="list-item" style="border-left:4px solid ${hasQueen ? 'var(--green-ok)' : h.queenStatus === 'no' ? 'var(--red-warn)' : 'var(--comb-dark)'}; cursor:pointer" onclick="showHiveDetail('${h.id}')">
@@ -1978,7 +1982,7 @@ function renderHives() {
           <div class="list-item-content">
             <div style="display:flex; align-items:center; gap:6px">
               <div class="list-item-title">#${h.num} — ${h.type}</div>
-              <div style="width:10px;height:10px;border-radius:50%;background:${qColor};border:1.5px solid #DDD;flex-shrink:0"></div>
+              <div style="width:10px;height:10px;border-radius:50%;${qDotStyle};flex-shrink:0"></div>
             </div>
             <div class="list-item-sub">${h.race || ''}${h.generation ? ' · ' + h.generation : ''} · ${queenLabel[h.queenStatus] || ''}</div>
             <div class="hive-strength" style="margin-top:5px">${dots}</div>
@@ -1994,13 +1998,14 @@ function renderHives() {
       const qIcon = h.queenStatus === 'yes' ? '🟢' : h.queenStatus === 'bakire' ? '🐝' : h.queenStatus === 'new' ? '🐝' : h.queenStatus === 'meme' ? '🫙' : h.queenStatus === 'no' ? '🔴' : '❓';
       const dots = [1,2,3,4,5].map(i => `<div class="hive-strength-dot ${i <= Number(h.strength) ? 'filled' : ''}"></div>`).join('');
       const qColor = queenColorMap[h.queenColor] || '#DDD';
+      const qDotStyle = h.queenColor === 'unpainted' ? 'background:white;border:1.5px dashed #999' : `background:${qColor};border:1.5px solid #DDD`;
       return `
         <div class="hive-card ${hasQueen ? 'has-queen' : h.queenStatus === 'no' ? 'no-queen' : ''}" onclick="showHiveDetail('${h.id}')">
           <div class="hive-queen-badge">${qIcon}</div>
           <div class="hive-type-svg">${getHiveTypeSvg(h.type)}</div>
           <div style="display:flex; align-items:center; gap:6px">
             <div class="hive-card-num">#${h.num}</div>
-            <div style="width:12px;height:12px;border-radius:50%;background:${qColor};border:1.5px solid #DDD;flex-shrink:0"></div>
+            <div style="width:12px;height:12px;border-radius:50%;${qDotStyle};flex-shrink:0"></div>
           </div>
           <div class="hive-card-type">${h.type}</div>
           <div class="hive-card-race">${h.race || ''} ${h.generation ? '· ' + h.generation : ''}</div>
@@ -2057,8 +2062,11 @@ function clearHiveSearch() {
 function showHiveDetail(id) {
   const h = data.hives.find(x => x.id === id);
   if (!h) return;
-  const queenColorMap = { white:'#FFF', yellow:'#FFD700', red:'#E74C3C', green:'#27AE60', blue:'#3498DB' };
+  const queenColorMap = { white:'#FFF', yellow:'#FFD700', red:'#E74C3C', green:'#27AE60', blue:'#3498DB', unpainted:'transparent' };
   const qColor = queenColorMap[h.queenColor] || '#DDD';
+  const qColorStyle = h.queenColor === 'unpainted'
+    ? 'background:white;border:2px dashed #999'
+    : `background:${qColor};border:2px solid #CCC`;
   const queenLabel = { yes:'Ana Arı Var ✅', no:'Ana Arı Yok ❌', unknown:'Bilinmiyor ❓', new:'Bakire Ana Arı 🐝', bakire:'Bakire Ana Arı 🐝', meme:'Meme Var 🫙' };
   const dots = [1,2,3,4,5].map(i => `<div class="hive-strength-dot ${i <= Number(h.strength) ? 'filled' : ''}"></div>`).join('');
   document.getElementById('hive-detail-content').innerHTML = `
@@ -2067,7 +2075,7 @@ function showHiveDetail(id) {
         <div style="font-family:'Playfair Display',serif; font-size:24px">Kovan #${h.num}</div>
         <div style="font-size:13px; color:var(--text-soft)">${h.type}</div>
       </div>
-      <div style="width:24px;height:24px;border-radius:50%;background:${qColor};border:2px solid #CCC;margin-top:4px"></div>
+      <div style="width:24px;height:24px;border-radius:50%;${qColorStyle};margin-top:4px"></div>
     </div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px">
       <div class="stat-box"><div style="font-size:13px; font-weight:700; color:var(--text-mid)">${queenLabel[h.queenStatus] || '—'}</div><div class="stat-lbl">Ana Arı</div></div>
@@ -2110,6 +2118,7 @@ function editHive(id) {
   const activeDot = document.querySelector(`#queen-color-picker .color-dot.qc-${selectedQueenColor}`);
   if (activeDot) activeDot.classList.add('selected');
   openModal('hive-modal');
+  onQueenStatusChange();
 }
 
 function deleteHive(id) {
@@ -2208,6 +2217,7 @@ function openHiveModal() {
   document.querySelectorAll('#queen-color-picker .color-dot').forEach(d => d.classList.remove('selected'));
   document.querySelector('#queen-color-picker .color-dot.qc-white').classList.add('selected');
   openModal('hive-modal');
+  onQueenStatusChange();
 }
 
 function getColorForYear(year) {
@@ -2229,6 +2239,15 @@ function selectQueenColor(color, el) {
   selectedQueenColor = color;
   document.querySelectorAll('#queen-color-picker .color-dot').forEach(d => d.classList.remove('selected'));
   el.classList.add('selected');
+}
+
+function onQueenStatusChange() {
+  const status = document.getElementById('hive-queen-status').value;
+  const show = status !== 'no';
+  ['hive-year-group','hive-queen-color-group','hive-race-group','hive-generation-group'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = show ? '' : 'none';
+  });
 }
 
 // ======================== QUEENS ========================
