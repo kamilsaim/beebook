@@ -1055,6 +1055,7 @@
         </div>
       </div>
 
+      <div id="admin-list-section" style="display:none">
       <div class="card">
         <div class="card-title">🏠 Kovan Tipleri</div>
         <div id="setting-hive-types-list"></div>
@@ -1085,6 +1086,17 @@
           <input class="form-input" id="new-expense-type-input" placeholder="Yeni gider türü (emoji + ad)..." style="flex:1">
           <button class="btn btn-primary btn-sm" onclick="addExpenseType()">+ Ekle</button>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📦 Stok Türleri</div>
+        <div id="setting-stock-types-list"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input class="form-input" id="new-stock-type-input" placeholder="Yeni stok türü..." style="flex:1">
+          <input class="form-input" id="new-stock-unit-input" placeholder="Birim (kg, gr...)" style="width:80px">
+          <button class="btn btn-primary btn-sm" onclick="addStockTypeItem()">+ Ekle</button>
+        </div>
+      </div>
       </div>
 
       <div class="card">
@@ -1675,6 +1687,8 @@ const SB_URL = 'https://pdxnpnlwrtswwifevlil.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkeG5wbmx3cnRzd3dpZmV2bGlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4MTk3MDIsImV4cCI6MjA5NDM5NTcwMn0.y5-rmssEre3GnaxenCMoo78XK69aIyR3P2XyGeMiU_g';
 let _sb = null;
 let currentUser = null;
+const ADMIN_EMAIL = 'saimkamil@gmail.com';
+function isAdmin() { return !!(currentUser?.email === ADMIN_EMAIL); }
 let isOfflineMode = false;
 let syncPending = false;
 let appReady = false;
@@ -1683,6 +1697,13 @@ const DEFAULT_HIVE_TYPES = ['Langstroth','Dadant','Yerli','Çerçeveli','Ana Ar�
 const DEFAULT_BEE_RACES = ['Kafkas','Karadeniz','İtalyan','Karniyol','Buckfast','Anadolu','Muğla','Diğer'];
 const DEFAULT_SALE_TYPES = [{v:'honey',l:'🍯 Bal'},{v:'queen',l:'👑 Ana Arı'},{v:'milk',l:'🥛 Arı Sütü'},{v:'bee',l:'🐝 Arı Satışı'},{v:'other',l:'📦 Diğer'}];
 const DEFAULT_EXPENSE_TYPES = [{v:'yem',l:'🌾 Yem'},{v:'seker',l:'🍬 Şeker'},{v:'ilac',l:'💊 İlaç / Varroa'},{v:'mazot',l:'⛽ Mazot / Yakıt'},{v:'ekipman',l:'🔧 Ekipman'},{v:'diger',l:'📦 Diğer'}];
+const DEFAULT_STOCK_TYPES = [
+  {v:'suzme_bal', l:'🍯 Süzme Bal', unit:'kg'},
+  {v:'petek_bal', l:'🍯 Petek Bal', unit:'kg'},
+  {v:'ari_sutu', l:'🥛 Arı Sütü', unit:'gr'},
+  {v:'karakovan_bal', l:'🫙 Karakovan Bal', unit:'kg'}
+];
+function getStockTypes() { return settings.stockTypes || DEFAULT_STOCK_TYPES; }
 
 let data = {
   hives: [],
@@ -3106,6 +3127,8 @@ function renderSettings() {
   renderSeasonsInSettings();
   renderAuthInfoCard();
   renderSettingLists();
+  const adminSec = document.getElementById('admin-list-section');
+  if (adminSec) adminSec.style.display = isAdmin() ? '' : 'none';
 }
 
 // ======================== SETTINGS LIST MANAGEMENT ========================
@@ -3129,6 +3152,18 @@ function renderSettingLists() {
   if (stEl) stEl.innerHTML = st.map((t,i) => _listItemHtml(t.l,i,st.length,'moveSaleTypeUp','moveSaleTypeDown',null)).join('');
   const etEl = document.getElementById('setting-expense-types-list');
   if (etEl) etEl.innerHTML = et.map((t,i) => _listItemHtml(t.l,i,et.length,'moveExpTypeUp','moveExpTypeDown','removeExpType')).join('');
+  const stList = document.getElementById('setting-stock-types-list');
+  if (stList) {
+    const st = getStockTypes();
+    stList.innerHTML = st.map((item, i) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--comb)">
+        <span style="flex:1;font-size:13px;font-weight:600">${item.l} <span style="color:var(--text-soft)">(${item.unit})</span></span>
+        <button onclick="moveStockType(${i},-1)" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 6px" ${i===0?'disabled':''}>↑</button>
+        <button onclick="moveStockType(${i},1)" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 6px" ${i===st.length-1?'disabled':''}>↓</button>
+        <button onclick="deleteStockType(${i})" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--red-warn);padding:2px 6px">✕</button>
+      </div>
+    `).join('');
+  }
 }
 
 function moveHiveTypeUp(i) { _moveStringItem('hiveTypes',i,-1,DEFAULT_HIVE_TYPES); }
@@ -3188,6 +3223,27 @@ function addExpenseType() {
   const v = ('exp_'+lbl.toLowerCase().replace(/[^a-z0-9çğışöü]/gi,'_').replace(/_+/g,'_')).replace(/^_|_$/g,'') || 'exp_'+Date.now();
   const list=[...(settings.expenseTypes||DEFAULT_EXPENSE_TYPES)]; list.push({v,l:lbl});
   settings.expenseTypes=list; inp.value=''; saveSettings(); renderSettingLists(); renderExpenseFilterChips(); showToast('Gider türü eklendi');
+}
+
+function addStockTypeItem() {
+  const lInp = document.getElementById('new-stock-type-input');
+  const uInp = document.getElementById('new-stock-unit-input');
+  const l = lInp.value.trim(); const u = uInp.value.trim() || 'adet';
+  if (!l) return;
+  const v = l.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+  const list = getStockTypes(); list.push({v, l, unit: u});
+  settings.stockTypes = list; lInp.value = ''; uInp.value = '';
+  saveSettings(); renderSettingLists(); showToast('Stok türü eklendi');
+}
+function moveStockType(i, dir) {
+  const list = getStockTypes(); const j = i + dir;
+  if (j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  settings.stockTypes = list; saveSettings(); renderSettingLists();
+}
+function deleteStockType(i) {
+  const list = getStockTypes(); list.splice(i, 1);
+  settings.stockTypes = list; saveSettings(); renderSettingLists(); showToast('Stok türü silindi');
 }
 
 function renderSeasonsInSettings() {
@@ -3758,6 +3814,8 @@ async function signOut() {
   currentUser = null;
   isOfflineMode = false;
   renderAuthInfoCard();
+  const adminSec = document.getElementById('admin-list-section');
+  if (adminSec) adminSec.style.display = isAdmin() ? '' : 'none';
   showAuthScreen();
 }
 
@@ -3863,6 +3921,8 @@ window.addEventListener('offline', function() { setSyncBadge('err'); });
 function startApp() {
   appReady = true;
   if (!data.hives.length && !data.sales.length && !currentUser) loadDemoData();
+  const adminSec = document.getElementById('admin-list-section');
+  if (adminSec) adminSec.style.display = isAdmin() ? '' : 'none';
   if (currentUser) {
     renderDashboard();
     syncFromSupabase();
