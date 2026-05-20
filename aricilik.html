@@ -179,6 +179,10 @@
   .stat-box .stat-icon { font-size: 26px; margin-bottom: 4px; }
   .stat-box .stat-val { font-size: 22px; font-weight: 900; color: var(--honey-dark); line-height: 1; }
   .stat-box .stat-lbl { font-size: 10px; font-weight: 700; color: var(--text-soft); margin-top: 3px; text-transform: uppercase; }
+  .stat-box-sm { padding: 8px 6px !important; border-radius: 10px !important; }
+  .stat-box-sm .stat-icon { font-size: 18px !important; margin-bottom: 2px !important; }
+  .stat-box-sm .stat-val { font-size: 16px !important; }
+  .stat-box-sm .stat-lbl { font-size: 9px !important; }
 
   /* BUTTONS */
   .btn {
@@ -558,7 +562,7 @@
   <h1>Beebook</h1>
   <p>ARICININ EL DEFTERİ</p>
   <div class="splash-bar"><div class="splash-bar-fill"></div></div>
-  <p style="font-size:11px;opacity:0.6;font-weight:700;letter-spacing:1px;margin-top:-6px">v1.8</p>
+  <p style="font-size:11px;opacity:0.6;font-weight:700;letter-spacing:1px;margin-top:-6px">v1.9</p>
 </div>
 
 <!-- AUTH SCREEN -->
@@ -874,13 +878,7 @@
         <button class="btn btn-primary btn-sm" onclick="openStockAddModal()">+ Stok Ekle</button>
       </div>
       <div class="stat-grid" id="stock-overview"></div>
-      <div class="filter-chips" style="margin-bottom:12px">
-        <div class="chip active" onclick="setStockFilter('all',this)">Tümü</div>
-        <div class="chip" onclick="setStockFilter('suzme_bal',this)">🍯 Süzme Bal</div>
-        <div class="chip" onclick="setStockFilter('petek_bal',this)">🍯 Petek Bal</div>
-        <div class="chip" onclick="setStockFilter('ari_sutu',this)">🥛 Arı Sütü</div>
-        <div class="chip" onclick="setStockFilter('karakovan_bal',this)">🫙 Karakovan Bal</div>
-      </div>
+      <div class="filter-chips" id="stock-filter-chips" style="margin-bottom:12px"></div>
       <div id="stock-list"></div>
     </div>
 
@@ -1113,11 +1111,6 @@
       </div>
 
       <div class="card">
-        <div class="card-title">💰 Satış Türleri <span style="font-size:11px;color:var(--text-soft);font-weight:400">(sıralama)</span></div>
-        <div id="setting-sale-types-list"></div>
-      </div>
-
-      <div class="card">
         <div class="card-title">💸 Gider Türleri</div>
         <div id="setting-expense-types-list"></div>
         <div style="display:flex;gap:8px;margin-top:10px">
@@ -1134,6 +1127,11 @@
           <input class="form-input" id="new-stock-unit-input" placeholder="Birim (kg, gr...)" style="width:80px">
           <button class="btn btn-primary btn-sm" onclick="addStockTypeItem()">+ Ekle</button>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🗺️ Menü Simgeleri</div>
+        <div id="setting-nav-icons-list"></div>
       </div>
       </div>
 
@@ -1377,12 +1375,8 @@
       </select>
     </div>
     <div class="form-group" id="sale-honey-type-group" style="display:none">
-      <label class="form-label">Bal Türü</label>
-      <select class="form-select" id="sale-honey-type" onchange="updateSaleStockInfo()">
-        <option value="suzme_bal">🍯 Süzme Bal</option>
-        <option value="petek_bal">🍯 Petek Bal</option>
-        <option value="karakovan_bal">🫙 Karakovan Bal</option>
-      </select>
+      <label class="form-label">Ürün Türü</label>
+      <select class="form-select" id="sale-honey-type" onchange="updateSaleStockInfo()"></select>
     </div>
     <div class="form-group" id="sale-bee-hives-group" style="display:none">
       <label class="form-label">Satılan Kovan(lar)</label>
@@ -1502,9 +1496,15 @@
         <input class="form-input" type="date" id="milk-date">
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Kovan Sayısı</label>
-      <input class="form-input" type="number" id="milk-hive-count" placeholder="Kaç kovandan?">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Kovan Sayısı</label>
+        <input class="form-input" type="number" id="milk-hive-count" placeholder="Kaç kovandan?">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Arı Irkı</label>
+        <select class="form-select" id="milk-race"></select>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">Not</label>
@@ -1530,10 +1530,7 @@
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Üretilen Irk</label>
-        <select class="form-select" id="series-race">
-          <option>Kafkas</option><option>Karadeniz</option><option>İtalyan</option>
-          <option>Karniyol</option><option>Buckfast</option><option>Anadolu</option><option>Muğla</option><option>Diğer</option>
-        </select>
+        <select class="form-select" id="series-race"></select>
       </div>
       <div class="form-group">
         <label class="form-label">Kuşak</label>
@@ -1783,6 +1780,22 @@ const DEFAULT_STOCK_TYPES = [
   {v:'karakovan_bal', l:'🫙 Karakovan Bal', unit:'kg'}
 ];
 function getStockTypes() { return settings.stockTypes || DEFAULT_STOCK_TYPES; }
+
+const DEFAULT_NAV_ICONS = { dashboard:'🏡', ozet:'📊', hives:'🏠', queens:'👑', milk:'🥛', sales:'🍯', stock:'📦', expenses:'💸', settings:'⚙️' };
+function getNavIcon(page) { return (settings.navIcons && settings.navIcons[page]) || DEFAULT_NAV_ICONS[page] || '📄'; }
+function renderNavIcons() {
+  document.querySelectorAll('#bottom-nav .nav-item').forEach(btn => {
+    const page = btn.dataset.page;
+    if (!page) return;
+    const iconSpan = btn.querySelector('.nav-icon');
+    if (iconSpan) iconSpan.textContent = getNavIcon(page);
+  });
+}
+function setNavIcon(page, icon) {
+  if (!settings.navIcons) settings.navIcons = {};
+  settings.navIcons[page] = icon.trim() || DEFAULT_NAV_ICONS[page];
+  saveSettings(); renderNavIcons(); renderSettingLists();
+}
 
 let data = {
   hives: [],
@@ -2435,7 +2448,8 @@ function openSeriesModal() {
   document.getElementById('series-name').value = '';
   document.getElementById('series-transfer').value = today();
   document.getElementById('series-grafted').value = '';
-  document.getElementById('series-race').value = 'Kafkas';
+  const races = getBeeRaces().map(r => ({v:r,l:r}));
+  populateSelect('series-race', races, races[0]?.v || '');
   document.getElementById('series-generation').value = '';
   document.getElementById('series-status').value = 'active';
   document.getElementById('series-notes').value = '';
@@ -2456,7 +2470,8 @@ function editSeries(id) {
   document.getElementById('series-name').value = s.name;
   document.getElementById('series-transfer').value = s.transfer;
   document.getElementById('series-grafted').value = s.grafted;
-  document.getElementById('series-race').value = s.race || 'Kafkas';
+  const races = getBeeRaces().map(r => ({v:r,l:r}));
+  populateSelect('series-race', races, s.race || races[0]?.v || '');
   document.getElementById('series-generation').value = s.generation || '';
   document.getElementById('series-status').value = s.status;
   document.getElementById('series-notes').value = s.notes || '';
@@ -2689,7 +2704,7 @@ function renderMilk() {
       <div class="list-item-icon">🥛</div>
       <div class="list-item-content">
         <div class="list-item-title">${fmt(m.amount)} gram</div>
-        <div class="list-item-sub">${m.hiveCount ? m.hiveCount + ' kovan · ' : ''}${m.note || ''}</div>
+        <div class="list-item-sub">${m.race ? m.race + ' · ' : ''}${m.hiveCount ? m.hiveCount + ' kovan · ' : ''}${m.note || ''}</div>
       </div>
       <div class="list-item-right">
         <div class="list-item-date">${fmtDate(m.date)}</div>
@@ -2711,6 +2726,7 @@ function saveMilk() {
     amount: Number(amount),
     date: document.getElementById('milk-date').value || today(),
     hiveCount: document.getElementById('milk-hive-count').value,
+    race: document.getElementById('milk-race')?.value || '',
     note: document.getElementById('milk-note').value
   };
   if (editId) { const idx = data.milk.findIndex(x => x.id === editId); if (idx >= 0) data.milk[idx] = m; }
@@ -2737,6 +2753,8 @@ function openEditMilk(id) {
   document.getElementById('milk-date').value = m.date;
   document.getElementById('milk-hive-count').value = m.hiveCount || '';
   document.getElementById('milk-note').value = m.note || '';
+  const races = getBeeRaces().map(r => ({v:r,l:r}));
+  populateSelect('milk-race', races, m.race || races[0]?.v || '');
   openModal('milk-modal');
 }
 
@@ -2746,6 +2764,8 @@ function openMilkModal() {
   document.getElementById('milk-date').value = today();
   document.getElementById('milk-hive-count').value = '';
   document.getElementById('milk-note').value = '';
+  const races = getBeeRaces().map(r => ({v:r,l:r}));
+  populateSelect('milk-race', races, races[0]?.v || '');
   openModal('milk-modal');
 }
 
@@ -2800,8 +2820,14 @@ function setSaleFilter(f, el) {
   renderSales();
 }
 
+function populateHoneyTypeSelect(selected) {
+  const honeyTypes = getStockTypes().filter(st => st.v !== 'ari_sutu');
+  populateSelect('sale-honey-type', honeyTypes.map(st => ({v:st.v,l:st.l})), selected || honeyTypes[0]?.v || 'suzme_bal');
+}
+
 function openSaleModal() {
   populateSelect('sale-type', getSaleTypes(), getSaleTypes()[0]?.v || 'honey');
+  populateHoneyTypeSelect();
   document.getElementById('sale-edit-id').value = '';
   document.getElementById('sale-customer').value = '';
   document.getElementById('sale-date').value = today();
@@ -2848,7 +2874,8 @@ function saveSale() {
     total,
     payment,
     note: document.getElementById('sale-note').value,
-    soldHives
+    soldHives,
+    honeyType: document.getElementById('sale-type').value === 'honey' ? document.getElementById('sale-honey-type')?.value : undefined
   };
   if (editId) { const idx = data.sales.findIndex(x => x.id === editId); if (idx >= 0) data.sales[idx] = s; }
   else {
@@ -2856,7 +2883,7 @@ function saveSale() {
     // Stoktan düş (ücretsiz de dahil)
     let stockProduct = null;
     if (s.type === 'milk') stockProduct = 'ari_sutu';
-    else if (s.type === 'honey') stockProduct = (document.getElementById('sale-honey-type')?.value) || 'suzme_bal';
+    else if (s.type === 'honey') stockProduct = s.honeyType || (document.getElementById('sale-honey-type')?.value) || 'suzme_bal';
     if (stockProduct) {
       if (!data.stock) data.stock = [];
       const label = isFree ? (payment === 'hediye' ? 'Hediye' : 'Zekat') : 'Satış';
@@ -2877,6 +2904,7 @@ function openEditSale(id) {
   const s = data.sales.find(x => x.id === id);
   if (!s) return;
   populateSelect('sale-type', getSaleTypes(), s.type);
+  populateHoneyTypeSelect(s.honeyType);
   document.getElementById('sale-edit-id').value = s.id;
   document.getElementById('sale-type').value = s.type;
   document.getElementById('sale-customer').value = s.customer || '';
@@ -2922,12 +2950,24 @@ function getStockLevel(product) {
   return Math.max(0, ins - outs);
 }
 
+function extractEmoji(str) {
+  const m = str.match(/\p{Emoji}/u);
+  return m ? m[0] : '📦';
+}
+
 function renderStock() {
-  document.getElementById('stock-overview').innerHTML = getStockTypes().map(st => {
-    const p = STOCK_PRODS[st.v] || { icon: '📦', color: 'var(--honey)' };
+  const types = getStockTypes();
+  document.getElementById('stock-overview').innerHTML = types.map(st => {
+    const p = STOCK_PRODS[st.v] || { icon: extractEmoji(st.l), color: 'var(--honey)' };
     const level = getStockLevel(st.v);
-    return `<div class="stat-box"><div class="stat-icon">${p.icon}</div><div class="stat-val" style="color:${p.color}">${fmt(level)}</div><div class="stat-lbl">${st.l.replace(/^[\p{Emoji}\s]+/u,'').trim()} (${st.unit})</div></div>`;
+    const lbl = st.l.replace(/^[\p{Emoji}\s]+/u,'').trim();
+    return `<div class="stat-box stat-box-sm"><div class="stat-icon">${p.icon}</div><div class="stat-val" style="color:${p.color}">${fmt(level)}</div><div class="stat-lbl">${lbl} (${st.unit})</div></div>`;
   }).join('');
+  const chips = document.getElementById('stock-filter-chips');
+  if (chips) {
+    chips.innerHTML = `<div class="chip active" onclick="setStockFilter('all',this)">Tümü</div>` +
+      types.map(st => `<div class="chip" onclick="setStockFilter('${st.v}',this)">${extractEmoji(st.l)} ${st.l.replace(/^[\p{Emoji}\s]+/u,'').trim()}</div>`).join('');
+  }
   renderStockList();
 }
 
@@ -2941,7 +2981,8 @@ function renderStockList() {
     return;
   }
   list.innerHTML = entries.map(e => {
-    const p = STOCK_PRODS[e.product] || { label: e.product, unit: '', icon: '📦' };
+    const _st = getStockTypes().find(t => t.v === e.product);
+    const p = STOCK_PRODS[e.product] || { label: _st ? _st.l.replace(/^[\p{Emoji}\s]+/u,'').trim() : e.product, unit: _st?.unit || '', icon: _st ? extractEmoji(_st.l) : '📦' };
     return `<div class="list-item">
       <div class="list-item-icon">${p.icon}</div>
       <div class="list-item-content">
@@ -3031,7 +3072,8 @@ function updateSaleStockInfo() {
     info.style.display = 'block';
     const product = document.getElementById('sale-honey-type').value;
     const level = getStockLevel(product);
-    document.getElementById('sale-stock-level').textContent = fmt(level) + ' ' + (STOCK_PRODS[product]?.unit || 'kg');
+    const unit = getStockTypes().find(st => st.v === product)?.unit || STOCK_PRODS[product]?.unit || 'kg';
+    document.getElementById('sale-stock-level').textContent = fmt(level) + ' ' + unit;
   } else if (type === 'milk') {
     honeyGroup.style.display = 'none';
     info.style.display = 'block';
@@ -3465,35 +3507,48 @@ function renderSettings() {
 }
 
 // ======================== SETTINGS LIST MANAGEMENT ========================
-function _listItemHtml(label, i, total, moveUpFn, moveDownFn, removeFn) {
+function _listItemHtml(label, i, total, moveUpFn, moveDownFn, removeFn, editFn) {
   const isFirst = i === 0, isLast = i === total - 1;
+  const btnS = 'background:none;border:1px solid #DDD;border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer;';
   return `<div style="display:flex;align-items:center;gap:5px;padding:7px 0;border-bottom:1px solid var(--smoke)">
     <span style="flex:1;font-size:13px;font-weight:600">${label}</span>
-    <button onclick="${moveUpFn}(${i})" style="background:none;border:1px solid #DDD;border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer;${isFirst?'opacity:0.3;':''}" ${isFirst?'disabled':''}>↑</button>
-    <button onclick="${moveDownFn}(${i})" style="background:none;border:1px solid #DDD;border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer;${isLast?'opacity:0.3;':''}" ${isLast?'disabled':''}>↓</button>
+    ${editFn ? `<button onclick="${editFn}(${i})" style="${btnS}" title="Düzenle">✏️</button>` : ''}
+    <button onclick="${moveUpFn}(${i})" style="${btnS}${isFirst?'opacity:0.3;':''}" ${isFirst?'disabled':''}>↑</button>
+    <button onclick="${moveDownFn}(${i})" style="${btnS}${isLast?'opacity:0.3;':''}" ${isLast?'disabled':''}>↓</button>
     ${removeFn && total > 1 ? `<button onclick="${removeFn}(${i})" style="background:none;border:none;font-size:19px;cursor:pointer;color:var(--red-warn);line-height:1;padding:0 3px">×</button>` : '<span style="display:inline-block;width:22px"></span>'}
   </div>`;
 }
 
 function renderSettingLists() {
-  const ht = getHiveTypes(), br = getBeeRaces(), st = getSaleTypes(), et = getExpenseTypes();
+  const ht = getHiveTypes(), br = getBeeRaces(), et = getExpenseTypes();
   const htEl = document.getElementById('setting-hive-types-list');
-  if (htEl) htEl.innerHTML = ht.map((t,i) => _listItemHtml(t,i,ht.length,'moveHiveTypeUp','moveHiveTypeDown','removeHiveType')).join('');
+  if (htEl) htEl.innerHTML = ht.map((t,i) => _listItemHtml(t,i,ht.length,'moveHiveTypeUp','moveHiveTypeDown','removeHiveType','editHiveType')).join('');
   const brEl = document.getElementById('setting-bee-races-list');
-  if (brEl) brEl.innerHTML = br.map((t,i) => _listItemHtml(t,i,br.length,'moveBeeRaceUp','moveBeeRaceDown','removeBeeRace')).join('');
-  const stEl = document.getElementById('setting-sale-types-list');
-  if (stEl) stEl.innerHTML = st.map((t,i) => _listItemHtml(t.l,i,st.length,'moveSaleTypeUp','moveSaleTypeDown',null)).join('');
+  if (brEl) brEl.innerHTML = br.map((t,i) => _listItemHtml(t,i,br.length,'moveBeeRaceUp','moveBeeRaceDown','removeBeeRace','editBeeRace')).join('');
   const etEl = document.getElementById('setting-expense-types-list');
-  if (etEl) etEl.innerHTML = et.map((t,i) => _listItemHtml(t.l,i,et.length,'moveExpTypeUp','moveExpTypeDown','removeExpType')).join('');
+  if (etEl) etEl.innerHTML = et.map((t,i) => _listItemHtml(t.l,i,et.length,'moveExpTypeUp','moveExpTypeDown','removeExpType','editExpType')).join('');
   const stList = document.getElementById('setting-stock-types-list');
   if (stList) {
     const st = getStockTypes();
     stList.innerHTML = st.map((item, i) => `
-      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--comb)">
+      <div style="display:flex;align-items:center;gap:5px;padding:6px 0;border-bottom:1px solid var(--comb)">
         <span style="flex:1;font-size:13px;font-weight:600">${item.l} <span style="color:var(--text-soft)">(${item.unit})</span></span>
-        <button onclick="moveStockType(${i},-1)" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 6px" ${i===0?'disabled':''}>↑</button>
-        <button onclick="moveStockType(${i},1)" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 6px" ${i===st.length-1?'disabled':''}>↓</button>
-        <button onclick="deleteStockType(${i})" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--red-warn);padding:2px 6px">✕</button>
+        <button onclick="editStockType(${i})" style="background:none;border:1px solid #DDD;border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer" title="Düzenle">✏️</button>
+        <button onclick="moveStockType(${i},-1)" style="background:none;border:1px solid #DDD;border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer" ${i===0?'disabled':''}>↑</button>
+        <button onclick="moveStockType(${i},1)" style="background:none;border:1px solid #DDD;border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer" ${i===st.length-1?'disabled':''}>↓</button>
+        <button onclick="deleteStockType(${i})" style="background:none;border:none;font-size:19px;cursor:pointer;color:var(--red-warn);line-height:1;padding:0 3px">×</button>
+      </div>
+    `).join('');
+  }
+  const navEl = document.getElementById('setting-nav-icons-list');
+  if (navEl) {
+    const pages = [{p:'dashboard',n:'Ana Sayfa'},{p:'ozet',n:'Özet'},{p:'hives',n:'Kovanlar'},{p:'queens',n:'Ana Arı'},{p:'milk',n:'Arı Sütü'},{p:'sales',n:'Satışlar'},{p:'stock',n:'Stok'},{p:'expenses',n:'Giderler'},{p:'settings',n:'Ayarlar'}];
+    navEl.innerHTML = pages.map(({p,n}) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--smoke)">
+        <span style="font-size:20px;width:28px;text-align:center">${getNavIcon(p)}</span>
+        <span style="flex:1;font-size:13px;font-weight:600">${n}</span>
+        <input id="nav-icon-${p}" value="${getNavIcon(p)}" style="width:52px;text-align:center;font-size:18px;border:1px solid var(--comb-dark);border-radius:8px;padding:4px" maxlength="4">
+        <button onclick="setNavIcon('${p}',document.getElementById('nav-icon-${p}').value)" style="background:var(--honey);color:white;border:none;border-radius:8px;padding:4px 8px;font-size:12px;cursor:pointer">✓</button>
       </div>
     `).join('');
   }
@@ -3506,6 +3561,44 @@ function addHiveTypeItem() {
   const inp = document.getElementById('new-hive-type-input'), v = inp?.value.trim(); if (!v) return;
   const list = [...(settings.hiveTypes||DEFAULT_HIVE_TYPES)]; list.push(v);
   settings.hiveTypes = list; inp.value = ''; saveSettings(); renderSettingLists(); showToast('Kovan tipi eklendi');
+}
+
+function editHiveType(i) {
+  const list = [...(settings.hiveTypes||DEFAULT_HIVE_TYPES)];
+  const cur = list[i];
+  const nv = prompt('Kovan tipi düzenle:', cur);
+  if (nv === null || !nv.trim()) return;
+  list[i] = nv.trim();
+  settings.hiveTypes = list; saveSettings(); renderSettingLists(); showToast('Güncellendi');
+}
+
+function editBeeRace(i) {
+  const list = [...(settings.beeRaces||DEFAULT_BEE_RACES)];
+  const cur = list[i];
+  const nv = prompt('Arı ırkı düzenle:', cur);
+  if (nv === null || !nv.trim()) return;
+  list[i] = nv.trim();
+  settings.beeRaces = list; saveSettings(); renderSettingLists(); showToast('Güncellendi');
+}
+
+function editExpType(i) {
+  const list = [...(settings.expenseTypes||DEFAULT_EXPENSE_TYPES)];
+  const cur = list[i].l;
+  const nv = prompt('Gider türü düzenle (emoji + ad):', cur);
+  if (nv === null || !nv.trim()) return;
+  list[i] = {...list[i], l: nv.trim()};
+  settings.expenseTypes = list; saveSettings(); renderSettingLists(); renderExpenseFilterChips(); showToast('Güncellendi');
+}
+
+function editStockType(i) {
+  const list = [...(settings.stockTypes||DEFAULT_STOCK_TYPES)];
+  const cur = list[i];
+  const nl = prompt('Stok türü adı (emoji + ad):', cur.l);
+  if (nl === null) return;
+  const nu = prompt('Birim:', cur.unit);
+  if (nu === null) return;
+  if (nl.trim()) list[i] = {...cur, l: nl.trim(), unit: nu.trim() || cur.unit};
+  settings.stockTypes = list; saveSettings(); renderSettingLists(); showToast('Güncellendi');
 }
 
 function moveBeeRaceUp(i) { _moveStringItem('beeRaces',i,-1,DEFAULT_BEE_RACES); }
@@ -3918,11 +4011,11 @@ function renderOzet() {
   const totalSoldQ = data.queens.reduce((s,x)=>s+Number(x.sold||0),0);
   const acceptRate = totalGrafted ? ((totalAccepted/totalGrafted)*100).toFixed(0) : 0;
   document.getElementById('ozet-queens').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-      <div class="stat-box"><div class="stat-icon">🧪</div><div class="stat-val">${totalSeries}</div><div class="stat-lbl">Toplam Seri</div></div>
-      <div class="stat-box"><div class="stat-icon">👑</div><div class="stat-val color-honey">${totalGrafted}</div><div class="stat-lbl">Graftlanan</div></div>
-      <div class="stat-box"><div class="stat-icon">✅</div><div class="stat-val color-green">${totalAccepted}</div><div class="stat-lbl">Kabul (${acceptRate}%)</div></div>
-      <div class="stat-box"><div class="stat-icon">💰</div><div class="stat-val color-honey">${totalSoldQ}</div><div class="stat-lbl">Satılan</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+      <div class="stat-box stat-box-sm"><div class="stat-icon">🧪</div><div class="stat-val">${totalSeries}</div><div class="stat-lbl">Seri</div></div>
+      <div class="stat-box stat-box-sm"><div class="stat-icon">👑</div><div class="stat-val color-honey">${totalGrafted}</div><div class="stat-lbl">Graft</div></div>
+      <div class="stat-box stat-box-sm"><div class="stat-icon">✅</div><div class="stat-val color-green">${totalAccepted}</div><div class="stat-lbl">Kabul ${acceptRate}%</div></div>
+      <div class="stat-box stat-box-sm"><div class="stat-icon">💰</div><div class="stat-val color-honey">${totalSoldQ}</div><div class="stat-lbl">Satılan</div></div>
     </div>
   `;
 }
@@ -4260,6 +4353,7 @@ window.addEventListener('offline', function() { setSyncBadge('err'); });
 
 function startApp() {
   appReady = true;
+  renderNavIcons();
   if (!data.hives.length && !data.sales.length && !currentUser) loadDemoData();
   const adminSec = document.getElementById('admin-list-section');
   if (adminSec) adminSec.style.display = isAdmin() ? '' : 'none';
