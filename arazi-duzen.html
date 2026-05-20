@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arazi Düzeni — Beebook Prototip</title>
+<style>
+  :root {
+    --honey: #E8A020; --honey-dark: #B8860B; --forest: #2D5016;
+    --cream: #FFFDF0; --smoke: #F7F2E8; --comb: #FFF3C4; --comb-dark: #F0D060;
+    --text-dark: #1A1208; --text-soft: #8B7355;
+    --shadow: 0 2px 8px rgba(0,0,0,0.15);
+    --cell: 72px; /* grid hücresi genişliği */
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--cream); color: var(--text-dark); }
+
+  /* --- HEADER --- */
+  #header {
+    background: linear-gradient(135deg,#1565c0,#1976d2);
+    padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+    color: white; position: sticky; top: 0; z-index: 200;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  #header h1 { font-size: 17px; font-weight: 800; flex: 1; }
+  .hbtn {
+    background: rgba(255,255,255,0.2); border: none; color: white;
+    border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 700;
+    cursor: pointer; white-space: nowrap;
+  }
+  .hbtn:active { background: rgba(255,255,255,0.35); }
+  .hbtn.primary { background: var(--honey); }
+
+  /* --- TOOLBAR --- */
+  #toolbar {
+    background: white; border-bottom: 1px solid var(--comb-dark);
+    padding: 10px 14px; display: flex; gap: 8px; align-items: center;
+    flex-wrap: wrap; position: sticky; top: 48px; z-index: 150;
+  }
+  .tbtn {
+    background: var(--smoke); border: 1.5px solid var(--comb-dark);
+    border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700;
+    cursor: pointer; color: var(--text-dark); white-space: nowrap;
+  }
+  .tbtn.active, .tbtn:active { background: var(--honey); border-color: var(--honey-dark); color: white; }
+  #toolbar label { font-size: 12px; font-weight: 700; color: var(--text-soft); }
+  #toolbar input[type=range] { width: 90px; accent-color: var(--honey); }
+  #toolbar select { border: 1.5px solid var(--comb-dark); border-radius: 8px; padding: 5px 8px; font-size: 12px; background: var(--smoke); }
+
+  /* --- CANVAS AREA --- */
+  #canvas-wrap {
+    overflow: auto; width: 100%; height: calc(100vh - 108px);
+    background: #e8ead6;
+    background-image:
+      linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px);
+    background-size: var(--cell) var(--cell);
+    position: relative;
+  }
+  #canvas {
+    position: relative;
+    min-width: 2000px; min-height: 1400px;
+  }
+
+  /* --- HIVE ITEM --- */
+  .hive-item {
+    position: absolute; cursor: grab; user-select: none;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 3px; touch-action: none;
+  }
+  .hive-item:active { cursor: grabbing; }
+  .hive-item.selected .hive-body { outline: 3px solid #1565c0; outline-offset: 2px; border-radius: 4px; }
+  .hive-body {
+    background: var(--comb); border: 2px solid var(--honey-dark);
+    border-radius: 6px; display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-end;
+    padding: 4px 6px 5px; position: relative;
+    transition: box-shadow 0.15s;
+    box-shadow: var(--shadow);
+  }
+  .hive-body:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.22); }
+  .hive-num {
+    font-size: 15px; font-weight: 900; color: var(--honey-dark);
+    line-height: 1; text-align: center;
+  }
+  .hive-type-lbl { font-size: 9px; color: var(--text-soft); font-weight: 700; text-align: center; line-height: 1; margin-top: 2px; }
+  .hive-floor-badge {
+    position: absolute; top: 3px; right: 4px;
+    background: rgba(21,101,192,0.85); color: white;
+    font-size: 9px; font-weight: 900; border-radius: 3px; padding: 1px 4px; line-height: 1.4;
+  }
+  .hive-queen-dot {
+    position: absolute; top: 3px; left: 4px;
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 1.5px solid rgba(0,0,0,0.25);
+  }
+  .hive-svg-wrap { width: 100%; display: flex; justify-content: center; }
+  .hive-svg-wrap svg { display: block; }
+
+  /* Spacer */
+  .spacer-item {
+    position: absolute; cursor: grab; user-select: none;
+    touch-action: none;
+  }
+  .spacer-body {
+    background: transparent; border: 2px dashed rgba(0,0,0,0.25);
+    border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    color: rgba(0,0,0,0.3); font-size: 11px; font-weight: 700;
+  }
+  .spacer-item.selected .spacer-body { border-color: #1565c0; color: #1565c0; }
+
+  /* --- PANEL --- */
+  #side-panel {
+    position: fixed; right: 0; top: 108px; bottom: 0;
+    width: 220px; background: white; border-left: 1px solid var(--comb-dark);
+    overflow-y: auto; padding: 12px; z-index: 100;
+    display: none;
+  }
+  #side-panel.open { display: block; }
+  #side-panel h3 { font-size: 13px; font-weight: 800; margin-bottom: 10px; color: var(--forest); }
+  .panel-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; }
+  .panel-row label { font-weight: 700; color: var(--text-soft); }
+  .panel-row input, .panel-row select { border: 1px solid var(--comb-dark); border-radius: 6px; padding: 4px 6px; font-size: 12px; width: 90px; }
+  .panel-btn { width: 100%; background: var(--honey); color: white; border: none; border-radius: 8px; padding: 7px; font-size: 12px; font-weight: 700; cursor: pointer; margin-top: 4px; }
+  .panel-btn.danger { background: #e74c3c; margin-top: 6px; }
+
+  /* Legend */
+  #legend {
+    position: fixed; bottom: 12px; left: 12px; background: white;
+    border-radius: 10px; padding: 8px 12px; box-shadow: var(--shadow);
+    font-size: 11px; line-height: 1.8; z-index: 100;
+  }
+  #legend b { display: block; font-size: 12px; margin-bottom: 4px; }
+
+  /* Toast */
+  #toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: #333; color: white; padding: 8px 18px; border-radius: 20px;
+    font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s; z-index: 9999;
+  }
+  #toast.show { opacity: 1; }
+
+  @media (max-width: 600px) {
+    :root { --cell: 60px; }
+    #side-panel { width: 180px; top: 90px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>🗺️ Arazi Düzeni</h1>
+  <button class="hbtn" onclick="loadFromBeebook()">📥 Veri Yükle</button>
+  <button class="hbtn primary" onclick="saveLayout()">💾 Kaydet</button>
+</div>
+
+<div id="toolbar">
+  <button class="tbtn" id="btn-add-spacer" onclick="setMode('spacer')">+ Boşluk</button>
+  <button class="tbtn" id="btn-delete" onclick="deleteSelected()" style="color:#e74c3c">🗑️ Sil</button>
+  <div style="width:1px;height:24px;background:var(--comb-dark)"></div>
+  <label>Boyut</label>
+  <input type="range" id="zoom-slider" min="40" max="120" value="72" oninput="setZoom(this.value)">
+  <div style="width:1px;height:24px;background:var(--comb-dark)"></div>
+  <label>Izgara:</label>
+  <select id="grid-snap" onchange="setSnap(this.value)">
+    <option value="1">Serbest</option>
+    <option value="half">½ Hücre</option>
+    <option value="1" selected>1 Hücre</option>
+    <option value="2">2 Hücre</option>
+  </select>
+  <div style="flex:1"></div>
+  <span id="sel-info" style="font-size:12px;color:var(--text-soft);font-weight:700"></span>
+</div>
+
+<div id="canvas-wrap">
+  <div id="canvas"></div>
+</div>
+
+<div id="side-panel">
+  <h3>✏️ Seçili Öğe</h3>
+  <div id="panel-content"></div>
+</div>
+
+<div id="legend">
+  <b>Nasıl Kullanılır</b>
+  Sürükle → Yerleştir<br>
+  Tıkla → Seç / Özellik<br>
+  Çift tıkla → Odaklan<br>
+  <kbd>Del</kbd> → Sil<br>
+  <kbd>Esc</kbd> → Seçimi Kaldır
+</div>
+
+<div id="toast"></div>
+
+<input type="file" id="file-input" accept=".json" style="display:none" onchange="handleFileLoad(event)">
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+let hives = [];
+let layout = {}; // id -> {x, y}
+let selectedId = null;
+let cellSize = 72;
+let snapMode = 1; // cells
+
+// Queen color map
+const qColorMap = { white:'#FFFFFF', yellow:'#FFD700', red:'#E74C3C', green:'#27AE60', blue:'#3498DB', unpainted:'transparent' };
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  // Try to load from localStorage
+  const saved = localStorage.getItem('beebook_arazi');
+  if (saved) {
+    try {
+      const d = JSON.parse(saved);
+      hives = d.hives || [];
+      layout = d.layout || {};
+    } catch(e) {}
+  }
+
+  // Also try to load beebook data from localStorage (same browser)
+  if (!hives.length) {
+    tryLoadBeebookData();
+  }
+
+  renderAll();
+  setupKeyboard();
+});
+
+function tryLoadBeebookData() {
+  try {
+    const raw = localStorage.getItem('aribook_data');
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d.hives && d.hives.length) {
+      hives = d.hives;
+      autoArrange();
+      showToast('Beebook kovanları otomatik yüklendi (' + hives.length + ' kovan)');
+    }
+  } catch(e) {}
+}
+
+function loadFromBeebook() {
+  // Try live data first
+  try {
+    const raw = localStorage.getItem('aribook_data');
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d.hives && d.hives.length) {
+        hives = d.hives;
+        // Keep existing layout positions, add new hives
+        const newHives = hives.filter(h => !layout[h.id]);
+        if (newHives.length) {
+          autoArrangeNew(newHives);
+          showToast(d.hives.length + ' kovan yüklendi, ' + newHives.length + ' yeni yerleştirildi');
+        } else {
+          showToast(d.hives.length + ' kovan yüklendi');
+        }
+        renderAll();
+        return;
+      }
+    }
+  } catch(e) {}
+  // Fallback to file
+  document.getElementById('file-input').click();
+}
+
+function handleFileLoad(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      // Support both beebook export format and direct hives array
+      const hivesData = d.data?.hives || d.hives || [];
+      if (!hivesData.length) { showToast('Kovan verisi bulunamadı'); return; }
+      hives = hivesData;
+      const newHives = hives.filter(h => !layout[h.id]);
+      autoArrangeNew(newHives);
+      renderAll();
+      showToast(hives.length + ' kovan yüklendi');
+    } catch(err) {
+      showToast('Dosya okunamadı');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ============================================================
+// AUTO ARRANGE
+// ============================================================
+function autoArrange() {
+  layout = {};
+  autoArrangeNew(hives);
+}
+
+function autoArrangeNew(list) {
+  const cols = Math.ceil(Math.sqrt(list.length + 1));
+  let col = 0, row = 0;
+  // Find used cells to avoid overlap
+  const usedCells = new Set(Object.values(layout).map(p => p.col + ',' + p.row));
+  list.forEach(h => {
+    while (usedCells.has(col + ',' + row)) { col++; if (col >= cols) { col = 0; row++; } }
+    layout[h.id] = { col, row };
+    usedCells.add(col + ',' + row);
+    col++; if (col >= cols) { col = 0; row++; }
+  });
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+const canvas = document.getElementById('canvas');
+
+function renderAll() {
+  canvas.innerHTML = '';
+  // Render spacers
+  const spacers = JSON.parse(localStorage.getItem('beebook_arazi_spacers') || '[]');
+  spacers.forEach(sp => renderSpacer(sp));
+  // Render hives
+  hives.forEach(h => renderHive(h));
+  updateSelPanel();
+}
+
+function colRowToPx(col, row) {
+  return { x: col * cellSize, y: row * cellSize };
+}
+
+function pxToColRow(x, y) {
+  if (snapMode === 0) return { col: x / cellSize, row: y / cellSize };
+  const s = snapMode;
+  return { col: Math.round(x / cellSize / s) * s, row: Math.round(y / cellSize / s) * s };
+}
+
+function getHivePos(h) {
+  const pos = layout[h.id];
+  if (!pos) return { x: 40, y: 40 };
+  if (pos.x !== undefined) return pos;
+  return colRowToPx(pos.col || 0, pos.row || 0);
+}
+
+function floors(h) { return Math.max(1, Number(h.floors) || 1); }
+
+function hiveWidth(h) { return cellSize - 8; }
+function hiveHeight(h) { return Math.round((cellSize - 8) * (0.55 + 0.45 * floors(h))); }
+
+function getQueenColor(h) {
+  return qColorMap[h.queenColor] || '#CCC';
+}
+
+function hiveBodyColor(h) {
+  const status = h.queenStatus;
+  if (status === 'yes' || status === 'bakire' || status === 'new' || status === 'meme') return '#e8f5e9';
+  if (status === 'no') return '#ffebee';
+  return '#fffde7';
+}
+function hiveBorderColor(h) {
+  const status = h.queenStatus;
+  if (status === 'yes' || status === 'bakire' || status === 'new' || status === 'meme') return '#43a047';
+  if (status === 'no') return '#e53935';
+  return '#F0D060';
+}
+
+function renderHive(h) {
+  const pos = getHivePos(h);
+  const w = hiveWidth(h);
+  const fls = floors(h);
+
+  const el = document.createElement('div');
+  el.className = 'hive-item';
+  el.dataset.id = h.id;
+  el.dataset.type = 'hive';
+  el.style.left = pos.x + 'px';
+  el.style.top = pos.y + 'px';
+  el.style.width = (w + 8) + 'px';
+
+  // SVG hive body
+  const svgH = Math.round(w * (0.55 + 0.45 * fls));
+  const svg = buildHiveSvg(h, w, svgH, fls);
+
+  // Floor badge inside SVG wrapper
+  const svgWrap = document.createElement('div');
+  svgWrap.className = 'hive-svg-wrap';
+  svgWrap.style.position = 'relative';
+  svgWrap.innerHTML = svg;
+  if (fls > 1) {
+    const badge = document.createElement('span');
+    badge.className = 'hive-floor-badge';
+    badge.textContent = fls + 'k';
+    svgWrap.appendChild(badge);
+  }
+
+  // Queen dot
+  const qDot = document.createElement('span');
+  qDot.className = 'hive-queen-dot';
+  qDot.style.background = getQueenColor(h);
+  if (h.queenColor === 'unpainted') qDot.style.border = '1.5px dashed #999';
+  svgWrap.appendChild(qDot);
+
+  // Number label
+  const numEl = document.createElement('div');
+  numEl.className = 'hive-num';
+  numEl.textContent = '#' + h.num;
+
+  // Type + race label
+  const lblEl = document.createElement('div');
+  lblEl.className = 'hive-type-lbl';
+  lblEl.textContent = (h.race ? h.race.slice(0,6) : '') + (h.generation ? ' ' + h.generation : '');
+
+  el.appendChild(svgWrap);
+  el.appendChild(numEl);
+  el.appendChild(lblEl);
+
+  makeDraggable(el, h.id, 'hive');
+  el.addEventListener('click', (e) => { e.stopPropagation(); selectItem(h.id, 'hive'); });
+  canvas.appendChild(el);
+}
+
+function buildHiveSvg(h, w, svgH, fls) {
+  const c = {
+    body: '#D4A017', body2: '#F0C040', roof: '#C47A1E',
+    peak: '#9A5A10', base: '#8B5E3C', frame: '#F5E090'
+  };
+  // Simple top-down schematic: rectangle per floor + roof indicator
+  // Use side-view style (similar to existing SVG)
+  const bw = Math.round(w * 0.82);
+  const bx = Math.round((w - bw) / 2);
+  const baseH = 4;
+  const roofH = Math.round(svgH * 0.18);
+  const floorH = Math.round((svgH - baseH - roofH - 2) / fls);
+  let svg = `<svg viewBox="0 0 ${w} ${svgH}" width="${w}" height="${svgH}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Base
+  svg += `<rect x="${bx-2}" y="${svgH-baseH}" width="${bw+4}" height="${baseH}" rx="1.5" fill="${c.base}"/>`;
+
+  // Floors (bottom to top)
+  for (let f = 0; f < fls; f++) {
+    const fy = svgH - baseH - (f + 1) * floorH;
+    const fillColor = f % 2 === 0 ? c.body : c.body2;
+    svg += `<rect x="${bx}" y="${fy}" width="${bw}" height="${floorH}" rx="2" fill="${fillColor}" stroke="${c.base}" stroke-width="1.5"/>`;
+    if (floorH > 14) {
+      // Mid line on tall floors
+      svg += `<line x1="${bx}" y1="${fy + Math.floor(floorH/2)}" x2="${bx+bw}" y2="${fy + Math.floor(floorH/2)}" stroke="${c.base}" stroke-width="0.8" opacity="0.6"/>`;
+    }
+  }
+
+  // Roof
+  const roofY = svgH - baseH - fls * floorH - roofH;
+  svg += `<rect x="${bx-2}" y="${roofY + Math.round(roofH * 0.55)}" width="${bw+4}" height="${Math.round(roofH*0.45)}" rx="1" fill="${c.roof}"/>`;
+  svg += `<polygon points="${bx-4},${roofY + Math.round(roofH*0.55)} ${w/2},${roofY} ${bx+bw+4},${roofY + Math.round(roofH*0.55)}" fill="${c.peak}"/>`;
+
+  svg += '</svg>';
+  return svg;
+}
+
+function renderSpacer(sp) {
+  const el = document.createElement('div');
+  el.className = 'spacer-item';
+  el.dataset.id = sp.id;
+  el.dataset.type = 'spacer';
+  el.style.left = sp.x + 'px';
+  el.style.top = sp.y + 'px';
+
+  const body = document.createElement('div');
+  body.className = 'spacer-body';
+  body.style.width = (sp.w || cellSize - 8) + 'px';
+  body.style.height = (sp.h || cellSize - 8) + 'px';
+  body.textContent = '⬜';
+  el.appendChild(body);
+
+  makeDraggable(el, sp.id, 'spacer');
+  el.addEventListener('click', (e) => { e.stopPropagation(); selectItem(sp.id, 'spacer'); });
+  canvas.appendChild(el);
+}
+
+// ============================================================
+// DRAG
+// ============================================================
+function makeDraggable(el, id, type) {
+  let startX, startY, startLeft, startTop, dragging = false;
+
+  function onDown(e) {
+    e.preventDefault();
+    dragging = true;
+    const touch = e.touches ? e.touches[0] : e;
+    startX = touch.clientX; startY = touch.clientY;
+    startLeft = parseFloat(el.style.left) || 0;
+    startTop = parseFloat(el.style.top) || 0;
+    el.style.zIndex = 1000;
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onUp);
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    const touch = e.touches ? e.touches[0] : e;
+    let nx = startLeft + (touch.clientX - startX);
+    let ny = startTop + (touch.clientY - startY);
+
+    // Snap
+    if (snapMode > 0) {
+      nx = Math.round(nx / (cellSize * snapMode)) * (cellSize * snapMode);
+      ny = Math.round(ny / (cellSize * snapMode)) * (cellSize * snapMode);
+    }
+    nx = Math.max(0, nx); ny = Math.max(0, ny);
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+
+  function onUp() {
+    if (!dragging) return;
+    dragging = false;
+    el.style.zIndex = '';
+    const nx = parseFloat(el.style.left);
+    const ny = parseFloat(el.style.top);
+    if (type === 'hive') {
+      layout[id] = { x: nx, y: ny };
+    } else {
+      updateSpacerPos(id, nx, ny);
+    }
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend', onUp);
+  }
+
+  el.addEventListener('mousedown', onDown);
+  el.addEventListener('touchstart', onDown, { passive: false });
+}
+
+function updateSpacerPos(id, x, y) {
+  const spacers = JSON.parse(localStorage.getItem('beebook_arazi_spacers') || '[]');
+  const sp = spacers.find(s => s.id === id);
+  if (sp) { sp.x = x; sp.y = y; localStorage.setItem('beebook_arazi_spacers', JSON.stringify(spacers)); }
+}
+
+// ============================================================
+// SELECTION
+// ============================================================
+function selectItem(id, type) {
+  // deselect previous
+  document.querySelectorAll('.hive-item.selected, .spacer-item.selected').forEach(el => el.classList.remove('selected'));
+  selectedId = id;
+  const el = document.querySelector(`[data-id="${id}"]`);
+  if (el) el.classList.add('selected');
+  updateSelPanel();
+}
+
+canvas.addEventListener('click', () => {
+  document.querySelectorAll('.hive-item.selected, .spacer-item.selected').forEach(el => el.classList.remove('selected'));
+  selectedId = null;
+  updateSelPanel();
+});
+
+function updateSelPanel() {
+  const panel = document.getElementById('side-panel');
+  const info = document.getElementById('sel-info');
+  if (!selectedId) {
+    panel.classList.remove('open');
+    info.textContent = hives.length + ' kovan';
+    return;
+  }
+  const h = hives.find(x => x.id === selectedId);
+  if (h) {
+    info.textContent = '#' + h.num + ' seçili';
+    panel.classList.add('open');
+    document.getElementById('panel-content').innerHTML = `
+      <div class="panel-row"><label>No</label><span style="font-weight:900">#${h.num}</span></div>
+      <div class="panel-row"><label>Tip</label><span>${h.type || '-'}</span></div>
+      <div class="panel-row"><label>Irk</label><span>${h.race || '-'}</span></div>
+      <div class="panel-row"><label>Kuşak</label><span>${h.generation || '-'}</span></div>
+      <div class="panel-row"><label>Kat</label><span>${h.floors || 1}</span></div>
+      <div class="panel-row"><label>Güç</label><span>${h.strength || '-'}/5</span></div>
+      <div class="panel-row"><label>Ana Arı</label><span>${queenLabel(h.queenStatus)}</span></div>
+      <button class="panel-btn" onclick="centerOn('${h.id}')">🎯 Odaklan</button>
+      <hr style="margin:8px 0;border-color:var(--comb-dark)">
+      <button class="panel-btn danger" onclick="removeFromLayout('${h.id}')">Düzenden Çıkar</button>
+    `;
+  } else {
+    panel.classList.remove('open');
+  }
+}
+
+function queenLabel(s) {
+  return { yes:'✅ Var', no:'❌ Yok', unknown:'❓', bakire:'🐝 Bakire', new:'🐝 Bakire', meme:'🫙 Meme' }[s] || s;
+}
+
+function centerOn(id) {
+  const el = document.querySelector(`[data-id="${id}"]`);
+  if (!el) return;
+  const wrap = document.getElementById('canvas-wrap');
+  const x = parseFloat(el.style.left) + cellSize/2 - wrap.clientWidth/2;
+  const y = parseFloat(el.style.top) + cellSize/2 - wrap.clientHeight/2;
+  wrap.scrollTo({ left: Math.max(0,x), top: Math.max(0,y), behavior: 'smooth' });
+}
+
+function removeFromLayout(id) {
+  delete layout[id];
+  selectedId = null;
+  renderAll();
+  showToast('Düzenden çıkarıldı');
+}
+
+// ============================================================
+// SPACER
+// ============================================================
+let addingSpacerMode = false;
+
+function setMode(m) {
+  if (m === 'spacer') {
+    addingSpacerMode = !addingSpacerMode;
+    document.getElementById('btn-add-spacer').classList.toggle('active', addingSpacerMode);
+    showToast(addingSpacerMode ? 'Kanvasa tıklayarak boşluk ekle' : 'Boşluk ekleme iptal');
+  }
+}
+
+canvas.addEventListener('dblclick', (e) => {
+  if (!addingSpacerMode) return;
+  const rect = canvas.getBoundingClientRect();
+  const wrap = document.getElementById('canvas-wrap');
+  let x = e.clientX - rect.left + wrap.scrollLeft;
+  let y = e.clientY - rect.top + wrap.scrollTop;
+  if (snapMode > 0) {
+    x = Math.round(x / (cellSize * snapMode)) * (cellSize * snapMode);
+    y = Math.round(y / (cellSize * snapMode)) * (cellSize * snapMode);
+  }
+  const sp = { id: 'sp_' + Date.now(), x, y, w: cellSize - 8, h: cellSize - 8 };
+  const spacers = JSON.parse(localStorage.getItem('beebook_arazi_spacers') || '[]');
+  spacers.push(sp);
+  localStorage.setItem('beebook_arazi_spacers', JSON.stringify(spacers));
+  renderSpacer(sp);
+  showToast('Boşluk eklendi');
+});
+
+// ============================================================
+// DELETE
+// ============================================================
+function deleteSelected() {
+  if (!selectedId) { showToast('Önce bir öğe seç'); return; }
+  if (selectedId.startsWith('sp_')) {
+    const spacers = JSON.parse(localStorage.getItem('beebook_arazi_spacers') || '[]');
+    const filtered = spacers.filter(s => s.id !== selectedId);
+    localStorage.setItem('beebook_arazi_spacers', JSON.stringify(filtered));
+  } else {
+    delete layout[selectedId];
+  }
+  selectedId = null;
+  renderAll();
+  showToast('Silindi');
+}
+
+function setupKeyboard() {
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Delete' || e.key === 'Backspace') { if (selectedId) deleteSelected(); }
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.hive-item.selected, .spacer-item.selected').forEach(el => el.classList.remove('selected'));
+      selectedId = null; updateSelPanel();
+    }
+    // Arrow keys to nudge selected
+    if (selectedId && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+      const step = e.shiftKey ? cellSize : (snapMode > 0 ? cellSize * snapMode : 8);
+      const el = document.querySelector(`[data-id="${selectedId}"]`);
+      if (!el) return;
+      let x = parseFloat(el.style.left); let y = parseFloat(el.style.top);
+      if (e.key === 'ArrowLeft') x -= step;
+      if (e.key === 'ArrowRight') x += step;
+      if (e.key === 'ArrowUp') y -= step;
+      if (e.key === 'ArrowDown') y += step;
+      x = Math.max(0, x); y = Math.max(0, y);
+      el.style.left = x + 'px'; el.style.top = y + 'px';
+      if (!selectedId.startsWith('sp_')) layout[selectedId] = { x, y };
+      else updateSpacerPos(selectedId, x, y);
+    }
+  });
+}
+
+// ============================================================
+// ZOOM / SNAP
+// ============================================================
+function setZoom(v) {
+  cellSize = Number(v);
+  document.documentElement.style.setProperty('--cell', cellSize + 'px');
+  renderAll();
+}
+
+function setSnap(v) {
+  snapMode = v === '1' ? 1 : v === 'half' ? 0.5 : v === '2' ? 2 : 0;
+}
+
+// ============================================================
+// SAVE / EXPORT
+// ============================================================
+function saveLayout() {
+  const data = { hives, layout, savedAt: new Date().toISOString() };
+  localStorage.setItem('beebook_arazi', JSON.stringify(data));
+  showToast('Düzen kaydedildi ✓');
+}
+
+// Export as JSON for integration
+function exportLayout() {
+  const data = { hives, layout, savedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'arazi-duzen.json';
+  a.click();
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>
