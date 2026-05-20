@@ -88,22 +88,21 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 .hi.dragging{cursor:grabbing;filter:drop-shadow(0 8px 20px rgba(0,0,0,.5));z-index:500!important;transition:none}
 .hi.sel .hbody{outline:3px solid #64b5f6;outline-offset:3px}
 .hbody{border-radius:5px;position:relative;overflow:visible}
-.hnum{
-  font-size:13px;font-weight:900;color:white;
-  text-shadow:0 1px 3px rgba(0,0,0,.8);line-height:1;text-align:center;
+.hbody svg{width:100%;height:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+.hnum-overlay{
+  position:absolute;bottom:27%;left:50%;
+  transform:translateX(-50%);
+  font-size:11px;font-weight:900;color:white;
+  text-shadow:0 1px 4px rgba(0,0,0,1),0 0 10px rgba(0,0,0,.7);
+  pointer-events:none;white-space:nowrap;letter-spacing:.3px;
 }
-.hrace{
-  font-size:9px;color:rgba(255,255,255,.7);
-  text-align:center;line-height:1;max-width:70px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-.hfloor-badge{
-  position:absolute;top:-6px;right:-6px;
-  background:var(--blue);color:white;
-  font-size:9px;font-weight:900;border-radius:10px;
-  padding:2px 5px;line-height:1.3;
-  border:1.5px solid rgba(255,255,255,.4);
-  box-shadow:0 1px 4px rgba(0,0,0,.4);
+.hrace-overlay{
+  position:absolute;bottom:12%;left:50%;
+  transform:translateX(-50%);
+  font-size:8px;color:rgba(255,255,255,.92);
+  text-shadow:0 1px 3px rgba(0,0,0,1);
+  pointer-events:none;white-space:nowrap;
+  max-width:90%;overflow:hidden;text-overflow:ellipsis;
 }
 .hqdot{
   position:absolute;top:-5px;left:-5px;
@@ -142,7 +141,9 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 }
 .popup-hdr{
   display:flex;align-items:center;gap:10px;
-  padding:14px 18px 10px;border-bottom:1px solid var(--comb-dark);
+  padding:14px 18px 12px;
+  background:linear-gradient(135deg,var(--comb),#FFF8DC);
+  border-bottom:2px solid var(--honey);
 }
 .popup-num{
   font-size:24px;font-weight:900;color:var(--honey-dark);
@@ -355,11 +356,13 @@ function handleFile(e) {
 function placeNew(list) {
   if (!list.length) return;
   const cols = Math.max(4, Math.ceil(Math.sqrt(list.length)));
-  const used = new Set(Object.values(positions).map(p=>`${Math.round(p.x/cellPx)},${Math.round(p.y/cellPx)}`));
+  const cStep = Math.round(cellPx * 1.08);
+  const rStep = Math.round(cellPx * 1.6);
+  const used = new Set(Object.values(positions).map(p=>`${Math.round(p.x/cStep)},${Math.round(p.y/rStep)}`));
   let c=0, r=0;
   list.forEach(h => {
     while (used.has(`${c},${r}`)) { c++; if(c>=cols){c=0;r++;} }
-    positions[h.id] = { x: c*cellPx + 20, y: r*cellPx + 20 };
+    positions[h.id] = { x: c*cStep + 20, y: r*rStep + 20 };
     used.add(`${c},${r}`); c++; if(c>=cols){c=0;r++;}
   });
 }
@@ -384,27 +387,32 @@ function render() {
 function renderHive(h) {
   const pos = positions[h.id] || { x:20, y:20 };
   const fls = Math.max(1, Number(h.floors)||1);
-  const W = Math.round(cellPx * 0.78);
-  const H = Math.round(W * (0.7 + 0.38 * (fls-1)));
+  const W = Math.round(cellPx * 0.85);
 
   const el = document.createElement('div');
   el.className = 'hi';
   el.dataset.id = h.id;
-  el.style.cssText = `left:${pos.x}px;top:${pos.y}px;width:${W+12}px`;
+  el.style.cssText = `left:${pos.x}px;top:${pos.y}px;width:${W}px`;
   if (selectedId === h.id) el.classList.add('sel');
 
-  // SVG
   const svgWrap = document.createElement('div');
   svgWrap.className = 'hbody';
   svgWrap.style.width = W + 'px';
-  svgWrap.innerHTML = buildSvg(h, W, H, fls);
+  svgWrap.innerHTML = getHiveTypeSvg(h.type, fls);
 
-  // Floor badge
-  if (fls > 1) {
-    const fb = document.createElement('div');
-    fb.className = 'hfloor-badge';
-    fb.textContent = fls + 'k';
-    svgWrap.appendChild(fb);
+  // Number overlay inside hive
+  const numEl = document.createElement('div');
+  numEl.className = 'hnum-overlay';
+  numEl.textContent = '#' + h.num;
+  svgWrap.appendChild(numEl);
+
+  // Race overlay below number
+  const raceText = [h.race, h.generation].filter(Boolean).join(' ');
+  if (raceText) {
+    const raceEl = document.createElement('div');
+    raceEl.className = 'hrace-overlay';
+    raceEl.textContent = raceText;
+    svgWrap.appendChild(raceEl);
   }
 
   // Queen color dot
@@ -412,20 +420,10 @@ function renderHive(h) {
   qd.className = 'hqdot';
   const qc = QC[h.queenColor] || '#CCC';
   qd.style.background = qc;
-  if (h.queenColor==='unpainted') qd.style.cssText += 'background:white;border:2px dashed #888';
+  if (h.queenColor==='unpainted') qd.style.cssText += ';background:white;border:2px dashed #888';
   svgWrap.appendChild(qd);
 
-  const numEl = document.createElement('div');
-  numEl.className = 'hnum';
-  numEl.textContent = '#' + h.num;
-
-  const raceEl = document.createElement('div');
-  raceEl.className = 'hrace';
-  raceEl.textContent = [h.race, h.generation].filter(Boolean).join(' ');
-
   el.appendChild(svgWrap);
-  el.appendChild(numEl);
-  if (raceEl.textContent) el.appendChild(raceEl);
 
   attachDrag(el, h.id, 'hive');
   el.addEventListener('dblclick', e => { e.stopPropagation(); openPopup(h.id); });
@@ -433,64 +431,26 @@ function renderHive(h) {
   canvas.appendChild(el);
 }
 
-// ─── SVG BUILDER ───────────────────────────────────────────
-function buildSvg(h, W, H, fls) {
-  const c = {
-    body:  ['#C8901A','#D4A830','#BFAA60','#9E8050'],  // per-floor colors
-    roof:  '#A0621A',
-    peak:  '#7A4A10',
-    base:  '#6B4020',
-    line:  '#8B5E20',
-    entry: '#3A2010',
+// ─── SVG BUILDER (programla aynı görseller) ────────────────
+function getHiveTypeSvg(type, floors) {
+  const c = { body:'#D4A017', body2:'#F0C040', roof:'#C47A1E', peak:'#9A5A10', base:'#8B5E3C', frame:'#F5E090', log:'#A0703A' };
+  const twoFloor = Number(floors) >= 2;
+  const langstroth = twoFloor
+    ? `<svg viewBox="0 0 40 64" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="56" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="42" width="34" height="14" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="49" x2="37" y2="49" stroke="${c.base}" stroke-width="1"/><rect x="3" y="28" width="34" height="14" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="35" x2="37" y2="35" stroke="${c.base}" stroke-width="1"/><rect x="1" y="23" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,23 20,13 40,23" fill="${c.peak}"/></svg>`
+    : `<svg viewBox="0 0 40 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="30" width="34" height="14" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="37" x2="37" y2="37" stroke="${c.base}" stroke-width="1"/><rect x="3" y="20" width="34" height="10" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="1" y="15" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,15 20,5 40,15" fill="${c.peak}"/></svg>`;
+  const dadant = twoFloor
+    ? `<svg viewBox="0 0 44 64" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="56" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="40" width="40" height="16" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="48" x2="42" y2="48" stroke="${c.base}" stroke-width="1"/><rect x="2" y="24" width="40" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="32" x2="42" y2="32" stroke="${c.base}" stroke-width="1"/><rect x="3" y="19" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="2,19 22,10 42,19" fill="${c.peak}"/></svg>`
+    : `<svg viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="26" width="40" height="18" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="35" x2="42" y2="35" stroke="${c.base}" stroke-width="1"/><rect x="6" y="18" width="32" height="8" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="3" y="13" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="2,13 22,4 42,13" fill="${c.peak}"/></svg>`;
+  const svgs = {
+    'Langstroth': langstroth,
+    'Dadant': dadant,
+    'Yerli': `<svg viewBox="0 0 50 38" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="6" width="38" height="26" rx="13" fill="${c.log}" stroke="#5A3A20" stroke-width="1.5"/><line x1="6" y1="14" x2="42" y2="14" stroke="#5A3A20" stroke-width="0.8"/><line x1="5" y1="19" x2="43" y2="19" stroke="#5A3A20" stroke-width="0.8"/><line x1="6" y1="24" x2="42" y2="24" stroke="#5A3A20" stroke-width="0.8"/><ellipse cx="43" cy="19" rx="6" ry="11.5" fill="#C4956A" stroke="#5A3A20" stroke-width="1.5"/><circle cx="8" cy="24" r="2.5" fill="#3A2010"/></svg>`,
+    'Çerçeveli': `<svg viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="16" width="38" height="28" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><rect x="7" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="15" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="23" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="31" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="1" y="11" width="42" height="5" rx="1" fill="${c.roof}"/><polygon points="0,11 22,2 44,11" fill="${c.peak}"/></svg>`,
+    'Ana Arı Kovanı': `<svg viewBox="0 0 36 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="32" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="26" width="30" height="18" rx="2" fill="#F5C842" stroke="${c.base}" stroke-width="1.5"/><text x="18" y="40" font-size="13" text-anchor="middle" fill="${c.base}" font-family="serif">♛</text><rect x="5" y="18" width="26" height="8" rx="2" fill="#F8D860" stroke="${c.base}" stroke-width="1.5"/><rect x="2" y="13" width="32" height="5" rx="1" fill="${c.roof}"/><polygon points="1,13 18,4 35,13" fill="${c.peak}"/></svg>`,
+    'Nükleus (Ruşet)': `<svg viewBox="0 0 46 48" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="40" width="42" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="24" width="19" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="25" y="24" width="19" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><ellipse cx="11.5" cy="39.5" rx="3" ry="1" fill="#3A2010"/><ellipse cx="34.5" cy="39.5" rx="3" ry="1" fill="#3A2010"/><rect x="2" y="17" width="42" height="7" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><rect x="1" y="12" width="44" height="5" rx="1" fill="${c.roof}"/><polygon points="0,12 23,3 46,12" fill="${c.peak}"/></svg>`,
+    'Diğer': `<svg viewBox="0 0 40 48" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="40" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="22" width="34" height="18" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="31" x2="37" y2="31" stroke="${c.base}" stroke-width="1"/><rect x="1" y="17" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,17 20,7 40,17" fill="${c.peak}"/></svg>`,
   };
-
-  const bx = Math.round(W*0.1), bw = Math.round(W*0.8);
-  const baseH = Math.round(H*0.07);
-  const roofTotalH = Math.round(H*0.22);
-  const roofFlatH = Math.round(roofTotalH*0.38);
-  const peakH = roofTotalH - roofFlatH;
-  const bodyZone = H - baseH - roofTotalH;
-  const floorH = Math.round(bodyZone / fls);
-
-  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">`;
-
-  // Base board
-  svg += `<rect x="${bx-3}" y="${H-baseH}" width="${bw+6}" height="${baseH}" rx="2" fill="${c.base}"/>`;
-
-  // Entry hole on bottom floor
-  const entryW = Math.round(bw*0.35);
-  const entryH = Math.round(baseH*0.55);
-  svg += `<rect x="${bx + Math.round((bw-entryW)/2)}" y="${H-baseH-1}" width="${entryW}" height="${entryH+1}" rx="1" fill="${c.entry}"/>`;
-
-  // Floors (bottom = index 0)
-  for (let f = 0; f < fls; f++) {
-    const fy = H - baseH - (f+1)*floorH;
-    const fc = c.body[f % c.body.length];
-    // Slight gradient simulation with two rects
-    svg += `<rect x="${bx}" y="${fy}" width="${bw}" height="${floorH}" rx="2" fill="${fc}" stroke="${c.line}" stroke-width="1.2"/>`;
-    // Inner frame detail (bee frames)
-    if (floorH > 16) {
-      const fx = bx + Math.round(bw*0.12);
-      const fw = Math.round(bw*0.76);
-      const fiy = fy + Math.round(floorH*0.2);
-      const fih = Math.round(floorH*0.6);
-      svg += `<rect x="${fx}" y="${fiy}" width="${fw}" height="${fih}" rx="1" fill="none" stroke="${c.line}" stroke-width="0.8" stroke-dasharray="2,2" opacity=".6"/>`;
-    }
-    // Floor divider (except bottom)
-    if (f < fls-1) {
-      svg += `<rect x="${bx-2}" y="${fy+floorH-2}" width="${bw+4}" height="4" rx="1" fill="${c.base}"/>`;
-    }
-  }
-
-  // Roof flat
-  const rfY = H - baseH - fls*floorH - roofFlatH;
-  svg += `<rect x="${bx-4}" y="${rfY}" width="${bw+8}" height="${roofFlatH}" rx="1.5" fill="${c.roof}"/>`;
-  // Roof peak
-  const peakY = rfY - peakH;
-  svg += `<polygon points="${bx-6},${rfY} ${W/2},${peakY} ${bx+bw+6},${rfY}" fill="${c.peak}"/>`;
-
-  svg += '</svg>';
-  return svg;
+  return svgs[type] || svgs['Diğer'];
 }
 
 function renderSpacer(sp) {
