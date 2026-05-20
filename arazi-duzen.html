@@ -15,7 +15,7 @@
   --cell:80px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:#2e3b20;color:var(--text-dark)}
+html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:var(--text-dark)}
 
 /* ── HEADER ── */
 #hdr{
@@ -37,24 +37,24 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 /* ── TOOLBAR ── */
 #toolbar{
   height:46px;min-height:46px;
-  background:#1a2412;border-bottom:1px solid #3a4a28;
+  background:var(--smoke);border-bottom:1px solid #E0D0B0;
   display:flex;align-items:center;gap:6px;padding:0 10px;
   overflow-x:auto;z-index:200;
 }
 #toolbar::-webkit-scrollbar{display:none}
 .tbtn{
-  background:#2e3b20;border:1.5px solid #4a5e30;
-  color:#cdd9b0;border-radius:7px;padding:5px 10px;
+  background:white;border:1.5px solid #E0D0B0;
+  color:var(--text-mid);border-radius:7px;padding:5px 10px;
   font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;
   transition:all .15s;flex-shrink:0;
 }
 .tbtn.active,.tbtn:active{background:var(--honey);border-color:var(--honey-dark);color:#1a1208}
-.sep{width:1px;height:24px;background:#3a4a28;flex-shrink:0;margin:0 2px}
-.tlab{font-size:11px;color:#8a9e60;font-weight:700;white-space:nowrap;flex-shrink:0}
+.sep{width:1px;height:24px;background:#E0D0B0;flex-shrink:0;margin:0 2px}
+.tlab{font-size:11px;color:var(--text-soft);font-weight:700;white-space:nowrap;flex-shrink:0}
 #zoom-range{accent-color:var(--honey);width:80px;flex-shrink:0}
 #sel-badge{
-  background:rgba(255,255,255,.1);border-radius:6px;
-  padding:3px 8px;font-size:11px;font-weight:700;color:#cdd9b0;
+  background:var(--comb);border-radius:6px;
+  padding:3px 8px;font-size:11px;font-weight:700;color:var(--text-mid);
   white-space:nowrap;flex-shrink:0;
 }
 
@@ -123,22 +123,21 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 
 /* ── POPUP MODAL ── */
 #overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:800;
-  display:none;align-items:flex-end;justify-content:center;
+  position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+  z-index:800;display:flex;align-items:center;justify-content:center;padding:20px;
+  opacity:0;pointer-events:none;transition:opacity .25s;
 }
-#overlay.open{display:flex}
+#overlay.open{opacity:1;pointer-events:all;}
 #popup{
-  background:var(--cream);border-radius:20px 20px 0 0;
+  background:var(--cream);border-radius:20px;
   width:100%;max-width:480px;padding:0 0 24px;
-  box-shadow:0 -4px 32px rgba(0,0,0,.4);
-  transform:translateY(100%);transition:transform .28s cubic-bezier(.32,1,.5,1);
-  max-height:92vh;overflow-y:auto;
+  box-shadow:0 8px 40px rgba(0,0,0,.4);
+  transform:scale(0.93) translateY(12px);opacity:0;
+  transition:transform .28s cubic-bezier(.34,1.56,.64,1), opacity .25s;
+  max-height:88vh;overflow-y:auto;
 }
-#overlay.open #popup{transform:translateY(0)}
-.popup-handle{
-  width:40px;height:4px;background:#DDD;border-radius:2px;
-  margin:10px auto 0;
-}
+#overlay.open #popup{transform:scale(1) translateY(0);opacity:1;}
+.popup-handle{display:none;}
 .popup-hdr{
   display:flex;align-items:center;gap:10px;
   padding:14px 18px 12px;
@@ -186,14 +185,18 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 
 /* ── LOAD MODAL ── */
 #load-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:900;
-  display:none;align-items:center;justify-content:center;padding:20px;
+  position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+  z-index:900;display:flex;align-items:center;justify-content:center;padding:20px;
+  opacity:0;pointer-events:none;transition:opacity .25s;
 }
-#load-overlay.open{display:flex}
+#load-overlay.open{opacity:1;pointer-events:all;}
 #load-box{
-  background:var(--cream);border-radius:16px;padding:24px;
+  background:var(--cream);border-radius:20px;padding:24px;
   width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,.4);
+  transform:scale(0.93) translateY(12px);opacity:0;
+  transition:transform .28s cubic-bezier(.34,1.56,.64,1), opacity .25s;
 }
+#load-overlay.open #load-box{transform:scale(1) translateY(0);opacity:1;}
 #load-box h2{font-size:16px;font-weight:900;margin-bottom:16px;color:var(--forest)}
 .lbtn{
   display:block;width:100%;padding:12px 16px;border-radius:10px;border:none;
