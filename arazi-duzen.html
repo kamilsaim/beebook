@@ -2,458 +2,492 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arazi Düzeni — Beebook Prototip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Arazi Düzeni — Beebook</title>
 <style>
-  :root {
-    --honey: #E8A020; --honey-dark: #B8860B; --forest: #2D5016;
-    --cream: #FFFDF0; --smoke: #F7F2E8; --comb: #FFF3C4; --comb-dark: #F0D060;
-    --text-dark: #1A1208; --text-soft: #8B7355;
-    --shadow: 0 2px 8px rgba(0,0,0,0.15);
-    --cell: 72px; /* grid hücresi genişliği */
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', sans-serif; background: var(--cream); color: var(--text-dark); }
+:root {
+  --honey:#E8A020; --honey-dark:#B8860B; --honey-light:#F5C842;
+  --forest:#2D5016; --forest-mid:#3D6B20;
+  --blue:#1565c0; --blue-light:#1976d2;
+  --cream:#FFFDF0; --smoke:#F7F2E8; --comb:#FFF3C4; --comb-dark:#F0D060;
+  --text-dark:#1A1208; --text-mid:#4A3520; --text-soft:#8B7355;
+  --red:#e53935; --green:#43a047; --shadow:0 3px 14px rgba(0,0,0,0.18);
+  --cell:80px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:#2e3b20;color:var(--text-dark)}
 
-  /* --- HEADER --- */
-  #header {
-    background: linear-gradient(135deg,#1565c0,#1976d2);
-    padding: 12px 16px; display: flex; align-items: center; gap: 12px;
-    color: white; position: sticky; top: 0; z-index: 200;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  }
-  #header h1 { font-size: 17px; font-weight: 800; flex: 1; }
-  .hbtn {
-    background: rgba(255,255,255,0.2); border: none; color: white;
-    border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 700;
-    cursor: pointer; white-space: nowrap;
-  }
-  .hbtn:active { background: rgba(255,255,255,0.35); }
-  .hbtn.primary { background: var(--honey); }
+/* ── HEADER ── */
+#hdr{
+  height:52px;min-height:52px;
+  background:linear-gradient(135deg,var(--blue),var(--blue-light));
+  display:flex;align-items:center;gap:8px;padding:0 12px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.3);z-index:300;position:relative;
+}
+#hdr h1{font-size:16px;font-weight:800;color:white;flex:1;letter-spacing:.3px}
+.hbtn{
+  background:rgba(255,255,255,.18);border:none;color:white;
+  border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:background .15s;
+}
+.hbtn:active{background:rgba(255,255,255,.35)}
+.hbtn.gold{background:var(--honey);color:var(--text-dark)}
+.hbtn.gold:active{background:var(--honey-dark)}
 
-  /* --- TOOLBAR --- */
-  #toolbar {
-    background: white; border-bottom: 1px solid var(--comb-dark);
-    padding: 10px 14px; display: flex; gap: 8px; align-items: center;
-    flex-wrap: wrap; position: sticky; top: 48px; z-index: 150;
-  }
-  .tbtn {
-    background: var(--smoke); border: 1.5px solid var(--comb-dark);
-    border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700;
-    cursor: pointer; color: var(--text-dark); white-space: nowrap;
-  }
-  .tbtn.active, .tbtn:active { background: var(--honey); border-color: var(--honey-dark); color: white; }
-  #toolbar label { font-size: 12px; font-weight: 700; color: var(--text-soft); }
-  #toolbar input[type=range] { width: 90px; accent-color: var(--honey); }
-  #toolbar select { border: 1.5px solid var(--comb-dark); border-radius: 8px; padding: 5px 8px; font-size: 12px; background: var(--smoke); }
+/* ── TOOLBAR ── */
+#toolbar{
+  height:46px;min-height:46px;
+  background:#1a2412;border-bottom:1px solid #3a4a28;
+  display:flex;align-items:center;gap:6px;padding:0 10px;
+  overflow-x:auto;z-index:200;
+}
+#toolbar::-webkit-scrollbar{display:none}
+.tbtn{
+  background:#2e3b20;border:1.5px solid #4a5e30;
+  color:#cdd9b0;border-radius:7px;padding:5px 10px;
+  font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;
+  transition:all .15s;flex-shrink:0;
+}
+.tbtn.active,.tbtn:active{background:var(--honey);border-color:var(--honey-dark);color:#1a1208}
+.sep{width:1px;height:24px;background:#3a4a28;flex-shrink:0;margin:0 2px}
+.tlab{font-size:11px;color:#8a9e60;font-weight:700;white-space:nowrap;flex-shrink:0}
+#zoom-range{accent-color:var(--honey);width:80px;flex-shrink:0}
+#sel-badge{
+  background:rgba(255,255,255,.1);border-radius:6px;
+  padding:3px 8px;font-size:11px;font-weight:700;color:#cdd9b0;
+  white-space:nowrap;flex-shrink:0;
+}
 
-  /* --- CANVAS AREA --- */
-  #canvas-wrap {
-    overflow: auto; width: 100%; height: calc(100vh - 108px);
-    background: #e8ead6;
-    background-image:
-      linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px);
-    background-size: var(--cell) var(--cell);
-    position: relative;
-  }
-  #canvas {
-    position: relative;
-    min-width: 2000px; min-height: 1400px;
-  }
+/* ── CANVAS ── */
+#cw{
+  position:absolute;top:98px;left:0;right:0;bottom:0;
+  overflow:scroll;
+  background:#4a6030;
+  background-image:
+    radial-gradient(circle,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:var(--cell) var(--cell);
+  cursor:default;
+}
+#canvas{position:relative;min-width:3000px;min-height:2000px}
 
-  /* --- HIVE ITEM --- */
-  .hive-item {
-    position: absolute; cursor: grab; user-select: none;
-    display: flex; flex-direction: column; align-items: center;
-    gap: 3px; touch-action: none;
-  }
-  .hive-item:active { cursor: grabbing; }
-  .hive-item.selected .hive-body { outline: 3px solid #1565c0; outline-offset: 2px; border-radius: 4px; }
-  .hive-body {
-    background: var(--comb); border: 2px solid var(--honey-dark);
-    border-radius: 6px; display: flex; flex-direction: column;
-    align-items: center; justify-content: flex-end;
-    padding: 4px 6px 5px; position: relative;
-    transition: box-shadow 0.15s;
-    box-shadow: var(--shadow);
-  }
-  .hive-body:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.22); }
-  .hive-num {
-    font-size: 15px; font-weight: 900; color: var(--honey-dark);
-    line-height: 1; text-align: center;
-  }
-  .hive-type-lbl { font-size: 9px; color: var(--text-soft); font-weight: 700; text-align: center; line-height: 1; margin-top: 2px; }
-  .hive-floor-badge {
-    position: absolute; top: 3px; right: 4px;
-    background: rgba(21,101,192,0.85); color: white;
-    font-size: 9px; font-weight: 900; border-radius: 3px; padding: 1px 4px; line-height: 1.4;
-  }
-  .hive-queen-dot {
-    position: absolute; top: 3px; left: 4px;
-    width: 10px; height: 10px; border-radius: 50%;
-    border: 1.5px solid rgba(0,0,0,0.25);
-  }
-  .hive-svg-wrap { width: 100%; display: flex; justify-content: center; }
-  .hive-svg-wrap svg { display: block; }
+/* North indicator */
+#north{
+  position:fixed;bottom:20px;right:16px;
+  width:44px;height:44px;background:rgba(0,0,0,.55);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:white;font-size:11px;font-weight:900;z-index:200;
+  border:2px solid rgba(255,255,255,.25);
+}
 
-  /* Spacer */
-  .spacer-item {
-    position: absolute; cursor: grab; user-select: none;
-    touch-action: none;
-  }
-  .spacer-body {
-    background: transparent; border: 2px dashed rgba(0,0,0,0.25);
-    border-radius: 6px; display: flex; align-items: center; justify-content: center;
-    color: rgba(0,0,0,0.3); font-size: 11px; font-weight: 700;
-  }
-  .spacer-item.selected .spacer-body { border-color: #1565c0; color: #1565c0; }
+/* ── HIVE ITEM ── */
+.hi{
+  position:absolute;display:flex;flex-direction:column;align-items:center;
+  gap:2px;cursor:grab;user-select:none;touch-action:none;
+  transition:filter .15s;
+}
+.hi.dragging{cursor:grabbing;filter:drop-shadow(0 8px 20px rgba(0,0,0,.5));z-index:500!important;transition:none}
+.hi.sel .hbody{outline:3px solid #64b5f6;outline-offset:3px}
+.hbody{border-radius:5px;position:relative;overflow:visible}
+.hnum{
+  font-size:13px;font-weight:900;color:white;
+  text-shadow:0 1px 3px rgba(0,0,0,.8);line-height:1;text-align:center;
+}
+.hrace{
+  font-size:9px;color:rgba(255,255,255,.7);
+  text-align:center;line-height:1;max-width:70px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.hfloor-badge{
+  position:absolute;top:-6px;right:-6px;
+  background:var(--blue);color:white;
+  font-size:9px;font-weight:900;border-radius:10px;
+  padding:2px 5px;line-height:1.3;
+  border:1.5px solid rgba(255,255,255,.4);
+  box-shadow:0 1px 4px rgba(0,0,0,.4);
+}
+.hqdot{
+  position:absolute;top:-5px;left:-5px;
+  width:12px;height:12px;border-radius:50%;
+  border:2px solid rgba(0,0,0,.35);
+  box-shadow:0 1px 4px rgba(0,0,0,.4);
+}
 
-  /* --- PANEL --- */
-  #side-panel {
-    position: fixed; right: 0; top: 108px; bottom: 0;
-    width: 220px; background: white; border-left: 1px solid var(--comb-dark);
-    overflow-y: auto; padding: 12px; z-index: 100;
-    display: none;
-  }
-  #side-panel.open { display: block; }
-  #side-panel h3 { font-size: 13px; font-weight: 800; margin-bottom: 10px; color: var(--forest); }
-  .panel-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; }
-  .panel-row label { font-weight: 700; color: var(--text-soft); }
-  .panel-row input, .panel-row select { border: 1px solid var(--comb-dark); border-radius: 6px; padding: 4px 6px; font-size: 12px; width: 90px; }
-  .panel-btn { width: 100%; background: var(--honey); color: white; border: none; border-radius: 8px; padding: 7px; font-size: 12px; font-weight: 700; cursor: pointer; margin-top: 4px; }
-  .panel-btn.danger { background: #e74c3c; margin-top: 6px; }
+/* Spacer */
+.spi{
+  position:absolute;cursor:grab;user-select:none;touch-action:none;
+  border:2px dashed rgba(255,255,255,.25);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  color:rgba(255,255,255,.25);font-size:18px;
+}
+.spi.sel{border-color:rgba(100,181,246,.8);color:rgba(100,181,246,.8)}
+.spi.dragging{cursor:grabbing;z-index:500!important;transition:none}
 
-  /* Legend */
-  #legend {
-    position: fixed; bottom: 12px; left: 12px; background: white;
-    border-radius: 10px; padding: 8px 12px; box-shadow: var(--shadow);
-    font-size: 11px; line-height: 1.8; z-index: 100;
-  }
-  #legend b { display: block; font-size: 12px; margin-bottom: 4px; }
+/* ── POPUP MODAL ── */
+#overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:800;
+  display:none;align-items:flex-end;justify-content:center;
+}
+#overlay.open{display:flex}
+#popup{
+  background:var(--cream);border-radius:20px 20px 0 0;
+  width:100%;max-width:480px;padding:0 0 24px;
+  box-shadow:0 -4px 32px rgba(0,0,0,.4);
+  transform:translateY(100%);transition:transform .28s cubic-bezier(.32,1,.5,1);
+  max-height:92vh;overflow-y:auto;
+}
+#overlay.open #popup{transform:translateY(0)}
+.popup-handle{
+  width:40px;height:4px;background:#DDD;border-radius:2px;
+  margin:10px auto 0;
+}
+.popup-hdr{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 18px 10px;border-bottom:1px solid var(--comb-dark);
+}
+.popup-num{
+  font-size:24px;font-weight:900;color:var(--honey-dark);
+  font-family:'Playfair Display',serif;
+}
+.popup-type{font-size:13px;color:var(--text-soft);font-weight:700}
+.popup-qdot{
+  width:18px;height:18px;border-radius:50%;
+  border:2.5px solid rgba(0,0,0,.2);margin-left:auto;flex-shrink:0;
+}
+.popup-body{padding:14px 18px;display:flex;flex-direction:column;gap:10px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--smoke)}
+.info-lbl{font-size:12px;color:var(--text-soft);font-weight:700}
+.info-val{font-size:13px;font-weight:800;color:var(--text-dark)}
+.strength-dots{display:flex;gap:4px}
+.sdot{width:12px;height:12px;border-radius:50%;background:#EEE}
+.sdot.on{background:var(--honey)}
+.floor-visual{display:flex;gap:4px;align-items:flex-end}
+.fbox{
+  background:var(--comb);border:2px solid var(--honey-dark);
+  border-radius:4px;width:22px;
+}
+.popup-btns{display:flex;gap:8px;padding:0 18px;margin-top:4px}
+.pbtn{
+  flex:1;padding:11px;border-radius:10px;border:none;
+  font-size:13px;font-weight:700;cursor:pointer;
+}
+.pbtn.close{background:var(--smoke);color:var(--text-dark)}
+.pbtn.nav{background:var(--blue);color:white}
 
-  /* Toast */
-  #toast {
-    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-    background: #333; color: white; padding: 8px 18px; border-radius: 20px;
-    font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none;
-    transition: opacity 0.3s; z-index: 9999;
-  }
-  #toast.show { opacity: 1; }
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(0,0,0,.82);color:white;
+  padding:9px 20px;border-radius:20px;font-size:13px;font-weight:700;
+  opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:9999;
+  white-space:nowrap;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  @media (max-width: 600px) {
-    :root { --cell: 60px; }
-    #side-panel { width: 180px; top: 90px; }
-  }
+/* ── LOAD MODAL ── */
+#load-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:900;
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+#load-overlay.open{display:flex}
+#load-box{
+  background:var(--cream);border-radius:16px;padding:24px;
+  width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,.4);
+}
+#load-box h2{font-size:16px;font-weight:900;margin-bottom:16px;color:var(--forest)}
+.lbtn{
+  display:block;width:100%;padding:12px 16px;border-radius:10px;border:none;
+  font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px;text-align:left;
+}
+.lbtn.primary{background:var(--blue);color:white}
+.lbtn.secondary{background:var(--smoke);color:var(--text-dark);border:1.5px solid var(--comb-dark)}
+.lbtn.cancel{background:transparent;color:var(--text-soft);text-align:center}
+
+input[type=file]{display:none}
 </style>
 </head>
 <body>
 
-<div id="header">
+<div id="hdr">
   <h1>🗺️ Arazi Düzeni</h1>
-  <button class="hbtn" onclick="loadFromBeebook()">📥 Veri Yükle</button>
-  <button class="hbtn primary" onclick="saveLayout()">💾 Kaydet</button>
+  <div id="sel-badge">0 kovan</div>
+  <button class="hbtn" onclick="openLoadModal()">📥 Yükle</button>
+  <button class="hbtn" id="btn-spacer-hdr" onclick="toggleSpacerMode()">+ Boşluk</button>
+  <button class="hbtn gold" onclick="saveLayout()">💾 Kaydet</button>
 </div>
 
 <div id="toolbar">
-  <button class="tbtn" id="btn-add-spacer" onclick="setMode('spacer')">+ Boşluk</button>
-  <button class="tbtn" id="btn-delete" onclick="deleteSelected()" style="color:#e74c3c">🗑️ Sil</button>
-  <div style="width:1px;height:24px;background:var(--comb-dark)"></div>
-  <label>Boyut</label>
-  <input type="range" id="zoom-slider" min="40" max="120" value="72" oninput="setZoom(this.value)">
-  <div style="width:1px;height:24px;background:var(--comb-dark)"></div>
-  <label>Izgara:</label>
-  <select id="grid-snap" onchange="setSnap(this.value)">
-    <option value="1">Serbest</option>
-    <option value="half">½ Hücre</option>
-    <option value="1" selected>1 Hücre</option>
-    <option value="2">2 Hücre</option>
-  </select>
-  <div style="flex:1"></div>
-  <span id="sel-info" style="font-size:12px;color:var(--text-soft);font-weight:700"></span>
+  <button class="tbtn" onclick="deleteSelected()">🗑️ Sil</button>
+  <div class="sep"></div>
+  <span class="tlab">Boyut</span>
+  <input type="range" id="zoom-range" min="48" max="130" value="80" oninput="setZoom(this.value)">
+  <div class="sep"></div>
+  <span class="tlab">Snap</span>
+  <button class="tbtn active" id="snap-1" onclick="setSnap(1,this)">1×</button>
+  <button class="tbtn" id="snap-h" onclick="setSnap(0.5,this)">½×</button>
+  <button class="tbtn" id="snap-f" onclick="setSnap(0,this)">Serbest</button>
+  <div class="sep"></div>
+  <button class="tbtn" onclick="autoArrange()">🔀 Otomatik</button>
+  <button class="tbtn" onclick="exportLayout()">📤 Dışa Aktar</button>
 </div>
 
-<div id="canvas-wrap">
-  <div id="canvas"></div>
+<div id="cw"><div id="canvas"></div></div>
+
+<div id="north">K<br>↑</div>
+
+<!-- POPUP -->
+<div id="overlay" onclick="closePopup(event)">
+  <div id="popup">
+    <div class="popup-handle"></div>
+    <div class="popup-hdr">
+      <div>
+        <div class="popup-num" id="pu-num"></div>
+        <div class="popup-type" id="pu-type"></div>
+      </div>
+      <div class="popup-qdot" id="pu-qdot"></div>
+    </div>
+    <div class="popup-body" id="pu-body"></div>
+    <div class="popup-btns">
+      <button class="pbtn close" onclick="closePopup()">Kapat</button>
+      <button class="pbtn nav" id="pu-nav" onclick="navToSelected()">🎯 Git</button>
+    </div>
+  </div>
 </div>
 
-<div id="side-panel">
-  <h3>✏️ Seçili Öğe</h3>
-  <div id="panel-content"></div>
-</div>
-
-<div id="legend">
-  <b>Nasıl Kullanılır</b>
-  Sürükle → Yerleştir<br>
-  Tıkla → Seç / Özellik<br>
-  Çift tıkla → Odaklan<br>
-  <kbd>Del</kbd> → Sil<br>
-  <kbd>Esc</kbd> → Seçimi Kaldır
+<!-- LOAD MODAL -->
+<div id="load-overlay" onclick="closeLoadModal(event)">
+  <div id="load-box">
+    <h2>🏠 Kovan Verisi Yükle</h2>
+    <button class="lbtn primary" onclick="tryBeebookData()">🔄 Beebook'tan Otomatik Al</button>
+    <button class="lbtn secondary" onclick="document.getElementById('fip').click()">📂 JSON Dosyası Seç</button>
+    <button class="lbtn cancel" onclick="closeLoadModal()">İptal</button>
+    <input type="file" id="fip" accept=".json" onchange="handleFile(event)">
+  </div>
 </div>
 
 <div id="toast"></div>
 
-<input type="file" id="file-input" accept=".json" style="display:none" onchange="handleFileLoad(event)">
-
 <script>
-// ============================================================
-// DATA
-// ============================================================
-let hives = [];
-let layout = {}; // id -> {x, y}
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+let hives    = [];   // [{id,num,type,floors,race,generation,queenStatus,queenColor,strength,notes}]
+let positions= {};   // id → {x,y}
+let spacers  = [];   // [{id,x,y,w,h}]
 let selectedId = null;
-let cellSize = 72;
-let snapMode = 1; // cells
+let cellPx   = 80;
+let snapFactor = 1;  // multiplier of cellPx
+let spacerMode = false;
+let popupHiveId = null;
 
-// Queen color map
-const qColorMap = { white:'#FFFFFF', yellow:'#FFD700', red:'#E74C3C', green:'#27AE60', blue:'#3498DB', unpainted:'transparent' };
+const QC = {white:'#FFFFFF',yellow:'#FFD700',red:'#E74C3C',green:'#27AE60',blue:'#3498DB',unpainted:'transparent'};
+const QL = {yes:'✅ Ana Arı Var',no:'❌ Ana Arı Yok',unknown:'❓ Bilinmiyor',bakire:'🐝 Bakire',new:'🐝 Bakire',meme:'🫙 Meme Var'};
+const QBorder = {yes:'#43a047',no:'#e53935',bakire:'#f9a825',new:'#f9a825',meme:'#7b1fa2',unknown:'#90a4ae'};
 
-// ============================================================
-// INIT
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', () => {
-  // Try to load from localStorage
-  const saved = localStorage.getItem('beebook_arazi');
-  if (saved) {
-    try {
-      const d = JSON.parse(saved);
-      hives = d.hives || [];
-      layout = d.layout || {};
-    } catch(e) {}
-  }
-
-  // Also try to load beebook data from localStorage (same browser)
-  if (!hives.length) {
-    tryLoadBeebookData();
-  }
-
-  renderAll();
-  setupKeyboard();
+  const saved = lsGet('beebook_arazi_v2');
+  if (saved) { hives = saved.hives||[]; positions = saved.positions||{}; spacers = saved.spacers||[]; }
+  if (!hives.length) { tryBeebookDataSilent(); return; }
+  render(); setupEvents();
 });
 
-function tryLoadBeebookData() {
+function tryBeebookDataSilent() {
   try {
     const raw = localStorage.getItem('aribook_data');
-    if (!raw) return;
+    if (!raw) { setupEvents(); return; }
     const d = JSON.parse(raw);
-    if (d.hives && d.hives.length) {
+    if (d.hives?.length) {
       hives = d.hives;
-      autoArrange();
-      showToast('Beebook kovanları otomatik yüklendi (' + hives.length + ' kovan)');
+      placeNew(hives.filter(h => !positions[h.id]));
+      showToast('Beebook kovanları yüklendi (' + hives.length + ')');
     }
   } catch(e) {}
+  render(); setupEvents();
 }
 
-function loadFromBeebook() {
-  // Try live data first
+// ═══════════════════════════════════════════════════════════
+//  LOAD MODAL
+// ═══════════════════════════════════════════════════════════
+function openLoadModal() { document.getElementById('load-overlay').classList.add('open'); }
+function closeLoadModal(e) {
+  if (!e || e.target === document.getElementById('load-overlay'))
+    document.getElementById('load-overlay').classList.remove('open');
+}
+function tryBeebookData() {
+  closeLoadModal();
   try {
     const raw = localStorage.getItem('aribook_data');
-    if (raw) {
-      const d = JSON.parse(raw);
-      if (d.hives && d.hives.length) {
-        hives = d.hives;
-        // Keep existing layout positions, add new hives
-        const newHives = hives.filter(h => !layout[h.id]);
-        if (newHives.length) {
-          autoArrangeNew(newHives);
-          showToast(d.hives.length + ' kovan yüklendi, ' + newHives.length + ' yeni yerleştirildi');
-        } else {
-          showToast(d.hives.length + ' kovan yüklendi');
-        }
-        renderAll();
-        return;
-      }
-    }
-  } catch(e) {}
-  // Fallback to file
-  document.getElementById('file-input').click();
+    if (!raw) { showToast('Beebook verisi bulunamadı'); return; }
+    const d = JSON.parse(raw);
+    if (!d.hives?.length) { showToast('Kovan verisi yok'); return; }
+    const prev = hives.map(h=>h.id);
+    hives = d.hives;
+    const added = hives.filter(h => !prev.includes(h.id));
+    placeNew(added);
+    render();
+    showToast(hives.length + ' kovan, ' + added.length + ' yeni');
+  } catch(e) { showToast('Veri okunamadı'); }
 }
-
-function handleFileLoad(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
+function handleFile(e) {
+  closeLoadModal();
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
     try {
       const d = JSON.parse(ev.target.result);
-      // Support both beebook export format and direct hives array
-      const hivesData = d.data?.hives || d.hives || [];
-      if (!hivesData.length) { showToast('Kovan verisi bulunamadı'); return; }
-      hives = hivesData;
-      const newHives = hives.filter(h => !layout[h.id]);
-      autoArrangeNew(newHives);
-      renderAll();
-      showToast(hives.length + ' kovan yüklendi');
-    } catch(err) {
-      showToast('Dosya okunamadı');
-    }
+      const src = d.data?.hives || d.hives || [];
+      if (!src.length) { showToast('Kovan bulunamadı'); return; }
+      const prev = hives.map(h=>h.id);
+      hives = src;
+      placeNew(hives.filter(h => !prev.includes(h.id)));
+      render(); showToast(hives.length + ' kovan yüklendi');
+    } catch(err) { showToast('Dosya okunamadı'); }
   };
-  reader.readAsText(file);
+  r.readAsText(file);
   e.target.value = '';
 }
 
-// ============================================================
-// AUTO ARRANGE
-// ============================================================
-function autoArrange() {
-  layout = {};
-  autoArrangeNew(hives);
-}
-
-function autoArrangeNew(list) {
-  const cols = Math.ceil(Math.sqrt(list.length + 1));
-  let col = 0, row = 0;
-  // Find used cells to avoid overlap
-  const usedCells = new Set(Object.values(layout).map(p => p.col + ',' + p.row));
+// ═══════════════════════════════════════════════════════════
+//  PLACEMENT
+// ═══════════════════════════════════════════════════════════
+function placeNew(list) {
+  if (!list.length) return;
+  const cols = Math.max(4, Math.ceil(Math.sqrt(list.length)));
+  const used = new Set(Object.values(positions).map(p=>`${Math.round(p.x/cellPx)},${Math.round(p.y/cellPx)}`));
+  let c=0, r=0;
   list.forEach(h => {
-    while (usedCells.has(col + ',' + row)) { col++; if (col >= cols) { col = 0; row++; } }
-    layout[h.id] = { col, row };
-    usedCells.add(col + ',' + row);
-    col++; if (col >= cols) { col = 0; row++; }
+    while (used.has(`${c},${r}`)) { c++; if(c>=cols){c=0;r++;} }
+    positions[h.id] = { x: c*cellPx + 20, y: r*cellPx + 20 };
+    used.add(`${c},${r}`); c++; if(c>=cols){c=0;r++;}
   });
 }
 
-// ============================================================
-// RENDER
-// ============================================================
+function autoArrange() {
+  positions = {};
+  placeNew(hives); render(); showToast('Yeniden düzenlendi');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════
 const canvas = document.getElementById('canvas');
 
-function renderAll() {
+function render() {
   canvas.innerHTML = '';
-  // Render spacers
-  const spacers = JSON.parse(localStorage.getItem('beebook_arazi_spacers') || '[]');
   spacers.forEach(sp => renderSpacer(sp));
-  // Render hives
   hives.forEach(h => renderHive(h));
-  updateSelPanel();
-}
-
-function colRowToPx(col, row) {
-  return { x: col * cellSize, y: row * cellSize };
-}
-
-function pxToColRow(x, y) {
-  if (snapMode === 0) return { col: x / cellSize, row: y / cellSize };
-  const s = snapMode;
-  return { col: Math.round(x / cellSize / s) * s, row: Math.round(y / cellSize / s) * s };
-}
-
-function getHivePos(h) {
-  const pos = layout[h.id];
-  if (!pos) return { x: 40, y: 40 };
-  if (pos.x !== undefined) return pos;
-  return colRowToPx(pos.col || 0, pos.row || 0);
-}
-
-function floors(h) { return Math.max(1, Number(h.floors) || 1); }
-
-function hiveWidth(h) { return cellSize - 8; }
-function hiveHeight(h) { return Math.round((cellSize - 8) * (0.55 + 0.45 * floors(h))); }
-
-function getQueenColor(h) {
-  return qColorMap[h.queenColor] || '#CCC';
-}
-
-function hiveBodyColor(h) {
-  const status = h.queenStatus;
-  if (status === 'yes' || status === 'bakire' || status === 'new' || status === 'meme') return '#e8f5e9';
-  if (status === 'no') return '#ffebee';
-  return '#fffde7';
-}
-function hiveBorderColor(h) {
-  const status = h.queenStatus;
-  if (status === 'yes' || status === 'bakire' || status === 'new' || status === 'meme') return '#43a047';
-  if (status === 'no') return '#e53935';
-  return '#F0D060';
+  updateBadge();
 }
 
 function renderHive(h) {
-  const pos = getHivePos(h);
-  const w = hiveWidth(h);
-  const fls = floors(h);
+  const pos = positions[h.id] || { x:20, y:20 };
+  const fls = Math.max(1, Number(h.floors)||1);
+  const W = Math.round(cellPx * 0.78);
+  const H = Math.round(W * (0.7 + 0.38 * (fls-1)));
 
   const el = document.createElement('div');
-  el.className = 'hive-item';
+  el.className = 'hi';
   el.dataset.id = h.id;
-  el.dataset.type = 'hive';
-  el.style.left = pos.x + 'px';
-  el.style.top = pos.y + 'px';
-  el.style.width = (w + 8) + 'px';
+  el.style.cssText = `left:${pos.x}px;top:${pos.y}px;width:${W+12}px`;
+  if (selectedId === h.id) el.classList.add('sel');
 
-  // SVG hive body
-  const svgH = Math.round(w * (0.55 + 0.45 * fls));
-  const svg = buildHiveSvg(h, w, svgH, fls);
-
-  // Floor badge inside SVG wrapper
+  // SVG
   const svgWrap = document.createElement('div');
-  svgWrap.className = 'hive-svg-wrap';
-  svgWrap.style.position = 'relative';
-  svgWrap.innerHTML = svg;
+  svgWrap.className = 'hbody';
+  svgWrap.style.width = W + 'px';
+  svgWrap.innerHTML = buildSvg(h, W, H, fls);
+
+  // Floor badge
   if (fls > 1) {
-    const badge = document.createElement('span');
-    badge.className = 'hive-floor-badge';
-    badge.textContent = fls + 'k';
-    svgWrap.appendChild(badge);
+    const fb = document.createElement('div');
+    fb.className = 'hfloor-badge';
+    fb.textContent = fls + 'k';
+    svgWrap.appendChild(fb);
   }
 
-  // Queen dot
-  const qDot = document.createElement('span');
-  qDot.className = 'hive-queen-dot';
-  qDot.style.background = getQueenColor(h);
-  if (h.queenColor === 'unpainted') qDot.style.border = '1.5px dashed #999';
-  svgWrap.appendChild(qDot);
+  // Queen color dot
+  const qd = document.createElement('div');
+  qd.className = 'hqdot';
+  const qc = QC[h.queenColor] || '#CCC';
+  qd.style.background = qc;
+  if (h.queenColor==='unpainted') qd.style.cssText += 'background:white;border:2px dashed #888';
+  svgWrap.appendChild(qd);
 
-  // Number label
   const numEl = document.createElement('div');
-  numEl.className = 'hive-num';
+  numEl.className = 'hnum';
   numEl.textContent = '#' + h.num;
 
-  // Type + race label
-  const lblEl = document.createElement('div');
-  lblEl.className = 'hive-type-lbl';
-  lblEl.textContent = (h.race ? h.race.slice(0,6) : '') + (h.generation ? ' ' + h.generation : '');
+  const raceEl = document.createElement('div');
+  raceEl.className = 'hrace';
+  raceEl.textContent = [h.race, h.generation].filter(Boolean).join(' ');
 
   el.appendChild(svgWrap);
   el.appendChild(numEl);
-  el.appendChild(lblEl);
+  if (raceEl.textContent) el.appendChild(raceEl);
 
-  makeDraggable(el, h.id, 'hive');
-  el.addEventListener('click', (e) => { e.stopPropagation(); selectItem(h.id, 'hive'); });
+  attachDrag(el, h.id, 'hive');
+  el.addEventListener('dblclick', e => { e.stopPropagation(); openPopup(h.id); });
+  el.addEventListener('click', e => { e.stopPropagation(); selectItem(h.id); });
   canvas.appendChild(el);
 }
 
-function buildHiveSvg(h, w, svgH, fls) {
+// ─── SVG BUILDER ───────────────────────────────────────────
+function buildSvg(h, W, H, fls) {
   const c = {
-    body: '#D4A017', body2: '#F0C040', roof: '#C47A1E',
-    peak: '#9A5A10', base: '#8B5E3C', frame: '#F5E090'
+    body:  ['#C8901A','#D4A830','#BFAA60','#9E8050'],  // per-floor colors
+    roof:  '#A0621A',
+    peak:  '#7A4A10',
+    base:  '#6B4020',
+    line:  '#8B5E20',
+    entry: '#3A2010',
   };
-  // Simple top-down schematic: rectangle per floor + roof indicator
-  // Use side-view style (similar to existing SVG)
-  const bw = Math.round(w * 0.82);
-  const bx = Math.round((w - bw) / 2);
-  const baseH = 4;
-  const roofH = Math.round(svgH * 0.18);
-  const floorH = Math.round((svgH - baseH - roofH - 2) / fls);
-  let svg = `<svg viewBox="0 0 ${w} ${svgH}" width="${w}" height="${svgH}" xmlns="http://www.w3.org/2000/svg">`;
 
-  // Base
-  svg += `<rect x="${bx-2}" y="${svgH-baseH}" width="${bw+4}" height="${baseH}" rx="1.5" fill="${c.base}"/>`;
+  const bx = Math.round(W*0.1), bw = Math.round(W*0.8);
+  const baseH = Math.round(H*0.07);
+  const roofTotalH = Math.round(H*0.22);
+  const roofFlatH = Math.round(roofTotalH*0.38);
+  const peakH = roofTotalH - roofFlatH;
+  const bodyZone = H - baseH - roofTotalH;
+  const floorH = Math.round(bodyZone / fls);
 
-  // Floors (bottom to top)
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Base board
+  svg += `<rect x="${bx-3}" y="${H-baseH}" width="${bw+6}" height="${baseH}" rx="2" fill="${c.base}"/>`;
+
+  // Entry hole on bottom floor
+  const entryW = Math.round(bw*0.35);
+  const entryH = Math.round(baseH*0.55);
+  svg += `<rect x="${bx + Math.round((bw-entryW)/2)}" y="${H-baseH-1}" width="${entryW}" height="${entryH+1}" rx="1" fill="${c.entry}"/>`;
+
+  // Floors (bottom = index 0)
   for (let f = 0; f < fls; f++) {
-    const fy = svgH - baseH - (f + 1) * floorH;
-    const fillColor = f % 2 === 0 ? c.body : c.body2;
-    svg += `<rect x="${bx}" y="${fy}" width="${bw}" height="${floorH}" rx="2" fill="${fillColor}" stroke="${c.base}" stroke-width="1.5"/>`;
-    if (floorH > 14) {
-      // Mid line on tall floors
-      svg += `<line x1="${bx}" y1="${fy + Math.floor(floorH/2)}" x2="${bx+bw}" y2="${fy + Math.floor(floorH/2)}" stroke="${c.base}" stroke-width="0.8" opacity="0.6"/>`;
+    const fy = H - baseH - (f+1)*floorH;
+    const fc = c.body[f % c.body.length];
+    // Slight gradient simulation with two rects
+    svg += `<rect x="${bx}" y="${fy}" width="${bw}" height="${floorH}" rx="2" fill="${fc}" stroke="${c.line}" stroke-width="1.2"/>`;
+    // Inner frame detail (bee frames)
+    if (floorH > 16) {
+      const fx = bx + Math.round(bw*0.12);
+      const fw = Math.round(bw*0.76);
+      const fiy = fy + Math.round(floorH*0.2);
+      const fih = Math.round(floorH*0.6);
+      svg += `<rect x="${fx}" y="${fiy}" width="${fw}" height="${fih}" rx="1" fill="none" stroke="${c.line}" stroke-width="0.8" stroke-dasharray="2,2" opacity=".6"/>`;
+    }
+    // Floor divider (except bottom)
+    if (f < fls-1) {
+      svg += `<rect x="${bx-2}" y="${fy+floorH-2}" width="${bw+4}" height="4" rx="1" fill="${c.base}"/>`;
     }
   }
 
-  // Roof
-  const roofY = svgH - baseH - fls * floorH - roofH;
-  svg += `<rect x="${bx-2}" y="${roofY + Math.round(roofH * 0.55)}" width="${bw+4}" height="${Math.round(roofH*0.45)}" rx="1" fill="${c.roof}"/>`;
-  svg += `<polygon points="${bx-4},${roofY + Math.round(roofH*0.55)} ${w/2},${roofY} ${bx+bw+4},${roofY + Math.round(roofH*0.55)}" fill="${c.peak}"/>`;
+  // Roof flat
+  const rfY = H - baseH - fls*floorH - roofFlatH;
+  svg += `<rect x="${bx-4}" y="${rfY}" width="${bw+8}" height="${roofFlatH}" rx="1.5" fill="${c.roof}"/>`;
+  // Roof peak
+  const peakY = rfY - peakH;
+  svg += `<polygon points="${bx-6},${rfY} ${W/2},${peakY} ${bx+bw+6},${rfY}" fill="${c.peak}"/>`;
 
   svg += '</svg>';
   return svg;
@@ -461,270 +495,257 @@ function buildHiveSvg(h, w, svgH, fls) {
 
 function renderSpacer(sp) {
   const el = document.createElement('div');
-  el.className = 'spacer-item';
+  el.className = 'spi';
   el.dataset.id = sp.id;
-  el.dataset.type = 'spacer';
-  el.style.left = sp.x + 'px';
-  el.style.top = sp.y + 'px';
-
-  const body = document.createElement('div');
-  body.className = 'spacer-body';
-  body.style.width = (sp.w || cellSize - 8) + 'px';
-  body.style.height = (sp.h || cellSize - 8) + 'px';
-  body.textContent = '⬜';
-  el.appendChild(body);
-
-  makeDraggable(el, sp.id, 'spacer');
-  el.addEventListener('click', (e) => { e.stopPropagation(); selectItem(sp.id, 'spacer'); });
+  el.style.cssText = `left:${sp.x}px;top:${sp.y}px;width:${sp.w}px;height:${sp.h}px`;
+  if (selectedId === sp.id) el.classList.add('sel');
+  el.textContent = '◻';
+  attachDrag(el, sp.id, 'spacer');
+  el.addEventListener('click', e => { e.stopPropagation(); selectItem(sp.id); });
   canvas.appendChild(el);
 }
 
-// ============================================================
-// DRAG
-// ============================================================
-function makeDraggable(el, id, type) {
-  let startX, startY, startLeft, startTop, dragging = false;
+// ═══════════════════════════════════════════════════════════
+//  DRAG  (Pointer Events — smooth on touch & mouse)
+// ═══════════════════════════════════════════════════════════
+function attachDrag(el, id, type) {
+  let sx, sy, sl, st, moved = false;
 
-  function onDown(e) {
+  el.addEventListener('pointerdown', e => {
+    if (e.button && e.button !== 0) return;
+    e.stopPropagation();
+    el.setPointerCapture(e.pointerId);
+    sx = e.clientX; sy = e.clientY;
+    sl = parseFloat(el.style.left)||0;
+    st = parseFloat(el.style.top)||0;
+    moved = false;
+    el.classList.add('dragging');
+    el.style.zIndex = 500;
+  }, {passive:false});
+
+  el.addEventListener('pointermove', e => {
+    if (!el.classList.contains('dragging')) return;
     e.preventDefault();
-    dragging = true;
-    const touch = e.touches ? e.touches[0] : e;
-    startX = touch.clientX; startY = touch.clientY;
-    startLeft = parseFloat(el.style.left) || 0;
-    startTop = parseFloat(el.style.top) || 0;
-    el.style.zIndex = 1000;
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-    document.addEventListener('touchmove', onMove, { passive: false });
-    document.addEventListener('touchend', onUp);
-  }
-
-  function onMove(e) {
-    if (!dragging) return;
-    e.preventDefault();
-    const touch = e.touches ? e.touches[0] : e;
-    let nx = startLeft + (touch.clientX - startX);
-    let ny = startTop + (touch.clientY - startY);
-
-    // Snap
-    if (snapMode > 0) {
-      nx = Math.round(nx / (cellSize * snapMode)) * (cellSize * snapMode);
-      ny = Math.round(ny / (cellSize * snapMode)) * (cellSize * snapMode);
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx)+Math.abs(dy) > 3) moved = true;
+    let nx = sl + dx, ny = st + dy;
+    if (snapFactor > 0) {
+      const s = cellPx * snapFactor;
+      nx = Math.round(nx/s)*s; ny = Math.round(ny/s)*s;
     }
-    nx = Math.max(0, nx); ny = Math.max(0, ny);
-    el.style.left = nx + 'px';
-    el.style.top = ny + 'px';
-  }
+    nx = Math.max(0,nx); ny = Math.max(0,ny);
+    el.style.left = nx+'px'; el.style.top = ny+'px';
+  }, {passive:false});
 
-  function onUp() {
-    if (!dragging) return;
-    dragging = false;
+  el.addEventListener('pointerup', e => {
+    if (!el.classList.contains('dragging')) return;
+    el.releasePointerCapture(e.pointerId);
+    el.classList.remove('dragging');
     el.style.zIndex = '';
-    const nx = parseFloat(el.style.left);
-    const ny = parseFloat(el.style.top);
-    if (type === 'hive') {
-      layout[id] = { x: nx, y: ny };
-    } else {
-      updateSpacerPos(id, nx, ny);
-    }
-    document.removeEventListener('mousemove', onMove);
-    document.removeEventListener('mouseup', onUp);
-    document.removeEventListener('touchmove', onMove);
-    document.removeEventListener('touchend', onUp);
-  }
-
-  el.addEventListener('mousedown', onDown);
-  el.addEventListener('touchstart', onDown, { passive: false });
+    const nx = parseFloat(el.style.left), ny = parseFloat(el.style.top);
+    if (type === 'hive') positions[id] = {x:nx, y:ny};
+    else { const sp = spacers.find(s=>s.id===id); if(sp){sp.x=nx;sp.y=ny;} }
+  });
 }
 
-function updateSpacerPos(id, x, y) {
-  const spacers = JSON.parse(localStorage.getItem('beebook_arazi_spacers') || '[]');
-  const sp = spacers.find(s => s.id === id);
-  if (sp) { sp.x = x; sp.y = y; localStorage.setItem('beebook_arazi_spacers', JSON.stringify(spacers)); }
+// ═══════════════════════════════════════════════════════════
+//  SELECTION
+// ═══════════════════════════════════════════════════════════
+function selectItem(id) {
+  if (selectedId === id) { selectedId=null; }
+  else { selectedId = id; }
+  document.querySelectorAll('.hi,.spi').forEach(el=>{
+    el.classList.toggle('sel', el.dataset.id===selectedId);
+  });
+  updateBadge();
 }
 
-// ============================================================
-// SELECTION
-// ============================================================
-function selectItem(id, type) {
-  // deselect previous
-  document.querySelectorAll('.hive-item.selected, .spacer-item.selected').forEach(el => el.classList.remove('selected'));
-  selectedId = id;
-  const el = document.querySelector(`[data-id="${id}"]`);
-  if (el) el.classList.add('selected');
-  updateSelPanel();
-}
-
-canvas.addEventListener('click', () => {
-  document.querySelectorAll('.hive-item.selected, .spacer-item.selected').forEach(el => el.classList.remove('selected'));
+document.getElementById('cw').addEventListener('click', ()=>{
+  if (spacerMode) return;
   selectedId = null;
-  updateSelPanel();
+  document.querySelectorAll('.hi.sel,.spi.sel').forEach(el=>el.classList.remove('sel'));
+  updateBadge();
 });
 
-function updateSelPanel() {
-  const panel = document.getElementById('side-panel');
-  const info = document.getElementById('sel-info');
-  if (!selectedId) {
-    panel.classList.remove('open');
-    info.textContent = hives.length + ' kovan';
-    return;
-  }
-  const h = hives.find(x => x.id === selectedId);
-  if (h) {
-    info.textContent = '#' + h.num + ' seçili';
-    panel.classList.add('open');
-    document.getElementById('panel-content').innerHTML = `
-      <div class="panel-row"><label>No</label><span style="font-weight:900">#${h.num}</span></div>
-      <div class="panel-row"><label>Tip</label><span>${h.type || '-'}</span></div>
-      <div class="panel-row"><label>Irk</label><span>${h.race || '-'}</span></div>
-      <div class="panel-row"><label>Kuşak</label><span>${h.generation || '-'}</span></div>
-      <div class="panel-row"><label>Kat</label><span>${h.floors || 1}</span></div>
-      <div class="panel-row"><label>Güç</label><span>${h.strength || '-'}/5</span></div>
-      <div class="panel-row"><label>Ana Arı</label><span>${queenLabel(h.queenStatus)}</span></div>
-      <button class="panel-btn" onclick="centerOn('${h.id}')">🎯 Odaklan</button>
-      <hr style="margin:8px 0;border-color:var(--comb-dark)">
-      <button class="panel-btn danger" onclick="removeFromLayout('${h.id}')">Düzenden Çıkar</button>
-    `;
+function updateBadge() {
+  const b = document.getElementById('sel-badge');
+  if (selectedId) {
+    const h = hives.find(x=>x.id===selectedId);
+    b.textContent = h ? '#'+h.num+' seçili' : 'seçili';
   } else {
-    panel.classList.remove('open');
+    b.textContent = hives.length + ' kovan';
   }
 }
 
-function queenLabel(s) {
-  return { yes:'✅ Var', no:'❌ Yok', unknown:'❓', bakire:'🐝 Bakire', new:'🐝 Bakire', meme:'🫙 Meme' }[s] || s;
+// ═══════════════════════════════════════════════════════════
+//  POPUP
+// ═══════════════════════════════════════════════════════════
+function openPopup(id) {
+  const h = hives.find(x=>x.id===id); if(!h) return;
+  popupHiveId = id;
+  selectItem(id);
+
+  document.getElementById('pu-num').textContent = 'Kovan #' + h.num;
+  document.getElementById('pu-type').textContent = [h.type, h.race, h.generation].filter(Boolean).join(' · ');
+  const qd = document.getElementById('pu-qdot');
+  qd.style.background = QC[h.queenColor]||'#CCC';
+  if (h.queenColor==='unpainted') qd.style.cssText='width:18px;height:18px;border-radius:50%;background:white;border:2px dashed #888';
+
+  const fls = Math.max(1,Number(h.floors)||1);
+  const str = Number(h.strength)||0;
+  const dots = [1,2,3,4,5].map(i=>`<div class="sdot${i<=str?' on':''}"></div>`).join('');
+  const floorViz = Array.from({length:fls},(_,i)=>{
+    const h2 = 28 + i*4;
+    return `<div class="fbox" style="height:${h2}px" title="${i+1}. kat"></div>`;
+  }).reverse().join('');
+
+  document.getElementById('pu-body').innerHTML = `
+    <div class="info-row"><span class="info-lbl">Ana Arı</span><span class="info-val">${QL[h.queenStatus]||h.queenStatus||'-'}</span></div>
+    <div class="info-row"><span class="info-lbl">Irk</span><span class="info-val">${h.race||'-'}</span></div>
+    <div class="info-row"><span class="info-lbl">Kuşak</span><span class="info-val">${h.generation||'-'}</span></div>
+    <div class="info-row"><span class="info-lbl">Tip</span><span class="info-val">${h.type||'-'}</span></div>
+    <div class="info-row">
+      <span class="info-lbl">Kat Sayısı</span>
+      <div class="floor-visual">${floorViz}</div>
+    </div>
+    <div class="info-row">
+      <span class="info-lbl">Güç</span>
+      <div class="strength-dots">${dots}</div>
+    </div>
+    ${h.notes ? `<div class="info-row" style="border:none"><span class="info-lbl">Not</span><span class="info-val" style="font-size:12px;text-align:right;max-width:200px">${h.notes}</span></div>` : ''}
+  `;
+
+  document.getElementById('overlay').classList.add('open');
 }
 
-function centerOn(id) {
-  const el = document.querySelector(`[data-id="${id}"]`);
-  if (!el) return;
-  const wrap = document.getElementById('canvas-wrap');
-  const x = parseFloat(el.style.left) + cellSize/2 - wrap.clientWidth/2;
-  const y = parseFloat(el.style.top) + cellSize/2 - wrap.clientHeight/2;
-  wrap.scrollTo({ left: Math.max(0,x), top: Math.max(0,y), behavior: 'smooth' });
+function closePopup(e) {
+  if (e && e.target !== document.getElementById('overlay')) return;
+  document.getElementById('overlay').classList.remove('open');
+  popupHiveId = null;
 }
 
-function removeFromLayout(id) {
-  delete layout[id];
-  selectedId = null;
-  renderAll();
-  showToast('Düzenden çıkarıldı');
+function navToSelected() {
+  const id = popupHiveId; if(!id) return;
+  closePopup();
+  const el = canvas.querySelector(`[data-id="${id}"]`); if(!el) return;
+  const cw = document.getElementById('cw');
+  const x = parseFloat(el.style.left) - cw.clientWidth/2 + cellPx/2;
+  const y = parseFloat(el.style.top) - cw.clientHeight/2 + cellPx/2;
+  cw.scrollTo({left:Math.max(0,x), top:Math.max(0,y), behavior:'smooth'});
 }
 
-// ============================================================
-// SPACER
-// ============================================================
-let addingSpacerMode = false;
-
-function setMode(m) {
-  if (m === 'spacer') {
-    addingSpacerMode = !addingSpacerMode;
-    document.getElementById('btn-add-spacer').classList.toggle('active', addingSpacerMode);
-    showToast(addingSpacerMode ? 'Kanvasa tıklayarak boşluk ekle' : 'Boşluk ekleme iptal');
-  }
+// ═══════════════════════════════════════════════════════════
+//  SPACER MODE
+// ═══════════════════════════════════════════════════════════
+function toggleSpacerMode() {
+  spacerMode = !spacerMode;
+  const btn = document.getElementById('btn-spacer-hdr');
+  btn.textContent = spacerMode ? '✓ Boşluk (tıkla)' : '+ Boşluk';
+  btn.style.background = spacerMode ? 'var(--honey)' : '';
+  showToast(spacerMode ? 'Haritaya tıklayarak boşluk ekle' : 'Boşluk ekleme iptal');
 }
 
-canvas.addEventListener('dblclick', (e) => {
-  if (!addingSpacerMode) return;
+document.getElementById('canvas').addEventListener('click', e => {
+  if (!spacerMode) return;
+  const cw = document.getElementById('cw');
   const rect = canvas.getBoundingClientRect();
-  const wrap = document.getElementById('canvas-wrap');
-  let x = e.clientX - rect.left + wrap.scrollLeft;
-  let y = e.clientY - rect.top + wrap.scrollTop;
-  if (snapMode > 0) {
-    x = Math.round(x / (cellSize * snapMode)) * (cellSize * snapMode);
-    y = Math.round(y / (cellSize * snapMode)) * (cellSize * snapMode);
+  let x = e.clientX - rect.left;
+  let y = e.clientY - rect.top;
+  if (snapFactor > 0) {
+    const s = cellPx * snapFactor;
+    x = Math.round(x/s)*s; y = Math.round(y/s)*s;
   }
-  const sp = { id: 'sp_' + Date.now(), x, y, w: cellSize - 8, h: cellSize - 8 };
-  const spacers = JSON.parse(localStorage.getItem('beebook_arazi_spacers') || '[]');
-  spacers.push(sp);
-  localStorage.setItem('beebook_arazi_spacers', JSON.stringify(spacers));
-  renderSpacer(sp);
+  const W = Math.round(cellPx*0.78), H = Math.round(W*0.7);
+  const sp = {id:'sp_'+Date.now(), x:Math.max(0,x), y:Math.max(0,y), w:W, h:H};
+  spacers.push(sp); renderSpacer(sp);
   showToast('Boşluk eklendi');
 });
 
-// ============================================================
-// DELETE
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+//  DELETE
+// ═══════════════════════════════════════════════════════════
 function deleteSelected() {
   if (!selectedId) { showToast('Önce bir öğe seç'); return; }
   if (selectedId.startsWith('sp_')) {
-    const spacers = JSON.parse(localStorage.getItem('beebook_arazi_spacers') || '[]');
-    const filtered = spacers.filter(s => s.id !== selectedId);
-    localStorage.setItem('beebook_arazi_spacers', JSON.stringify(filtered));
+    spacers = spacers.filter(s=>s.id!==selectedId);
   } else {
-    delete layout[selectedId];
+    delete positions[selectedId];
   }
-  selectedId = null;
-  renderAll();
-  showToast('Silindi');
+  selectedId = null; render(); showToast('Silindi');
 }
 
-function setupKeyboard() {
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Delete' || e.key === 'Backspace') { if (selectedId) deleteSelected(); }
-    if (e.key === 'Escape') {
-      document.querySelectorAll('.hive-item.selected, .spacer-item.selected').forEach(el => el.classList.remove('selected'));
-      selectedId = null; updateSelPanel();
+// ═══════════════════════════════════════════════════════════
+//  ZOOM / SNAP
+// ═══════════════════════════════════════════════════════════
+function setZoom(v) {
+  cellPx = Number(v);
+  document.documentElement.style.setProperty('--cell', cellPx+'px');
+  render();
+}
+
+let lastSnapBtn = document.getElementById('snap-1');
+function setSnap(v, btn) {
+  snapFactor = v;
+  if (lastSnapBtn) lastSnapBtn.classList.remove('active');
+  if (btn) { btn.classList.add('active'); lastSnapBtn=btn; }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  KEYBOARD
+// ═══════════════════════════════════════════════════════════
+function setupEvents() {
+  document.addEventListener('keydown', e => {
+    if (e.key==='Escape') {
+      if (spacerMode) { toggleSpacerMode(); return; }
+      selectedId=null;
+      document.querySelectorAll('.hi.sel,.spi.sel').forEach(el=>el.classList.remove('sel'));
+      updateBadge(); return;
     }
-    // Arrow keys to nudge selected
-    if (selectedId && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+    if ((e.key==='Delete'||e.key==='Backspace') && selectedId) { e.preventDefault(); deleteSelected(); return; }
+    if (!selectedId) return;
+    const arrows = {ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
+    if (arrows[e.key]) {
       e.preventDefault();
-      const step = e.shiftKey ? cellSize : (snapMode > 0 ? cellSize * snapMode : 8);
-      const el = document.querySelector(`[data-id="${selectedId}"]`);
-      if (!el) return;
-      let x = parseFloat(el.style.left); let y = parseFloat(el.style.top);
-      if (e.key === 'ArrowLeft') x -= step;
-      if (e.key === 'ArrowRight') x += step;
-      if (e.key === 'ArrowUp') y -= step;
-      if (e.key === 'ArrowDown') y += step;
-      x = Math.max(0, x); y = Math.max(0, y);
-      el.style.left = x + 'px'; el.style.top = y + 'px';
-      if (!selectedId.startsWith('sp_')) layout[selectedId] = { x, y };
-      else updateSpacerPos(selectedId, x, y);
+      const step = e.shiftKey ? cellPx*4 : (snapFactor>0 ? cellPx*snapFactor : 10);
+      const [dx,dy] = arrows[e.key];
+      const el = canvas.querySelector(`[data-id="${selectedId}"]`); if(!el) return;
+      let nx = Math.max(0, parseFloat(el.style.left)+dx*step);
+      let ny = Math.max(0, parseFloat(el.style.top)+dy*step);
+      el.style.left=nx+'px'; el.style.top=ny+'px';
+      if (!selectedId.startsWith('sp_')) positions[selectedId]={x:nx,y:ny};
+      else { const sp=spacers.find(s=>s.id===selectedId); if(sp){sp.x=nx;sp.y=ny;} }
     }
   });
 }
 
-// ============================================================
-// ZOOM / SNAP
-// ============================================================
-function setZoom(v) {
-  cellSize = Number(v);
-  document.documentElement.style.setProperty('--cell', cellSize + 'px');
-  renderAll();
-}
-
-function setSnap(v) {
-  snapMode = v === '1' ? 1 : v === 'half' ? 0.5 : v === '2' ? 2 : 0;
-}
-
-// ============================================================
-// SAVE / EXPORT
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+//  SAVE / EXPORT
+// ═══════════════════════════════════════════════════════════
 function saveLayout() {
-  const data = { hives, layout, savedAt: new Date().toISOString() };
-  localStorage.setItem('beebook_arazi', JSON.stringify(data));
-  showToast('Düzen kaydedildi ✓');
+  lsSet('beebook_arazi_v2', {hives, positions, spacers, savedAt: new Date().toISOString()});
+  showToast('Kaydedildi ✓');
 }
 
-// Export as JSON for integration
 function exportLayout() {
-  const data = { hives, layout, savedAt: new Date().toISOString() };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({hives,positions,spacers},null,2)],{type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'arazi-duzen.json';
   a.click();
 }
 
-// ============================================================
-// TOAST
-// ============================================================
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function lsGet(k){try{const r=localStorage.getItem(k);return r?JSON.parse(r):null;}catch(e){return null;}}
+
+// ═══════════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════════
 let toastTimer;
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
 }
 </script>
 </body>
