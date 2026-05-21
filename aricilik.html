@@ -2314,25 +2314,67 @@ function renderHives() {
   }
 }
 
+// Dinamik kat SVG builder — hem kovan kartları hem arazi tarafından kullanılır
+function buildHiveSvg(type, floors, mkQDot) {
+  const n   = Math.max(1, Math.min(5, Number(floors) || 1));
+  const c   = { body:'#D4A017', body2:'#F0C040', roof:'#C47A1E', peak:'#9A5A10', base:'#8B5E3C', frame:'#F5E090', log:'#A0703A' };
+  const dot = mkQDot || (() => '');
+  // Çatı ve tepe sabit koordinatlarda — sadece gövde/kat sayısına göre toplam yükseklik değişir
+  const KAT = 14, ROOF_Y = 23, PEAK_Y = 13;
+
+  function box(vW, bX, bW) {
+    const H = n * KAT + 36;       // toplam viewBox yüksekliği
+    const baseY = n * KAT + 28;   // tabanın y koordinatı
+    const mid = vW / 2;
+    let s = `<svg viewBox="0 0 ${vW} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+    s += `<rect x="2" y="${baseY}" width="${vW-4}" height="4" rx="1.5" fill="${c.base}"/>`;
+    for (let i = 0; i < n; i++) {
+      const y = baseY - (i + 1) * KAT;
+      const fill = i % 2 === 0 ? c.body : c.body2;
+      s += `<rect x="${bX}" y="${y}" width="${bW}" height="${KAT}" rx="2" fill="${fill}" stroke="${c.base}" stroke-width="1.5"/>`;
+      s += `<line x1="${bX}" y1="${y + KAT/2}" x2="${bX+bW}" y2="${y + KAT/2}" stroke="${c.base}" stroke-width="0.8"/>`;
+    }
+    s += `<rect x="1" y="${ROOF_Y}" width="${vW-2}" height="5" rx="1" fill="${c.roof}"/>`;
+    s += `<polygon points="0,${ROOF_Y} ${mid},${PEAK_Y} ${vW},${ROOF_Y}" fill="${c.peak}"/>`;
+    s += dot(mid, PEAK_Y + 6.7);
+    s += `</svg>`;
+    return s;
+  }
+
+  function cerceveli() {
+    const H = n * KAT + 36;
+    const baseY = n * KAT + 28;
+    let s = `<svg viewBox="0 0 44 ${H}" xmlns="http://www.w3.org/2000/svg">`;
+    s += `<rect x="2" y="${baseY}" width="40" height="4" rx="1.5" fill="${c.base}"/>`;
+    const botY = baseY - KAT;
+    s += `<rect x="2" y="${botY}" width="40" height="${KAT}" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/>`;
+    s += `<rect x="6"  y="${botY+1}" width="5" height="${KAT-2}" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/>`;
+    s += `<rect x="14" y="${botY+1}" width="5" height="${KAT-2}" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/>`;
+    s += `<rect x="22" y="${botY+1}" width="5" height="${KAT-2}" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/>`;
+    s += `<rect x="30" y="${botY+1}" width="5" height="${KAT-2}" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/>`;
+    for (let i = 1; i < n; i++) {
+      const y = baseY - (i + 1) * KAT;
+      s += `<rect x="2" y="${y}" width="40" height="${KAT}" rx="2" fill="${i%2===0?c.body:c.body2}" stroke="${c.base}" stroke-width="1.5"/>`;
+      s += `<line x1="2" y1="${y+KAT/2}" x2="42" y2="${y+KAT/2}" stroke="${c.base}" stroke-width="0.8"/>`;
+    }
+    s += `<rect x="1" y="${ROOF_Y}" width="42" height="5" rx="1" fill="${c.roof}"/>`;
+    s += `<polygon points="0,${ROOF_Y} 22,${PEAK_Y} 44,${ROOF_Y}" fill="${c.peak}"/>`;
+    s += dot(22, PEAK_Y + 6.7);
+    s += `</svg>`;
+    return s;
+  }
+
+  if (type === 'Langstroth')      return box(40, 3, 34);
+  if (type === 'Dadant')          return box(44, 2, 40);
+  if (type === 'Çerçeveli')       return cerceveli();
+  if (type === 'Yerli')           return `<svg viewBox="0 0 50 38" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="6" width="38" height="26" rx="13" fill="${c.log}" stroke="#5A3A20" stroke-width="1.5"/><line x1="6" y1="14" x2="42" y2="14" stroke="#5A3A20" stroke-width="0.8"/><line x1="5" y1="19" x2="43" y2="19" stroke="#5A3A20" stroke-width="0.8"/><line x1="6" y1="24" x2="42" y2="24" stroke="#5A3A20" stroke-width="0.8"/><ellipse cx="43" cy="19" rx="6" ry="11.5" fill="#C4956A" stroke="#5A3A20" stroke-width="1.5"/><circle cx="8" cy="24" r="2.5" fill="#3A2010"/>${dot(25,12)}</svg>`;
+  if (type === 'Ana Arı Kovanı')  return `<svg viewBox="0 0 36 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="32" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="26" width="30" height="18" rx="2" fill="#F5C842" stroke="${c.base}" stroke-width="1.5"/><text x="18" y="40" font-size="13" text-anchor="middle" fill="${c.base}" font-family="serif">♛</text><rect x="5" y="18" width="26" height="8" rx="2" fill="#F8D860" stroke="${c.base}" stroke-width="1.5"/><rect x="2" y="13" width="32" height="5" rx="1" fill="${c.roof}"/><polygon points="1,13 18,4 35,13" fill="${c.peak}"/>${dot(18,10)}</svg>`;
+  if (type === 'Nükleus (Ruşet)') return `<svg viewBox="0 0 46 48" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="40" width="42" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="24" width="19" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="25" y="24" width="19" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><ellipse cx="11.5" cy="39.5" rx="3" ry="1" fill="#3A2010"/><ellipse cx="34.5" cy="39.5" rx="3" ry="1" fill="#3A2010"/><rect x="2" y="17" width="42" height="7" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><rect x="1" y="12" width="44" height="5" rx="1" fill="${c.roof}"/><polygon points="0,12 23,3 46,12" fill="${c.peak}"/>${dot(23,9)}</svg>`;
+  return box(40, 3, 34); // Diğer ve özel tipler
+}
+
 function getHiveTypeSvg(type, floors) {
-  const c = { body:'#D4A017', body2:'#F0C040', roof:'#C47A1E', peak:'#9A5A10', base:'#8B5E3C', frame:'#F5E090', log:'#A0703A' };
-  const twoFloor = Number(floors) >= 2;
-  const langstroth = twoFloor
-    ? `<svg viewBox="0 0 40 64" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="56" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="42" width="34" height="14" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="49" x2="37" y2="49" stroke="${c.base}" stroke-width="1"/><rect x="3" y="28" width="34" height="14" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="35" x2="37" y2="35" stroke="${c.base}" stroke-width="1"/><rect x="1" y="23" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,23 20,13 40,23" fill="${c.peak}"/></svg>`
-    : `<svg viewBox="0 0 40 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="30" width="34" height="14" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="37" x2="37" y2="37" stroke="${c.base}" stroke-width="1"/><rect x="3" y="20" width="34" height="10" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="1" y="15" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,15 20,5 40,15" fill="${c.peak}"/></svg>`;
-  const dadant = twoFloor
-    ? `<svg viewBox="0 0 44 64" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="56" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="40" width="40" height="16" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="48" x2="42" y2="48" stroke="${c.base}" stroke-width="1"/><rect x="2" y="24" width="40" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="32" x2="42" y2="32" stroke="${c.base}" stroke-width="1"/><rect x="3" y="19" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="2,19 22,10 42,19" fill="${c.peak}"/></svg>`
-    : `<svg viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="26" width="40" height="18" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="35" x2="42" y2="35" stroke="${c.base}" stroke-width="1"/><rect x="6" y="18" width="32" height="8" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="3" y="13" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="2,13 22,4 42,13" fill="${c.peak}"/></svg>`;
-  const svgs = {
-    'Langstroth': langstroth,
-    'Dadant': dadant,
-    'Yerli': `<svg viewBox="0 0 50 38" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="6" width="38" height="26" rx="13" fill="${c.log}" stroke="#5A3A20" stroke-width="1.5"/><line x1="6" y1="14" x2="42" y2="14" stroke="#5A3A20" stroke-width="0.8"/><line x1="5" y1="19" x2="43" y2="19" stroke="#5A3A20" stroke-width="0.8"/><line x1="6" y1="24" x2="42" y2="24" stroke="#5A3A20" stroke-width="0.8"/><ellipse cx="43" cy="19" rx="6" ry="11.5" fill="#C4956A" stroke="#5A3A20" stroke-width="1.5"/><circle cx="8" cy="24" r="2.5" fill="#3A2010"/></svg>`,
-    'Çerçeveli': `<svg viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="16" width="38" height="28" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><rect x="7" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="15" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="23" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="31" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="1" y="11" width="42" height="5" rx="1" fill="${c.roof}"/><polygon points="0,11 22,2 44,11" fill="${c.peak}"/></svg>`,
-    'Ana Arı Kovanı': `<svg viewBox="0 0 36 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="32" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="26" width="30" height="18" rx="2" fill="#F5C842" stroke="${c.base}" stroke-width="1.5"/><text x="18" y="40" font-size="13" text-anchor="middle" fill="${c.base}" font-family="serif">♛</text><rect x="5" y="18" width="26" height="8" rx="2" fill="#F8D860" stroke="${c.base}" stroke-width="1.5"/><rect x="2" y="13" width="32" height="5" rx="1" fill="${c.roof}"/><polygon points="1,13 18,4 35,13" fill="${c.peak}"/></svg>`,
-    'Nükleus (Ruşet)': `<svg viewBox="0 0 46 48" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="40" width="42" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="24" width="19" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="25" y="24" width="19" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><ellipse cx="11.5" cy="39.5" rx="3" ry="1" fill="#3A2010"/><ellipse cx="34.5" cy="39.5" rx="3" ry="1" fill="#3A2010"/><rect x="2" y="17" width="42" height="7" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><rect x="1" y="12" width="44" height="5" rx="1" fill="${c.roof}"/><polygon points="0,12 23,3 46,12" fill="${c.peak}"/></svg>`,
-    'Diğer': `<svg viewBox="0 0 40 48" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="40" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="22" width="34" height="18" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="31" x2="37" y2="31" stroke="${c.base}" stroke-width="1"/><rect x="1" y="17" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,17 20,7 40,17" fill="${c.peak}"/></svg>`,
-  };
-  return svgs[type] || svgs['Diğer'];
+  return buildHiveSvg(type, floors, null);
 }
 
 function setHiveView(view) {
@@ -4597,35 +4639,13 @@ function araziSilentSave() {
 //  SVG BUILDER
 // ═══════════════════════════════════════════════════════
 function araziGetHiveTypeSvg(type, floors, queenColor) {
-  const c = { body:'#D4A017', body2:'#F0C040', roof:'#C47A1E', peak:'#9A5A10', base:'#8B5E3C', frame:'#F5E090', log:'#A0703A' };
-  const twoFloor = Number(floors) >= 2;
-
-  const mkQDot = (cx, cy) => {
-    if (!queenColor) return '';
+  const mkQDot = queenColor ? (cx, cy) => {
     const color = ARAZI_QC[queenColor] || '#CCC';
     const fill  = color === 'transparent' ? 'white' : color;
     const dash  = color === 'transparent' ? ' stroke-dasharray="2,1.5"' : '';
     return `<circle cx="${cx}" cy="${cy}" r="3.5" fill="${fill}" stroke="rgba(0,0,0,0.5)" stroke-width="1.2"${dash}/>`;
-  };
-
-  const langstroth = twoFloor
-    ? `<svg viewBox="0 0 40 64" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="56" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="42" width="34" height="14" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="49" x2="37" y2="49" stroke="${c.base}" stroke-width="1"/><rect x="3" y="28" width="34" height="14" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="35" x2="37" y2="35" stroke="${c.base}" stroke-width="1"/><rect x="1" y="23" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,23 20,13 40,23" fill="${c.peak}"/>${mkQDot(20,20)}</svg>`
-    : `<svg viewBox="0 0 40 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="30" width="34" height="14" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="37" x2="37" y2="37" stroke="${c.base}" stroke-width="1"/><rect x="3" y="20" width="34" height="10" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="1" y="15" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,15 20,5 40,15" fill="${c.peak}"/>${mkQDot(20,12)}</svg>`;
-
-  const dadant = twoFloor
-    ? `<svg viewBox="0 0 44 64" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="56" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="40" width="40" height="16" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="48" x2="42" y2="48" stroke="${c.base}" stroke-width="1"/><rect x="2" y="24" width="40" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="32" x2="42" y2="32" stroke="${c.base}" stroke-width="1"/><rect x="3" y="19" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="2,19 22,10 42,19" fill="${c.peak}"/>${mkQDot(22,16)}</svg>`
-    : `<svg viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="26" width="40" height="18" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="35" x2="42" y2="35" stroke="${c.base}" stroke-width="1"/><rect x="6" y="18" width="32" height="8" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="3" y="13" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="2,13 22,4 42,13" fill="${c.peak}"/>${mkQDot(22,10)}</svg>`;
-
-  const svgs = {
-    'Langstroth': langstroth,
-    'Dadant': dadant,
-    'Yerli': `<svg viewBox="0 0 50 38" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="6" width="38" height="26" rx="13" fill="${c.log}" stroke="#5A3A20" stroke-width="1.5"/><line x1="6" y1="14" x2="42" y2="14" stroke="#5A3A20" stroke-width="0.8"/><line x1="5" y1="19" x2="43" y2="19" stroke="#5A3A20" stroke-width="0.8"/><line x1="6" y1="24" x2="42" y2="24" stroke="#5A3A20" stroke-width="0.8"/><ellipse cx="43" cy="19" rx="6" ry="11.5" fill="#C4956A" stroke="#5A3A20" stroke-width="1.5"/><circle cx="8" cy="24" r="2.5" fill="#3A2010"/>${mkQDot(25,12)}</svg>`,
-    'Çerçeveli': `<svg viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="16" width="38" height="28" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><rect x="7" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="15" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="23" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="31" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="1" y="11" width="42" height="5" rx="1" fill="${c.roof}"/><polygon points="0,11 22,2 44,11" fill="${c.peak}"/>${mkQDot(22,8)}</svg>`,
-    'Ana Arı Kovanı': `<svg viewBox="0 0 36 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="32" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="26" width="30" height="18" rx="2" fill="#F5C842" stroke="${c.base}" stroke-width="1.5"/><text x="18" y="40" font-size="13" text-anchor="middle" fill="${c.base}" font-family="serif">♛</text><rect x="5" y="18" width="26" height="8" rx="2" fill="#F8D860" stroke="${c.base}" stroke-width="1.5"/><rect x="2" y="13" width="32" height="5" rx="1" fill="${c.roof}"/><polygon points="1,13 18,4 35,13" fill="${c.peak}"/>${mkQDot(18,10)}</svg>`,
-    'Nükleus (Ruşet)': `<svg viewBox="0 0 46 48" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="40" width="42" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="24" width="19" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="25" y="24" width="19" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><ellipse cx="11.5" cy="39.5" rx="3" ry="1" fill="#3A2010"/><ellipse cx="34.5" cy="39.5" rx="3" ry="1" fill="#3A2010"/><rect x="2" y="17" width="42" height="7" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><rect x="1" y="12" width="44" height="5" rx="1" fill="${c.roof}"/><polygon points="0,12 23,3 46,12" fill="${c.peak}"/>${mkQDot(23,9)}</svg>`,
-    'Diğer': `<svg viewBox="0 0 40 48" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="40" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="22" width="34" height="18" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="31" x2="37" y2="31" stroke="${c.base}" stroke-width="1"/><rect x="1" y="17" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,17 20,7 40,17" fill="${c.peak}"/>${mkQDot(20,14)}</svg>`,
-  };
-  return svgs[type] || svgs['Diğer'];
+  } : null;
+  return buildHiveSvg(type, floors, mkQDot);
 }
 
 // ═══════════════════════════════════════════════════════
