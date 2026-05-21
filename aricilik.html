@@ -260,7 +260,9 @@
   }
   .hive-card:active { transform: scale(0.97); }
   .hive-card.has-queen { border-left-color: var(--green-ok); }
-  .hive-card.no-queen { border-left-color: var(--red-warn); }
+  .hive-card.no-queen  { border-left-color: var(--red-warn); }
+  .hive-card.is-empty  { opacity: .5; filter: grayscale(.5); }
+  .list-item.is-empty  { opacity: .5; filter: grayscale(.4); }
   .hive-card-num { font-size: 20px; font-weight: 900; color: var(--honey-dark); }
   .hive-card-type { font-size: 11px; color: var(--text-soft); font-weight: 700; }
   .hive-queen-badge {
@@ -633,9 +635,10 @@
     max-width: 90%; overflow: hidden; text-overflow: ellipsis;
   }
   /* Durum vurgusu */
-  #page-arazi .hi.qs-no    .hbody svg { filter: drop-shadow(0 0 7px #e53935) drop-shadow(0 0 14px rgba(229,57,53,.5)) drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
-  #page-arazi .hi.qs-bakire .hbody svg { filter: drop-shadow(0 0 7px #f9a825) drop-shadow(0 0 14px rgba(249,168,37,.5)) drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
-  #page-arazi .hi.qs-meme  .hbody svg { filter: drop-shadow(0 0 7px #9c27b0) drop-shadow(0 0 14px rgba(156,39,176,.5)) drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+  #page-arazi .hi.qs-no    .hbody svg { filter: drop-shadow(0 0 10px #e53935) drop-shadow(0 0 22px rgba(229,57,53,.75)) drop-shadow(0 0 36px rgba(229,57,53,.35)) drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+  #page-arazi .hi.qs-bakire .hbody svg { filter: drop-shadow(0 0 9px #f9a825) drop-shadow(0 0 20px rgba(249,168,37,.65)) drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+  #page-arazi .hi.qs-meme  .hbody svg { filter: drop-shadow(0 0 9px #9c27b0) drop-shadow(0 0 20px rgba(156,39,176,.65)) drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+  #page-arazi .hi.qs-empty .hbody svg { filter: grayscale(.65) opacity(.55) drop-shadow(0 2px 5px rgba(0,0,0,.2)); }
   #page-arazi .hstatus {
     font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 8px;
     color: white; white-space: nowrap; pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,.4);
@@ -643,6 +646,7 @@
   #page-arazi .hstatus.s-no     { background: #e53935; }
   #page-arazi .hstatus.s-bakire { background: #f9a825; color: #1a1208; }
   #page-arazi .hstatus.s-meme   { background: #9c27b0; }
+  #page-arazi .hstatus.s-empty  { background: #9e9e9e; }
 
   /* Spacer */
   #page-arazi .spi {
@@ -1416,6 +1420,7 @@
           <option value="unknown">Bilinmiyor ❓</option>
           <option value="bakire">Bakire Ana Arı 🐝</option>
           <option value="meme">Meme Var 🫙</option>
+          <option value="empty">Arısız 📦</option>
         </select>
       </div>
       <div class="form-group" id="hive-year-group">
@@ -1434,7 +1439,7 @@
         <div class="color-dot qc-unpainted" onclick="selectQueenColor('unpainted', this)" title="Boyasız ⭕"></div>
       </div>
     </div>
-    <div class="form-row">
+    <div class="form-row" id="hive-strength-row">
       <div class="form-group">
         <label class="form-label">Koloni Gücü (1-5)</label>
         <select class="form-select" id="hive-strength">
@@ -1463,7 +1468,7 @@
       <label class="form-label">Kuşak</label>
       <input class="form-input" id="hive-generation" placeholder="F1, F2...">
     </div>
-    <div class="form-row">
+    <div class="form-row" id="hive-phys-row">
       <div class="form-group">
         <label class="form-label">Çerçeve Sayısı</label>
         <input class="form-input" type="number" id="hive-frames" placeholder="10">
@@ -1512,6 +1517,7 @@
         <select class="form-select" id="bulk-queen-status">
           <option value="yes">Ana Arı Var ✅</option>
           <option value="no">Ana Arı Yok ❌</option>
+          <option value="empty">Arısız 📦</option>
           <option value="unknown">Bilinmiyor ❓</option>
         </select>
       </div>
@@ -2266,18 +2272,20 @@ function renderHives() {
     grid.style.display = 'block';
     grid.innerHTML = hives.map(h => {
       const hasQueen = h.queenStatus === 'yes' || h.queenStatus === 'new' || h.queenStatus === 'bakire' || h.queenStatus === 'meme';
-      const qIcon = h.queenStatus === 'yes' ? '🟢' : h.queenStatus === 'bakire' ? '🐝' : h.queenStatus === 'new' ? '🐝' : h.queenStatus === 'meme' ? '🫙' : h.queenStatus === 'no' ? '🔴' : '❓';
+      const qIcon = h.queenStatus === 'yes' ? '🟢' : h.queenStatus === 'bakire' ? '🐝' : h.queenStatus === 'new' ? '🐝' : h.queenStatus === 'meme' ? '🫙' : h.queenStatus === 'no' ? '🔴' : h.queenStatus === 'empty' ? '📦' : '❓';
       const dots = [1,2,3,4,5].map(i => `<div class="hive-strength-dot ${i <= Number(h.strength) ? 'filled' : ''}"></div>`).join('');
       const qColor = queenColorMap[h.queenColor] || '#DDD';
       const qDotStyle = h.queenColor === 'unpainted' ? 'background:white;border:2px dashed #999' : `background:${qColor};border:2.5px solid rgba(0,0,0,0.2);box-shadow:0 1px 4px rgba(0,0,0,0.15)`;
-      const queenLabel = { yes:'Ana Arı Var', no:'Ana Arı Yok', unknown:'Bilinmiyor', new:'Bakire Ana Arı', bakire:'Bakire Ana Arı', meme:'Meme Var' };
+      const showQDot = hasQueen;
+      const queenLabel = { yes:'Ana Arı Var', no:'Ana Arı Yok', unknown:'Bilinmiyor', new:'Bakire Ana Arı', bakire:'Bakire Ana Arı', meme:'Meme Var', empty:'Arısız' };
+      const borderColor = hasQueen ? 'var(--green-ok)' : h.queenStatus === 'no' ? 'var(--red-warn)' : h.queenStatus === 'empty' ? '#bdbdbd' : 'var(--comb-dark)';
       return `
-        <div class="list-item" style="border-left:4px solid ${hasQueen ? 'var(--green-ok)' : h.queenStatus === 'no' ? 'var(--red-warn)' : 'var(--comb-dark)'}; cursor:pointer" onclick="showHiveDetail('${h.id}')">
+        <div class="list-item${h.queenStatus === 'empty' ? ' is-empty' : ''}" style="border-left:4px solid ${borderColor}; cursor:pointer" onclick="showHiveDetail('${h.id}')">
           <div class="hive-type-svg-list">${getHiveTypeSvg(h.type, h.floors)}</div>
           <div class="list-item-content">
             <div style="display:flex; align-items:center; gap:6px">
               <div class="list-item-title">#${h.num} — ${h.type}</div>
-              <div style="width:16px;height:16px;border-radius:50%;${qDotStyle};flex-shrink:0"></div>
+              ${showQDot ? `<div style="width:16px;height:16px;border-radius:50%;${qDotStyle};flex-shrink:0"></div>` : ''}
             </div>
             <div class="list-item-sub">${h.race || ''}${h.generation ? ' · ' + h.generation : ''}${h.floors > 1 ? ' · ' + h.floors + ' kat' : ''} · ${queenLabel[h.queenStatus] || ''}</div>
             <div class="hive-strength" style="margin-top:5px">${dots}</div>
@@ -2293,17 +2301,18 @@ function renderHives() {
     grid.style.display = 'grid';
     grid.innerHTML = hives.map(h => {
       const hasQueen = h.queenStatus === 'yes' || h.queenStatus === 'new' || h.queenStatus === 'bakire' || h.queenStatus === 'meme';
-      const qIcon = h.queenStatus === 'yes' ? '🟢' : h.queenStatus === 'bakire' ? '🐝' : h.queenStatus === 'new' ? '🐝' : h.queenStatus === 'meme' ? '🫙' : h.queenStatus === 'no' ? '🔴' : '❓';
+      const qIcon = h.queenStatus === 'yes' ? '🟢' : h.queenStatus === 'bakire' ? '🐝' : h.queenStatus === 'new' ? '🐝' : h.queenStatus === 'meme' ? '🫙' : h.queenStatus === 'no' ? '🔴' : h.queenStatus === 'empty' ? '📦' : '❓';
       const dots = [1,2,3,4,5].map(i => `<div class="hive-strength-dot ${i <= Number(h.strength) ? 'filled' : ''}"></div>`).join('');
       const qColor = queenColorMap[h.queenColor] || '#DDD';
       const qDotStyle = h.queenColor === 'unpainted' ? 'background:white;border:2px dashed #999' : `background:${qColor};border:2.5px solid rgba(0,0,0,0.2);box-shadow:0 1px 4px rgba(0,0,0,0.15)`;
+      const cardCls = hasQueen ? 'has-queen' : h.queenStatus === 'no' ? 'no-queen' : h.queenStatus === 'empty' ? 'is-empty' : '';
       return `
-        <div class="hive-card ${hasQueen ? 'has-queen' : h.queenStatus === 'no' ? 'no-queen' : ''}" onclick="showHiveDetail('${h.id}')">
+        <div class="hive-card ${cardCls}" onclick="showHiveDetail('${h.id}')">
           <div class="hive-queen-badge">${qIcon}</div>
           <div class="hive-type-svg">${getHiveTypeSvg(h.type, h.floors)}</div>
           <div style="display:flex; align-items:center; gap:6px">
             <div class="hive-card-num">#${h.num}</div>
-            <div style="width:20px;height:20px;border-radius:50%;${qDotStyle};flex-shrink:0"></div>
+            ${hasQueen ? `<div style="width:20px;height:20px;border-radius:50%;${qDotStyle};flex-shrink:0"></div>` : ''}
           </div>
           <div class="hive-card-type">${h.type}</div>
           <div class="hive-card-race">${h.race || ''} ${h.generation ? '· ' + h.generation : ''}</div>
@@ -2414,7 +2423,8 @@ function showHiveDetail(id) {
   const qColorStyle = h.queenColor === 'unpainted'
     ? 'background:white;border:2px dashed #999'
     : `background:${qColor};border:2px solid #CCC`;
-  const queenLabel = { yes:'Ana Arı Var ✅', no:'Ana Arı Yok ❌', unknown:'Bilinmiyor ❓', new:'Bakire Ana Arı 🐝', bakire:'Bakire Ana Arı 🐝', meme:'Meme Var 🫙' };
+  const queenLabel = { yes:'Ana Arı Var ✅', no:'Ana Arı Yok ❌', unknown:'Bilinmiyor ❓', new:'Bakire Ana Arı 🐝', bakire:'Bakire Ana Arı 🐝', meme:'Meme Var 🫙', empty:'Arısız 📦' };
+  const showQDot = h.queenStatus === 'yes' || h.queenStatus === 'bakire' || h.queenStatus === 'new' || h.queenStatus === 'meme';
   const dots = [1,2,3,4,5].map(i => `<div class="hive-strength-dot ${i <= Number(h.strength) ? 'filled' : ''}"></div>`).join('');
   document.getElementById('hive-detail-content').innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px">
@@ -2422,7 +2432,7 @@ function showHiveDetail(id) {
         <div style="font-family:'Playfair Display',serif; font-size:24px">Kovan #${h.num}</div>
         <div style="font-size:13px; color:var(--text-soft)">${h.type}</div>
       </div>
-      <div style="width:24px;height:24px;border-radius:50%;${qColorStyle};margin-top:4px"></div>
+      ${showQDot ? `<div style="width:24px;height:24px;border-radius:50%;${qColorStyle};margin-top:4px"></div>` : ''}
     </div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px">
       <div class="stat-box"><div style="font-size:13px; font-weight:700; color:var(--text-mid)">${queenLabel[h.queenStatus] || '—'}</div><div class="stat-lbl">Ana Arı</div></div>
@@ -2592,11 +2602,20 @@ function selectQueenColor(color, el) {
 
 function onQueenStatusChange() {
   const status = document.getElementById('hive-queen-status').value;
-  const show = status !== 'no';
-  ['hive-year-group','hive-queen-color-group','hive-race-group','hive-generation-group'].forEach(id => {
+  const isEmpty = status === 'empty';
+  const hasQueen = status === 'yes' || status === 'bakire' || status === 'meme';
+  // Arısız: sadece no, tip, notlar görünür
+  ['hive-year-group','hive-queen-color-group','hive-race-group','hive-generation-group','hive-strength-row','hive-phys-row'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.style.display = show ? '' : 'none';
+    if (el) el.style.display = isEmpty ? 'none' : '';
   });
+  // Ana arısız ve bilinmiyor: renk/yıl/kuşak gizli
+  if (!isEmpty) {
+    ['hive-year-group','hive-queen-color-group','hive-generation-group'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = hasQueen ? '' : 'none';
+    });
+  }
 }
 
 // ======================== QUEENS ========================
@@ -4688,7 +4707,8 @@ function araziRenderHive(h) {
   const svgWrap = document.createElement('div');
   svgWrap.className = 'hbody';
   svgWrap.style.width = W + 'px';
-  svgWrap.innerHTML = araziGetHiveTypeSvg(h.type, fls, h.queenColor);
+  const hasQueen = h.queenStatus === 'yes' || h.queenStatus === 'bakire' || h.queenStatus === 'new' || h.queenStatus === 'meme';
+  svgWrap.innerHTML = araziGetHiveTypeSvg(h.type, fls, hasQueen ? h.queenColor : null);
 
   const numEl = document.createElement('div');
   numEl.className = 'hnum-overlay';
@@ -4705,9 +4725,9 @@ function araziRenderHive(h) {
 
   el.appendChild(svgWrap);
 
-  const qsMap   = { no:'qs-no', bakire:'qs-bakire', new:'qs-bakire', meme:'qs-meme' };
-  const qsLabel = { no:'❌ Arısız', bakire:'🐝 Bakire', new:'🐝 Bakire', meme:'🫙 Meme' };
-  const qsCls   = { no:'s-no', bakire:'s-bakire', new:'s-bakire', meme:'s-meme' };
+  const qsMap   = { no:'qs-no', bakire:'qs-bakire', new:'qs-bakire', meme:'qs-meme', empty:'qs-empty' };
+  const qsLabel = { no:'❌ Arısız', bakire:'🐝 Bakire', new:'🐝 Bakire', meme:'🫙 Meme', empty:'📦 Boş' };
+  const qsCls   = { no:'s-no', bakire:'s-bakire', new:'s-bakire', meme:'s-meme', empty:'s-empty' };
   if (qsMap[h.queenStatus]) {
     el.classList.add(qsMap[h.queenStatus]);
     const badge = document.createElement('div');
