@@ -1294,8 +1294,6 @@
       </div>
     </div>
 
-  </div><!-- end pages -->
-
     <!-- ARAZİ DÜZENİ -->
     <div class="page" id="page-arazi">
       <div id="arazi-toolbar">
@@ -1342,6 +1340,8 @@
         </div>
       </div>
     </div>
+
+  </div><!-- end pages -->
 
   <!-- BOTTOM NAV -->
   <div id="bottom-nav">
@@ -4580,6 +4580,9 @@ let araziEventsReady = false;
 
 function araziLsGet(k) { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : null; } catch(e) { return null; } }
 function araziLsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} }
+function araziSilentSave() {
+  araziLsSet('beebook_arazi_v2', { hives: araziHives, positions: araziPositions, spacers: araziSpacers, savedAt: new Date().toISOString() });
+}
 
 // ═══════════════════════════════════════════════════════
 //  SVG BUILDER
@@ -4743,6 +4746,7 @@ function araziAttachDrag(el, id, type) {
     const nx = parseFloat(el.style.left), ny = parseFloat(el.style.top);
     if (type === 'hive') araziPositions[id] = { x: nx, y: ny };
     else { const sp = araziSpacers.find(s => s.id === id); if (sp) { sp.x = nx; sp.y = ny; } }
+    araziSilentSave();
   });
 }
 
@@ -4809,8 +4813,10 @@ function araziClosePopup(e) {
 }
 
 function araziNavToSelected() {
+  const id = araziPopupHiveId;
   araziClosePopup();
   navigate('hives');
+  setTimeout(() => { if (id) showHiveDetail(id); }, 300);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -4844,14 +4850,14 @@ function araziDeleteSelected() {
   } else {
     delete araziPositions[araziSelectedId];
   }
-  araziSelectedId = null; araziRender(); showToast('Silindi');
+  araziSelectedId = null; araziRender(); araziSilentSave(); showToast('Silindi');
 }
 
 function araziAutoArrange() {
   araziPositions = {};
   const sorted = [...araziHives].sort((a, b) => Number(a.num) - Number(b.num));
   araziPlaceNew(sorted);
-  araziRender(); showToast('Yeniden düzenlendi');
+  araziRender(); araziSilentSave(); showToast('Yeniden düzenlendi');
 }
 
 function araziRefresh() {
@@ -4891,6 +4897,8 @@ function araziInitPage() {
 
   const newOnes = araziHives.filter(h => !araziPositions[h.id]);
   araziPlaceNew(newOnes);
+  const _alive = new Set(araziHives.map(h => h.id));
+  Object.keys(araziPositions).forEach(id => { if (!_alive.has(id)) delete araziPositions[id]; });
 
   araziRender();
 
@@ -4923,7 +4931,10 @@ function araziInitPage() {
     araziEventsReady = true;
   }
 
-  araziLastSnapBtn = document.getElementById('arazi-snap-q');
+  const snapMap = { 0.5: 'arazi-snap-h', 0.25: 'arazi-snap-q', 0: 'arazi-snap-f' };
+  document.querySelectorAll('#arazi-toolbar .atbtn[id^="arazi-snap-"]').forEach(b => b.classList.remove('active'));
+  const activeSnapBtn = document.getElementById(snapMap[araziSnapFactor] || 'arazi-snap-q');
+  if (activeSnapBtn) { activeSnapBtn.classList.add('active'); araziLastSnapBtn = activeSnapBtn; }
 
   const zoomRange = document.getElementById('arazi-zoom-range');
   if (zoomRange) zoomRange.value = araziCellPx;
@@ -4931,6 +4942,7 @@ function araziInitPage() {
 
 document.addEventListener('keydown', e => {
   if (currentPage !== 'arazi') return;
+  if (e.target.matches('input, select, textarea')) return;
   if (e.key === 'Escape') {
     if (araziSpacerMode) { araziToggleSpacerMode(); return; }
     araziSelectedId = null;
