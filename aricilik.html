@@ -347,7 +347,7 @@
   .chip.active { background: var(--honey); border-color: var(--honey); color: white; }
 
   /* QUICK ACTIONS */
-  .quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .quick-actions { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
   .quick-action { background: white; border-radius: 12px; padding: 10px 6px; text-align: center; cursor: pointer; box-shadow: var(--shadow-soft); transition: transform 0.15s; border: none; font-family: 'Nunito', sans-serif; }
   .quick-action:active { transform: scale(0.94); }
   .quick-action .qa-icon { font-size: 24px; display: block; margin-bottom: 4px; }
@@ -514,7 +514,7 @@
   @media (max-width: 380px) {
     .hive-grid { grid-template-columns: 1fr 1fr; }
     .stat-grid { grid-template-columns: 1fr 1fr; }
-    .quick-actions { grid-template-columns: repeat(4, 1fr); }
+    .quick-actions { grid-template-columns: repeat(5, 1fr); }
   }
 
   /* ====== AUTH & SYNC ====== */
@@ -811,6 +811,9 @@
         <button class="quick-action" onclick="openExpenseModal()">
           <span class="qa-icon">💸</span><span class="qa-label">Gider Ekle</span>
         </button>
+        <button class="quick-action" onclick="navigate('arazi')">
+          <span class="qa-icon">🗺️</span><span class="qa-label">Arazi</span>
+        </button>
         <button class="quick-action" onclick="navigate('settings')">
           <span class="qa-icon">⚙️</span><span class="qa-label">Ayarlar</span>
         </button>
@@ -896,6 +899,7 @@
             <button class="view-btn active" id="view-grid-btn" onclick="setHiveView('grid')" title="Izgara">⊞</button>
             <button class="view-btn" id="view-list-btn" onclick="setHiveView('list')" title="Liste">☰</button>
           </div>
+          <button class="btn btn-secondary btn-sm" onclick="navigate('arazi')">🗺️ Arazi</button>
           <button class="btn btn-secondary btn-sm" onclick="openBulkHiveModal()">⊞ Toplu Ekle</button>
           <button class="btn btn-primary btn-sm" onclick="openHiveModal()">+ Kovan Ekle</button>
         </div>
