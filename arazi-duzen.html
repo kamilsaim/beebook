@@ -220,9 +220,10 @@ input[type=file]{display:none}
   <input type="range" id="zoom-range" min="48" max="130" value="80" oninput="setZoom(this.value)">
   <div class="sep"></div>
   <span class="tlab">Snap</span>
-  <button class="tbtn active" id="snap-1" onclick="setSnap(1,this)">1×</button>
   <button class="tbtn" id="snap-h" onclick="setSnap(0.5,this)">½×</button>
+  <button class="tbtn active" id="snap-q" onclick="setSnap(0.25,this)">¼×</button>
   <button class="tbtn" id="snap-f" onclick="setSnap(0,this)">Serbest</button>
+
   <div class="sep"></div>
   <button class="tbtn" onclick="autoArrange()">🔀 Otomatik</button>
   <button class="tbtn" onclick="exportLayout()">📤 Dışa Aktar</button>
@@ -273,7 +274,7 @@ let positions= {};   // id → {x,y}
 let spacers  = [];   // [{id,x,y,w,h}]
 let selectedId = null;
 let cellPx   = 80;
-let snapFactor = 1;  // multiplier of cellPx
+let snapFactor = 0.25;  // multiplier of cellPx
 let spacerMode = false;
 let popupHiveId = null;
 
@@ -352,21 +353,23 @@ function handleFile(e) {
 // ═══════════════════════════════════════════════════════════
 function placeNew(list) {
   if (!list.length) return;
-  const cols = Math.max(4, Math.ceil(Math.sqrt(list.length)));
-  const cStep = Math.round(cellPx * 1.08);
-  const rStep = Math.round(cellPx * 1.6);
+  const cols = Math.max(3, Math.ceil(Math.sqrt(list.length)));
+  const cStep = Math.round(cellPx * 1.6);  // kovan genişliği + yeterli boşluk
+  const rStep = Math.round(cellPx * 2.4);  // kovan yüksekliği + yeterli boşluk
   const used = new Set(Object.values(positions).map(p=>`${Math.round(p.x/cStep)},${Math.round(p.y/rStep)}`));
   let c=0, r=0;
   list.forEach(h => {
     while (used.has(`${c},${r}`)) { c++; if(c>=cols){c=0;r++;} }
-    positions[h.id] = { x: c*cStep + 20, y: r*rStep + 20 };
+    positions[h.id] = { x: c*cStep + 40, y: r*rStep + 40 };
     used.add(`${c},${r}`); c++; if(c>=cols){c=0;r++;}
   });
 }
 
 function autoArrange() {
   positions = {};
-  placeNew(hives); render(); showToast('Yeniden düzenlendi');
+  const sorted = [...hives].sort((a,b) => Number(a.num) - Number(b.num));
+  placeNew(sorted);
+  render(); showToast('Yeniden düzenlendi');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -642,7 +645,7 @@ function setZoom(v) {
   render();
 }
 
-let lastSnapBtn = document.getElementById('snap-1');
+let lastSnapBtn = document.getElementById('snap-q'); // ¼× default
 function setSnap(v, btn) {
   snapFactor = v;
   if (lastSnapBtn) lastSnapBtn.classList.remove('active');
