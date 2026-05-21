@@ -3771,8 +3771,11 @@ function editBeeRace(i) {
   const cur = list[i];
   const nv = prompt('Arı ırkı düzenle:', cur);
   if (nv === null || !nv.trim()) return;
-  list[i] = nv.trim();
-  settings.beeRaces = list; saveSettings(); renderSettingLists(); showToast('Güncellendi');
+  const newName = nv.trim();
+  list[i] = newName;
+  settings.beeRaces = list;
+  data.hives.forEach(h => { if (h.race === cur) h.race = newName; });
+  saveSettings(); saveData(); renderSettingLists(); showToast('Güncellendi');
 }
 
 function editExpType(i) {
