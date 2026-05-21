@@ -2106,6 +2106,7 @@ function navigate(page) {
     case 'season': renderSeasons(); break;
     case 'backup': renderBackup(); break;
     case 'settings': renderSettings(); break;
+    case 'arazi': araziInitPage(); break;
   }
 }
 
@@ -4875,6 +4876,83 @@ function araziExportLayout() {
   a.download = 'arazi-duzen.json';
   a.click();
 }
+
+// ═══════════════════════════════════════════════════════
+//  ARAZİ — INIT & KLAVYE
+// ═══════════════════════════════════════════════════════
+function araziInitPage() {
+  araziHives = [...(data.hives || [])];
+
+  const saved = araziLsGet('beebook_arazi_v2');
+  if (saved) {
+    araziPositions = saved.positions || {};
+    araziSpacers   = saved.spacers   || [];
+  }
+
+  const newOnes = araziHives.filter(h => !araziPositions[h.id]);
+  araziPlaceNew(newOnes);
+
+  araziRender();
+
+  if (!araziEventsReady) {
+    const canvas = document.getElementById('arazi-canvas');
+    const cw     = document.getElementById('arazi-cw');
+
+    canvas.addEventListener('click', e => {
+      if (!araziSpacerMode) return;
+      const rect = canvas.getBoundingClientRect();
+      let x = e.clientX - rect.left;
+      let y = e.clientY - rect.top;
+      if (araziSnapFactor > 0) {
+        const s = araziCellPx * araziSnapFactor;
+        x = Math.round(x / s) * s; y = Math.round(y / s) * s;
+      }
+      const W = Math.round(araziCellPx * 0.78), H = Math.round(W * 0.7);
+      const sp = { id: 'sp_' + Date.now(), x: Math.max(0, x), y: Math.max(0, y), w: W, h: H };
+      araziSpacers.push(sp); araziRenderSpacer(sp);
+      showToast('Boşluk eklendi');
+    });
+
+    cw.addEventListener('click', () => {
+      if (araziSpacerMode) return;
+      araziSelectedId = null;
+      document.querySelectorAll('#arazi-canvas .hi.sel, #arazi-canvas .spi.sel').forEach(el => el.classList.remove('sel'));
+      araziUpdateBadge();
+    });
+
+    araziEventsReady = true;
+  }
+
+  araziLastSnapBtn = document.getElementById('arazi-snap-q');
+
+  const zoomRange = document.getElementById('arazi-zoom-range');
+  if (zoomRange) zoomRange.value = araziCellPx;
+}
+
+document.addEventListener('keydown', e => {
+  if (currentPage !== 'arazi') return;
+  if (e.key === 'Escape') {
+    if (araziSpacerMode) { araziToggleSpacerMode(); return; }
+    araziSelectedId = null;
+    document.querySelectorAll('#arazi-canvas .hi.sel, #arazi-canvas .spi.sel').forEach(el => el.classList.remove('sel'));
+    araziUpdateBadge(); return;
+  }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && araziSelectedId) {
+    e.preventDefault(); araziDeleteSelected(); return;
+  }
+  const arrows = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] };
+  if (arrows[e.key] && araziSelectedId) {
+    e.preventDefault();
+    const step = e.shiftKey ? araziCellPx * 4 : (araziSnapFactor > 0 ? araziCellPx * araziSnapFactor : 10);
+    const [dx, dy] = arrows[e.key];
+    const el = document.querySelector(`#arazi-canvas [data-id="${araziSelectedId}"]`); if (!el) return;
+    let nx = Math.max(0, parseFloat(el.style.left) + dx * step);
+    let ny = Math.max(0, parseFloat(el.style.top)  + dy * step);
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+    if (!araziSelectedId.startsWith('sp_')) araziPositions[araziSelectedId] = { x: nx, y: ny };
+    else { const sp = araziSpacers.find(s => s.id === araziSelectedId); if (sp) { sp.x = nx; sp.y = ny; } }
+  }
+});
 
 init();
 </script>
