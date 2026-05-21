@@ -618,7 +618,12 @@
     gap: 2px; cursor: grab; user-select: none; touch-action: none; transition: filter .15s;
   }
   #page-arazi .hi.dragging { cursor: grabbing; filter: drop-shadow(0 8px 20px rgba(0,0,0,.5)); z-index: 500!important; transition: none; }
-  #page-arazi .hi.sel .hbody { outline: 3px solid #64b5f6; outline-offset: 3px; }
+  #page-arazi .hi.sel::before {
+    content: ''; position: absolute; inset: -5px;
+    border: 2.5px solid #64b5f6; border-radius: 8px;
+    box-shadow: 0 0 8px rgba(100,181,246,.55), inset 0 0 4px rgba(100,181,246,.15);
+    pointer-events: none; z-index: 1;
+  }
   #page-arazi .hbody { border-radius: 5px; position: relative; overflow: visible; }
   #page-arazi .hbody svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
   #page-arazi .hnum-overlay {
