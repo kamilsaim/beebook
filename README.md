@@ -65,12 +65,6 @@ Arıcılar için mobil öncelikli, offline-first kovan yönetim uygulaması.
 Uygulama tarayıcıda doğrudan çalışır, herhangi bir kurulum gerektirmez.
 
 ```
-# Repoyu klonla
-git clone https://github.com/kamilsaim/beebook.git
-
-# aricilik.html dosyasını tarayıcıda aç — bu kadar.
-```
-
 **Mobil kurulum:** Tarayıcıda aç → "Ana Ekrana Ekle" ile PWA gibi yükle.
 
 ---
