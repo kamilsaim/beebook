@@ -1292,6 +1292,53 @@
 
   </div><!-- end pages -->
 
+    <!-- ARAZİ DÜZENİ -->
+    <div class="page" id="page-arazi">
+      <div id="arazi-toolbar">
+        <div id="arazi-sel-badge">0 kovan</div>
+        <div class="asep"></div>
+        <button class="atbtn" onclick="araziDeleteSelected()">🗑️ Sil</button>
+        <div class="asep"></div>
+        <span class="atlab">Boyut</span>
+        <input type="range" id="arazi-zoom-range" min="48" max="130" value="80" oninput="araziSetZoom(this.value)">
+        <div class="asep"></div>
+        <span class="atlab">Snap</span>
+        <button class="atbtn" id="arazi-snap-h" onclick="araziSetSnap(0.5,this)">½×</button>
+        <button class="atbtn active" id="arazi-snap-q" onclick="araziSetSnap(0.25,this)">¼×</button>
+        <button class="atbtn" id="arazi-snap-f" onclick="araziSetSnap(0,this)">Serbest</button>
+        <div class="asep"></div>
+        <button class="atbtn" onclick="araziAutoArrange()">🔀 Otomatik</button>
+        <button class="atbtn" onclick="araziRefresh()">🔄 Yenile</button>
+        <button class="atbtn" onclick="araziSaveLayout()">💾 Kaydet</button>
+        <button class="atbtn" onclick="araziExportLayout()">📤 Dışa Aktar</button>
+        <div class="asep"></div>
+        <button class="atbtn" id="arazi-btn-spacer" onclick="araziToggleSpacerMode()">+ Boşluk</button>
+      </div>
+
+      <div id="arazi-cw">
+        <div id="arazi-canvas"></div>
+        <div id="arazi-north">K<br>↑</div>
+      </div>
+
+      <!-- Popup -->
+      <div id="arazi-overlay" onclick="araziClosePopup(event)">
+        <div id="arazi-popup">
+          <div class="arazi-popup-hdr">
+            <div>
+              <div class="arazi-popup-num" id="arazi-pu-num"></div>
+              <div class="arazi-popup-type" id="arazi-pu-type"></div>
+            </div>
+            <div class="arazi-popup-qdot" id="arazi-pu-qdot"></div>
+          </div>
+          <div class="arazi-popup-body" id="arazi-pu-body"></div>
+          <div class="arazi-popup-btns">
+            <button class="arazi-pbtn close" onclick="araziClosePopup()">Kapat</button>
+            <button class="arazi-pbtn nav" id="arazi-pu-nav" onclick="araziNavToSelected()">🎯 Kovan'a Git</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   <!-- BOTTOM NAV -->
   <div id="bottom-nav">
     <button class="nav-item active" onclick="navigate('dashboard')" data-page="dashboard">
