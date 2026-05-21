@@ -89,6 +89,21 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 .hi.sel .hbody{outline:3px solid #64b5f6;outline-offset:3px}
 .hbody{border-radius:5px;position:relative;overflow:visible}
 .hbody svg{width:100%;height:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+
+/* Ana arı durum vurgusu */
+.hi.qs-no    .hbody svg{filter:drop-shadow(0 0 7px #e53935) drop-shadow(0 0 14px rgba(229,57,53,.5)) drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+.hi.qs-bakire .hbody svg{filter:drop-shadow(0 0 7px #f9a825) drop-shadow(0 0 14px rgba(249,168,37,.5)) drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+.hi.qs-meme  .hbody svg{filter:drop-shadow(0 0 7px #9c27b0) drop-shadow(0 0 14px rgba(156,39,176,.5)) drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+
+.hstatus{
+  font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;
+  color:white;white-space:nowrap;pointer-events:none;
+  text-shadow:0 1px 2px rgba(0,0,0,.4);
+}
+.hstatus.s-no    {background:#e53935}
+.hstatus.s-bakire{background:#f9a825;color:#1a1208}
+.hstatus.s-meme  {background:#9c27b0}
+
 .hnum-overlay{
   position:absolute;bottom:27%;left:50%;
   transform:translateX(-50%);
@@ -416,6 +431,18 @@ function renderHive(h) {
   }
 
   el.appendChild(svgWrap);
+
+  // Ana arı durum vurgusu
+  const qsMap = { no:'qs-no', bakire:'qs-bakire', new:'qs-bakire', meme:'qs-meme' };
+  const qsLabel = { no:'❌ Arısız', bakire:'🐝 Bakire', new:'🐝 Bakire', meme:'🫙 Meme' };
+  const qsCls = { no:'s-no', bakire:'s-bakire', new:'s-bakire', meme:'s-meme' };
+  if (qsMap[h.queenStatus]) {
+    el.classList.add(qsMap[h.queenStatus]);
+    const badge = document.createElement('div');
+    badge.className = 'hstatus ' + qsCls[h.queenStatus];
+    badge.textContent = qsLabel[h.queenStatus];
+    el.appendChild(badge);
+  }
 
   attachDrag(el, h.id, 'hive');
   el.addEventListener('dblclick', e => { e.stopPropagation(); openPopup(h.id); });
