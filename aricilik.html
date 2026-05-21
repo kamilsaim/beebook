@@ -634,10 +634,10 @@
     pointer-events: none; white-space: nowrap;
     max-width: 90%; overflow: hidden; text-overflow: ellipsis;
   }
-  /* Durum vurgusu */
-  #page-arazi .hi.qs-no    .hbody { outline: 3px solid #e53935; outline-offset: 3px; border-radius: 6px; box-shadow: 0 0 10px rgba(229,57,53,.55), 0 0 22px rgba(229,57,53,.25); }
-  #page-arazi .hi.qs-bakire .hbody { outline: 3px solid #f9a825; outline-offset: 3px; border-radius: 6px; box-shadow: 0 0 10px rgba(249,168,37,.55), 0 0 22px rgba(249,168,37,.25); }
-  #page-arazi .hi.qs-meme  .hbody { outline: 3px solid #9c27b0; outline-offset: 3px; border-radius: 6px; box-shadow: 0 0 10px rgba(156,39,176,.55), 0 0 22px rgba(156,39,176,.25); }
+  /* Durum vurgusu — drop-shadow SVG siluetini takip eder (çatı dahil) */
+  #page-arazi .hi.qs-no    .hbody svg { filter: drop-shadow(0 0 2px #e53935) drop-shadow(0 0 2px #e53935) drop-shadow(0 0 2px #e53935) drop-shadow(0 0 6px rgba(229,57,53,.5)) drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
+  #page-arazi .hi.qs-bakire .hbody svg { filter: drop-shadow(0 0 2px #f9a825) drop-shadow(0 0 2px #f9a825) drop-shadow(0 0 2px #f9a825) drop-shadow(0 0 6px rgba(249,168,37,.5)) drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
+  #page-arazi .hi.qs-meme  .hbody svg { filter: drop-shadow(0 0 2px #9c27b0) drop-shadow(0 0 2px #9c27b0) drop-shadow(0 0 2px #9c27b0) drop-shadow(0 0 6px rgba(156,39,176,.5)) drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
   #page-arazi .hi.qs-empty .hbody svg { filter: grayscale(.65) opacity(.55) drop-shadow(0 2px 5px rgba(0,0,0,.2)); }
   #page-arazi .hstatus {
     font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 8px;
