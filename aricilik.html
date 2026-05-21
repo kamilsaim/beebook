@@ -553,6 +553,142 @@
   #sync-badge.ok     { background: #00b894; color: white; opacity: 1; }
   #sync-badge.err    { background: #d63031; color: white; opacity: 1; }
   #sync-badge.hidden { opacity: 0; }
+
+  /* ═══════════════════════════════════════
+     ARAZİ DÜZENİ SAYFASI
+  ═══════════════════════════════════════ */
+  :root { --arazi-cell: 80px; }
+
+  #page-arazi {
+    padding: 0;
+    overflow: hidden;
+  }
+  #page-arazi.active {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Toolbar */
+  #arazi-toolbar {
+    height: 46px; min-height: 46px;
+    background: var(--smoke); border-bottom: 1px solid #E0D0B0;
+    display: flex; align-items: center; gap: 6px; padding: 0 10px;
+    overflow-x: auto; z-index: 200; flex-shrink: 0;
+  }
+  #arazi-toolbar::-webkit-scrollbar { display: none; }
+  .atbtn {
+    background: white; border: 1.5px solid #E0D0B0;
+    color: var(--text-mid); border-radius: 7px; padding: 5px 10px;
+    font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    transition: all .15s; flex-shrink: 0;
+  }
+  .atbtn.active, .atbtn:active { background: var(--honey); border-color: var(--honey-dark); color: #1a1208; }
+  .asep { width: 1px; height: 24px; background: #E0D0B0; flex-shrink: 0; margin: 0 2px; }
+  .atlab { font-size: 11px; color: var(--text-soft); font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+  #arazi-zoom-range { accent-color: var(--honey); width: 80px; flex-shrink: 0; }
+  #arazi-sel-badge {
+    background: var(--comb); border-radius: 6px;
+    padding: 3px 8px; font-size: 11px; font-weight: 700; color: var(--text-mid);
+    white-space: nowrap; flex-shrink: 0;
+  }
+
+  /* Canvas */
+  #arazi-cw {
+    flex: 1; overflow: scroll; cursor: default;
+    background: var(--cream);
+    background-image: radial-gradient(circle, rgba(0,0,0,.08) 1px, transparent 1px);
+    background-size: var(--arazi-cell) var(--arazi-cell);
+  }
+  #arazi-canvas { position: relative; min-width: 3000px; min-height: 2000px; }
+
+  /* North indicator */
+  #arazi-north {
+    position: absolute; bottom: 20px; right: 16px;
+    width: 44px; height: 44px; background: rgba(0,0,0,.55);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 11px; font-weight: 900; z-index: 200;
+    border: 2px solid rgba(255,255,255,.25); pointer-events: none;
+  }
+
+  /* Hive items */
+  #page-arazi .hi {
+    position: absolute; display: flex; flex-direction: column; align-items: center;
+    gap: 2px; cursor: grab; user-select: none; touch-action: none; transition: filter .15s;
+  }
+  #page-arazi .hi.dragging { cursor: grabbing; filter: drop-shadow(0 8px 20px rgba(0,0,0,.5)); z-index: 500!important; transition: none; }
+  #page-arazi .hi.sel .hbody { outline: 3px solid #64b5f6; outline-offset: 3px; }
+  #page-arazi .hbody { border-radius: 5px; position: relative; overflow: visible; }
+  #page-arazi .hbody svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+  #page-arazi .hnum-overlay {
+    position: absolute; bottom: 27%; left: 50%; transform: translateX(-50%);
+    font-size: 11px; font-weight: 900; color: white;
+    text-shadow: 0 1px 4px rgba(0,0,0,1), 0 0 10px rgba(0,0,0,.7);
+    pointer-events: none; white-space: nowrap; letter-spacing: .3px;
+  }
+  #page-arazi .hrace-overlay {
+    position: absolute; bottom: 12%; left: 50%; transform: translateX(-50%);
+    font-size: 8px; color: rgba(255,255,255,.92);
+    text-shadow: 0 1px 3px rgba(0,0,0,1);
+    pointer-events: none; white-space: nowrap;
+    max-width: 90%; overflow: hidden; text-overflow: ellipsis;
+  }
+  /* Durum vurgusu */
+  #page-arazi .hi.qs-no    .hbody svg { filter: drop-shadow(0 0 7px #e53935) drop-shadow(0 0 14px rgba(229,57,53,.5)) drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+  #page-arazi .hi.qs-bakire .hbody svg { filter: drop-shadow(0 0 7px #f9a825) drop-shadow(0 0 14px rgba(249,168,37,.5)) drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+  #page-arazi .hi.qs-meme  .hbody svg { filter: drop-shadow(0 0 7px #9c27b0) drop-shadow(0 0 14px rgba(156,39,176,.5)) drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+  #page-arazi .hstatus {
+    font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 8px;
+    color: white; white-space: nowrap; pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+  #page-arazi .hstatus.s-no     { background: #e53935; }
+  #page-arazi .hstatus.s-bakire { background: #f9a825; color: #1a1208; }
+  #page-arazi .hstatus.s-meme   { background: #9c27b0; }
+
+  /* Spacer */
+  #page-arazi .spi {
+    position: absolute; cursor: grab; user-select: none; touch-action: none;
+    border: 2px dashed rgba(0,0,0,.2); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(0,0,0,.2); font-size: 18px;
+  }
+  #page-arazi .spi.sel { border-color: rgba(21,101,192,.7); color: rgba(21,101,192,.7); }
+  #page-arazi .spi.dragging { cursor: grabbing; z-index: 500!important; transition: none; }
+
+  /* Popup */
+  #arazi-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(4px);
+    z-index: 800; display: flex; align-items: center; justify-content: center; padding: 20px;
+    opacity: 0; pointer-events: none; transition: opacity .25s;
+  }
+  #arazi-overlay.open { opacity: 1; pointer-events: all; }
+  #arazi-popup {
+    background: var(--cream); border-radius: 20px;
+    width: 100%; max-width: 480px; padding: 0 0 24px;
+    box-shadow: 0 8px 40px rgba(0,0,0,.4);
+    transform: scale(0.93) translateY(12px); opacity: 0;
+    transition: transform .28s cubic-bezier(.34,1.56,.64,1), opacity .25s;
+    max-height: 80vh; overflow-y: auto;
+  }
+  #arazi-overlay.open #arazi-popup { transform: scale(1) translateY(0); opacity: 1; }
+  .arazi-popup-hdr {
+    display: flex; align-items: center; gap: 10px; padding: 14px 18px 12px;
+    background: linear-gradient(135deg, var(--comb), #FFF8DC);
+    border-bottom: 2px solid var(--honey);
+  }
+  .arazi-popup-num { font-size: 24px; font-weight: 900; color: var(--honey-dark); font-family: 'Playfair Display', serif; }
+  .arazi-popup-type { font-size: 13px; color: var(--text-soft); font-weight: 700; }
+  .arazi-popup-qdot { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(0,0,0,.2); margin-left: auto; flex-shrink: 0; }
+  .arazi-popup-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .arazi-info-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--smoke); }
+  .arazi-info-lbl { font-size: 12px; color: var(--text-soft); font-weight: 700; }
+  .arazi-info-val { font-size: 13px; font-weight: 800; color: var(--text-dark); }
+  .arazi-sdot { width: 12px; height: 12px; border-radius: 50%; background: #EEE; }
+  .arazi-sdot.on { background: var(--honey); }
+  .arazi-fbox { background: var(--comb); border: 2px solid var(--honey-dark); border-radius: 4px; width: 22px; }
+  .arazi-popup-btns { display: flex; gap: 8px; padding: 0 18px; margin-top: 4px; }
+  .arazi-pbtn { flex: 1; padding: 11px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .arazi-pbtn.close { background: var(--smoke); color: var(--text-dark); }
+  .arazi-pbtn.nav { background: var(--blue-info); color: white; }
 </style>
 </head>
 <body>
