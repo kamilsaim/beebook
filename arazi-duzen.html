@@ -62,9 +62,9 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 #cw{
   position:absolute;top:98px;left:0;right:0;bottom:0;
   overflow:scroll;
-  background:#4a6030;
+  background:var(--cream);
   background-image:
-    radial-gradient(circle,rgba(255,255,255,.04) 1px,transparent 1px);
+    radial-gradient(circle,rgba(0,0,0,.08) 1px,transparent 1px);
   background-size:var(--cell) var(--cell);
   cursor:default;
 }
@@ -103,12 +103,6 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
   text-shadow:0 1px 3px rgba(0,0,0,1);
   pointer-events:none;white-space:nowrap;
   max-width:90%;overflow:hidden;text-overflow:ellipsis;
-}
-.hqdot{
-  position:absolute;top:-5px;left:-5px;
-  width:12px;height:12px;border-radius:50%;
-  border:2px solid rgba(0,0,0,.35);
-  box-shadow:0 1px 4px rgba(0,0,0,.4);
 }
 
 /* Spacer */
@@ -401,7 +395,7 @@ function renderHive(h) {
   const svgWrap = document.createElement('div');
   svgWrap.className = 'hbody';
   svgWrap.style.width = W + 'px';
-  svgWrap.innerHTML = getHiveTypeSvg(h.type, fls);
+  svgWrap.innerHTML = getHiveTypeSvg(h.type, fls, h.queenColor);
 
   // Number overlay inside hive
   const numEl = document.createElement('div');
@@ -418,14 +412,6 @@ function renderHive(h) {
     svgWrap.appendChild(raceEl);
   }
 
-  // Queen color dot
-  const qd = document.createElement('div');
-  qd.className = 'hqdot';
-  const qc = QC[h.queenColor] || '#CCC';
-  qd.style.background = qc;
-  if (h.queenColor==='unpainted') qd.style.cssText += ';background:white;border:2px dashed #888';
-  svgWrap.appendChild(qd);
-
   el.appendChild(svgWrap);
 
   attachDrag(el, h.id, 'hive');
@@ -435,23 +421,33 @@ function renderHive(h) {
 }
 
 // ─── SVG BUILDER (programla aynı görseller) ────────────────
-function getHiveTypeSvg(type, floors) {
+function getHiveTypeSvg(type, floors, queenColor) {
   const c = { body:'#D4A017', body2:'#F0C040', roof:'#C47A1E', peak:'#9A5A10', base:'#8B5E3C', frame:'#F5E090', log:'#A0703A' };
   const twoFloor = Number(floors) >= 2;
+
+  // Ana arı renk noktası — üçgen centroid'ine göre konumlandırılır
+  const mkQDot = (cx, cy) => {
+    if (!queenColor) return '';
+    const color = QC[queenColor] || '#CCC';
+    const fill = color === 'transparent' ? 'white' : color;
+    const dash = color === 'transparent' ? ' stroke-dasharray="2,1.5"' : '';
+    return `<circle cx="${cx}" cy="${cy}" r="3.5" fill="${fill}" stroke="rgba(0,0,0,0.5)" stroke-width="1.2"${dash}/>`;
+  };
+
   const langstroth = twoFloor
-    ? `<svg viewBox="0 0 40 64" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="56" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="42" width="34" height="14" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="49" x2="37" y2="49" stroke="${c.base}" stroke-width="1"/><rect x="3" y="28" width="34" height="14" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="35" x2="37" y2="35" stroke="${c.base}" stroke-width="1"/><rect x="1" y="23" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,23 20,13 40,23" fill="${c.peak}"/></svg>`
-    : `<svg viewBox="0 0 40 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="30" width="34" height="14" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="37" x2="37" y2="37" stroke="${c.base}" stroke-width="1"/><rect x="3" y="20" width="34" height="10" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="1" y="15" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,15 20,5 40,15" fill="${c.peak}"/></svg>`;
+    ? `<svg viewBox="0 0 40 64" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="56" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="42" width="34" height="14" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="49" x2="37" y2="49" stroke="${c.base}" stroke-width="1"/><rect x="3" y="28" width="34" height="14" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="35" x2="37" y2="35" stroke="${c.base}" stroke-width="1"/><rect x="1" y="23" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,23 20,13 40,23" fill="${c.peak}"/>${mkQDot(20,20)}</svg>`
+    : `<svg viewBox="0 0 40 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="30" width="34" height="14" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="37" x2="37" y2="37" stroke="${c.base}" stroke-width="1"/><rect x="3" y="20" width="34" height="10" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="1" y="15" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,15 20,5 40,15" fill="${c.peak}"/>${mkQDot(20,12)}</svg>`;
   const dadant = twoFloor
-    ? `<svg viewBox="0 0 44 64" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="56" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="40" width="40" height="16" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="48" x2="42" y2="48" stroke="${c.base}" stroke-width="1"/><rect x="2" y="24" width="40" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="32" x2="42" y2="32" stroke="${c.base}" stroke-width="1"/><rect x="3" y="19" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="2,19 22,10 42,19" fill="${c.peak}"/></svg>`
-    : `<svg viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="26" width="40" height="18" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="35" x2="42" y2="35" stroke="${c.base}" stroke-width="1"/><rect x="6" y="18" width="32" height="8" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="3" y="13" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="2,13 22,4 42,13" fill="${c.peak}"/></svg>`;
+    ? `<svg viewBox="0 0 44 64" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="56" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="40" width="40" height="16" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="48" x2="42" y2="48" stroke="${c.base}" stroke-width="1"/><rect x="2" y="24" width="40" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="32" x2="42" y2="32" stroke="${c.base}" stroke-width="1"/><rect x="3" y="19" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="2,19 22,10 42,19" fill="${c.peak}"/>${mkQDot(22,16)}</svg>`
+    : `<svg viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="26" width="40" height="18" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="2" y1="35" x2="42" y2="35" stroke="${c.base}" stroke-width="1"/><rect x="6" y="18" width="32" height="8" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="3" y="13" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="2,13 22,4 42,13" fill="${c.peak}"/>${mkQDot(22,10)}</svg>`;
   const svgs = {
     'Langstroth': langstroth,
     'Dadant': dadant,
-    'Yerli': `<svg viewBox="0 0 50 38" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="6" width="38" height="26" rx="13" fill="${c.log}" stroke="#5A3A20" stroke-width="1.5"/><line x1="6" y1="14" x2="42" y2="14" stroke="#5A3A20" stroke-width="0.8"/><line x1="5" y1="19" x2="43" y2="19" stroke="#5A3A20" stroke-width="0.8"/><line x1="6" y1="24" x2="42" y2="24" stroke="#5A3A20" stroke-width="0.8"/><ellipse cx="43" cy="19" rx="6" ry="11.5" fill="#C4956A" stroke="#5A3A20" stroke-width="1.5"/><circle cx="8" cy="24" r="2.5" fill="#3A2010"/></svg>`,
-    'Çerçeveli': `<svg viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="16" width="38" height="28" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><rect x="7" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="15" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="23" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="31" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="1" y="11" width="42" height="5" rx="1" fill="${c.roof}"/><polygon points="0,11 22,2 44,11" fill="${c.peak}"/></svg>`,
-    'Ana Arı Kovanı': `<svg viewBox="0 0 36 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="32" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="26" width="30" height="18" rx="2" fill="#F5C842" stroke="${c.base}" stroke-width="1.5"/><text x="18" y="40" font-size="13" text-anchor="middle" fill="${c.base}" font-family="serif">♛</text><rect x="5" y="18" width="26" height="8" rx="2" fill="#F8D860" stroke="${c.base}" stroke-width="1.5"/><rect x="2" y="13" width="32" height="5" rx="1" fill="${c.roof}"/><polygon points="1,13 18,4 35,13" fill="${c.peak}"/></svg>`,
-    'Nükleus (Ruşet)': `<svg viewBox="0 0 46 48" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="40" width="42" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="24" width="19" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="25" y="24" width="19" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><ellipse cx="11.5" cy="39.5" rx="3" ry="1" fill="#3A2010"/><ellipse cx="34.5" cy="39.5" rx="3" ry="1" fill="#3A2010"/><rect x="2" y="17" width="42" height="7" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><rect x="1" y="12" width="44" height="5" rx="1" fill="${c.roof}"/><polygon points="0,12 23,3 46,12" fill="${c.peak}"/></svg>`,
-    'Diğer': `<svg viewBox="0 0 40 48" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="40" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="22" width="34" height="18" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="31" x2="37" y2="31" stroke="${c.base}" stroke-width="1"/><rect x="1" y="17" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,17 20,7 40,17" fill="${c.peak}"/></svg>`,
+    'Yerli': `<svg viewBox="0 0 50 38" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="6" width="38" height="26" rx="13" fill="${c.log}" stroke="#5A3A20" stroke-width="1.5"/><line x1="6" y1="14" x2="42" y2="14" stroke="#5A3A20" stroke-width="0.8"/><line x1="5" y1="19" x2="43" y2="19" stroke="#5A3A20" stroke-width="0.8"/><line x1="6" y1="24" x2="42" y2="24" stroke="#5A3A20" stroke-width="0.8"/><ellipse cx="43" cy="19" rx="6" ry="11.5" fill="#C4956A" stroke="#5A3A20" stroke-width="1.5"/><circle cx="8" cy="24" r="2.5" fill="#3A2010"/>${mkQDot(25,12)}</svg>`,
+    'Çerçeveli': `<svg viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="40" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="16" width="38" height="28" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><rect x="7" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="15" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="23" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="31" y="19" width="5" height="22" rx="1" fill="${c.frame}" stroke="#C4A020" stroke-width="0.8"/><rect x="1" y="11" width="42" height="5" rx="1" fill="${c.roof}"/><polygon points="0,11 22,2 44,11" fill="${c.peak}"/>${mkQDot(22,8)}</svg>`,
+    'Ana Arı Kovanı': `<svg viewBox="0 0 36 52" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="44" width="32" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="26" width="30" height="18" rx="2" fill="#F5C842" stroke="${c.base}" stroke-width="1.5"/><text x="18" y="40" font-size="13" text-anchor="middle" fill="${c.base}" font-family="serif">♛</text><rect x="5" y="18" width="26" height="8" rx="2" fill="#F8D860" stroke="${c.base}" stroke-width="1.5"/><rect x="2" y="13" width="32" height="5" rx="1" fill="${c.roof}"/><polygon points="1,13 18,4 35,13" fill="${c.peak}"/>${mkQDot(18,10)}</svg>`,
+    'Nükleus (Ruşet)': `<svg viewBox="0 0 46 48" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="40" width="42" height="4" rx="1.5" fill="${c.base}"/><rect x="2" y="24" width="19" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><rect x="25" y="24" width="19" height="16" rx="2" fill="${c.body2}" stroke="${c.base}" stroke-width="1.5"/><ellipse cx="11.5" cy="39.5" rx="3" ry="1" fill="#3A2010"/><ellipse cx="34.5" cy="39.5" rx="3" ry="1" fill="#3A2010"/><rect x="2" y="17" width="42" height="7" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><rect x="1" y="12" width="44" height="5" rx="1" fill="${c.roof}"/><polygon points="0,12 23,3 46,12" fill="${c.peak}"/>${mkQDot(23,9)}</svg>`,
+    'Diğer': `<svg viewBox="0 0 40 48" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="40" width="36" height="4" rx="1.5" fill="${c.base}"/><rect x="3" y="22" width="34" height="18" rx="2" fill="${c.body}" stroke="${c.base}" stroke-width="1.5"/><line x1="3" y1="31" x2="37" y2="31" stroke="${c.base}" stroke-width="1"/><rect x="1" y="17" width="38" height="5" rx="1" fill="${c.roof}"/><polygon points="0,17 20,7 40,17" fill="${c.peak}"/>${mkQDot(20,14)}</svg>`,
   };
   return svgs[type] || svgs['Diğer'];
 }
