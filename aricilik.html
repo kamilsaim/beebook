@@ -803,11 +803,11 @@
       <div class="income-expense-row">
         <div class="ie-box income">
           <div class="ie-val income" id="dash-income">0 ₺</div>
-          <div class="ie-lbl">Bu Ay Gelir</div>
+          <div class="ie-lbl">Toplam Gelir</div>
         </div>
         <div class="ie-box expense">
           <div class="ie-val expense" id="dash-expense">0 ₺</div>
-          <div class="ie-lbl">Bu Ay Gider</div>
+          <div class="ie-lbl">Toplam Gider</div>
         </div>
       </div>
 
@@ -2192,8 +2192,8 @@ function renderDashboard() {
   document.getElementById('dash-avg-strength').textContent = avgStr;
 
   const now = monthStr();
-  const income = data.sales.filter(s => monthStr(s.date) === now).reduce((s, x) => s + Number(x.total||0), 0);
-  const expense = data.expenses.filter(e => monthStr(e.date) === now).reduce((s, x) => s + Number(x.amount||0), 0);
+  const income = data.sales.reduce((s, x) => s + Number(x.total||0), 0);
+  const expense = data.expenses.reduce((s, x) => s + Number(x.amount||0), 0);
   document.getElementById('dash-income').textContent = fmt(income) + ' ₺';
   document.getElementById('dash-expense').textContent = fmt(expense) + ' ₺';
 
@@ -3131,9 +3131,12 @@ function renderSales() {
     return `<div class="list-item">
       <div class="list-item-icon">${typeIcon[s.type]||'📦'}</div>
       <div class="list-item-content">
-        <div class="list-item-title">${s.customer || 'Müşteri'}</div>
-        <div class="list-item-sub" style="font-weight:700;color:var(--text-mid)">${productLabel}</div>
-        <div class="list-item-sub">${fmtDate(s.date)}${hiveStr} ${payBadge[s.payment]||''}${s.orderStatus==='preorder'?' <span class="badge badge-yellow">📋 Ön Sipariş</span>':''}</div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:4px">
+          <span class="list-item-title" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.customer || 'Müşteri'}</span>
+          <span style="font-size:11px;color:var(--text-soft);white-space:nowrap;flex-shrink:0">${fmtDate(s.date)}</span>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:var(--honey-dark)">${productLabel}</div>
+        <div class="list-item-sub">${payBadge[s.payment]||''}${s.orderStatus==='preorder'?' <span class="badge badge-yellow">📋 Ön Sipariş</span>':''}${hiveStr}</div>
       </div>
       <div class="list-item-right">
         ${amountHtml}
@@ -3185,6 +3188,24 @@ function openSaleReportModal() {
         </div>
       </div>`;
     }
+  }
+  // Pending payments section
+  const pending = data.sales.filter(s => s.payment === 'pending' || s.payment === 'partial');
+  if (pending.length) {
+    const pendingTotal = pending.reduce((a,x)=>a+Number(x.total||0),0);
+    html += `<div style="margin-top:4px">
+      <div style="font-weight:800;font-size:13px;color:var(--red-warn);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">⏳ Bekleyen Ödemeler — ${fmt(pendingTotal)} ₺</div>`;
+    pending.sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(s => {
+      const badge = s.payment==='partial' ? '<span class="badge badge-blue">Kısmi</span>' : '<span class="badge badge-yellow">Bekliyor</span>';
+      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--smoke);border-radius:8px;margin-bottom:6px;border-left:3px solid ${s.payment==='partial'?'var(--blue-info)':'var(--amber)'}">
+        <div>
+          <div style="font-weight:700;font-size:13px">${s.customer||'Müşteri'} ${badge}</div>
+          <div style="font-size:12px;color:var(--text-soft)">${getSaleProductLabel(s)} · ${fmtDate(s.date)}</div>
+        </div>
+        <div style="font-weight:800;font-size:14px;color:var(--red-warn)">${fmt(s.total)} ₺</div>
+      </div>`;
+    });
+    html += '</div>';
   }
   document.getElementById('sale-report-content').innerHTML = html;
   openModal('sale-report-modal');
@@ -3377,7 +3398,7 @@ function saveSale() {
       if (stockProduct) {
         if (!data.stock) data.stock = [];
         const label = isFree ? (payment==='hediye'?'Hediye':'Zekat') : 'Satış';
-        data.stock.push({ id: genId(), product: stockProduct, action: 'out', amount: Number(item.qty), unit: item.unit, date, note: label+': '+(customer||'Müşteri') });
+        data.stock.push({ id: genId(), product: stockProduct, action: 'out', amount: Number(item.qty), unit: item.unit, date, note: label+': '+(customer||'Müşteri'), saleId: s.id });
       }
     }
   }
@@ -3387,6 +3408,7 @@ function saveSale() {
 function deleteSale(id) {
   showConfirm('Satışı Sil', 'Bu satış kaydını silmek istiyor musunuz?', () => {
     data.sales = data.sales.filter(s => s.id !== id);
+    data.stock = (data.stock||[]).filter(e => e.saleId !== id);
     saveData(); renderSales(); renderDashboard(); showToast('Satış silindi');
   });
 }
@@ -4531,13 +4553,15 @@ function renderOzet() {
   // Stock report
   const stockTypes = getStockTypes();
   const stockRows = stockTypes.map(st => {
-    const allIn  = (data.stock||[]).filter(e => e.product === st.v && e.action === 'in');
-    const allOut = (data.stock||[]).filter(e => e.product === st.v && e.action === 'out');
-    if (!allIn.length && !allOut.length) return null;
-    const totalIn    = allIn.reduce((s,e)=>s+Number(e.amount||0),0);
-    const totalSatis = allOut.filter(e=>e.note&&e.note.startsWith('Satış')).reduce((s,e)=>s+Number(e.amount||0),0);
-    const totalHed   = allOut.filter(e=>e.note&&e.note.startsWith('Hediye')).reduce((s,e)=>s+Number(e.amount||0),0);
-    const totalZek   = allOut.filter(e=>e.note&&e.note.startsWith('Zekat')).reduce((s,e)=>s+Number(e.amount||0),0);
+    const allIn = (data.stock||[]).filter(e => e.product === st.v && e.action === 'in');
+    if (!allIn.length) return null;
+    const totalIn = allIn.reduce((s,e)=>s+Number(e.amount||0),0);
+    // Calculate from data.sales to avoid orphan stock entries from deleted sales
+    const isMilk = st.v === 'ari_sutu';
+    const salePred = s => isMilk ? s.type==='milk' : (s.type==='honey' && s.honeyType===st.v);
+    const totalSatis = data.sales.filter(s=>salePred(s)&&s.payment!=='hediye'&&s.payment!=='zekat').reduce((s,e)=>s+Number(e.qty||0),0);
+    const totalHed   = data.sales.filter(s=>salePred(s)&&s.payment==='hediye').reduce((s,e)=>s+Number(e.qty||0),0);
+    const totalZek   = data.sales.filter(s=>salePred(s)&&s.payment==='zekat').reduce((s,e)=>s+Number(e.qty||0),0);
     const mevcut = getStockLevel(st.v);
     const p = STOCK_PRODS[st.v] || { icon: extractEmoji(st.l) };
     const lbl = st.l.replace(/^[\p{Emoji}\s]+/u,'').trim();
