@@ -709,7 +709,7 @@
   <h1>Beebook</h1>
   <p>ARICININ EL DEFTERİ</p>
   <div class="splash-bar"><div class="splash-bar-fill"></div></div>
-  <p style="font-size:11px;opacity:0.6;font-weight:700;letter-spacing:1px;margin-top:-6px">v2.0</p>
+  <p style="font-size:11px;opacity:0.6;font-weight:700;letter-spacing:1px;margin-top:-6px">v2.1</p>
 </div>
 
 <!-- AUTH SCREEN -->
@@ -843,12 +843,14 @@
       <div class="card">
         <div class="section-header mb-0">
           <div class="section-title">Son İşlemler</div>
-          <div class="section-action" onclick="navigate('hives')">Tümü →</div>
+          <button onclick="toggleRecentTx()" id="recent-tx-toggle-btn" style="background:none;border:none;font-size:18px;color:var(--text-soft);cursor:pointer;padding:2px 6px" title="Gizle/Göster">▾</button>
         </div>
-        <div style="font-size:11px;font-weight:800;color:var(--text-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Son Kovan İşlemleri</div>
-        <div id="recent-hive-ops" style="margin-bottom:16px"></div>
-        <div style="font-size:11px;font-weight:800;color:var(--text-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Son Finansal İşlemler</div>
-        <div id="recent-transactions" class="mt-12"></div>
+        <div id="recent-tx-body">
+          <div style="font-size:11px;font-weight:800;color:var(--text-soft);margin:8px 0 6px;text-transform:uppercase;letter-spacing:0.5px">Son Kovan İşlemleri</div>
+          <div id="recent-hive-ops" style="margin-bottom:16px"></div>
+          <div style="font-size:11px;font-weight:800;color:var(--text-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Son Finansal İşlemler</div>
+          <div id="recent-transactions" class="mt-12"></div>
+        </div>
       </div>
 
       <div class="card">
@@ -1040,7 +1042,10 @@
     <div class="page" id="page-sales">
       <div class="section-header">
         <div class="section-title">Satışlar</div>
-        <button class="btn btn-primary btn-sm" onclick="openSaleModal()">+ Satış Ekle</button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="openSaleReportModal()">📊 Rapor</button>
+          <button class="btn btn-primary btn-sm" onclick="openSaleModal()">+ Satış Ekle</button>
+        </div>
       </div>
 
       <div class="income-expense-row">
@@ -1048,11 +1053,13 @@
           <div class="ie-val income" id="sales-total">0 ₺</div>
           <div class="ie-lbl">Toplam Gelir</div>
         </div>
-        <div class="ie-box expense">
-          <div class="ie-val income" id="sales-month">0 ₺</div>
-          <div class="ie-lbl">Bu Ay</div>
+        <div class="ie-box income">
+          <div class="ie-val income" id="sales-count">0</div>
+          <div class="ie-lbl">Satış Adedi</div>
         </div>
       </div>
+
+      <input class="form-input" id="sale-search" placeholder="🔍 Müşteri, ürün veya not ara..." oninput="renderSales()" style="margin-bottom:8px">
 
       <div class="filter-chips">
         <div class="chip active" onclick="setSaleFilter('all',this)">Tümü</div>
@@ -1075,7 +1082,10 @@
     <div class="page" id="page-expenses">
       <div class="section-header">
         <div class="section-title">Giderler</div>
-        <button class="btn btn-primary btn-sm" onclick="openExpenseModal()">+ Gider Ekle</button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="openExpenseReportModal()">📊 Rapor</button>
+          <button class="btn btn-primary btn-sm" onclick="openExpenseModal()">+ Gider Ekle</button>
+        </div>
       </div>
 
       <div class="income-expense-row">
@@ -1084,8 +1094,8 @@
           <div class="ie-lbl">Toplam Gider</div>
         </div>
         <div class="ie-box expense">
-          <div class="ie-val expense" id="exp-month">0 ₺</div>
-          <div class="ie-lbl">Bu Ay</div>
+          <div class="ie-val expense" id="exp-count">0</div>
+          <div class="ie-lbl">Gider Adedi</div>
         </div>
       </div>
 
@@ -1160,6 +1170,11 @@
       <div class="card">
         <div class="card-title">👑 Ana Arı Üretim Özeti</div>
         <div id="ozet-queens"></div>
+      </div>
+
+      <div class="card" id="ozet-stock-card" style="display:none">
+        <div class="card-title">📦 Stok Raporu</div>
+        <div id="ozet-stock"></div>
       </div>
     </div>
 
@@ -1825,6 +1840,26 @@
   </div>
 </div>
 
+<!-- SALE REPORT MODAL -->
+<div class="modal-overlay" id="sale-report-modal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📊 Satış Raporu</div>
+    <div id="sale-report-content" style="max-height:70vh;overflow-y:auto"></div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="closeModal('sale-report-modal')">Kapat</button>
+  </div>
+</div>
+
+<!-- EXPENSE REPORT MODAL -->
+<div class="modal-overlay" id="expense-report-modal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📊 Gider Raporu</div>
+    <div id="expense-report-content" style="max-height:70vh;overflow-y:auto"></div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="closeModal('expense-report-modal')">Kapat</button>
+  </div>
+</div>
+
 <!-- OZET HIVE LIST MODAL -->
 <div class="modal-overlay" id="ozet-hive-list-modal">
   <div class="modal-box">
@@ -2109,6 +2144,15 @@ function navigate(page) {
 }
 
 // ======================== DASHBOARD ========================
+function toggleRecentTx() {
+  settings.recentTxVisible = settings.recentTxVisible === false ? true : false;
+  saveSettings();
+  const body = document.getElementById('recent-tx-body');
+  const btn = document.getElementById('recent-tx-toggle-btn');
+  if (body) body.style.display = settings.recentTxVisible === false ? 'none' : '';
+  if (btn) btn.textContent = settings.recentTxVisible === false ? '▸' : '▾';
+}
+
 function renderRecentHiveOps() {
   const el = document.getElementById('recent-hive-ops');
   if (!el) return;
@@ -2190,6 +2234,13 @@ function renderDashboard() {
   }
 
   renderRecentHiveOps();
+
+  // Recent tx visibility
+  const txBody = document.getElementById('recent-tx-body');
+  const txBtn = document.getElementById('recent-tx-toggle-btn');
+  const txVisible = settings.recentTxVisible !== false;
+  if (txBody) txBody.style.display = txVisible ? '' : 'none';
+  if (txBtn) txBtn.textContent = txVisible ? '▾' : '▸';
 
   // Season info
   const activeSeason = data.seasons.find(s => s.id === settings.activeSeason) || data.seasons[0];
@@ -3033,13 +3084,30 @@ function openMilkModal() {
 }
 
 // ======================== SALES ========================
+function getSaleProductLabel(s) {
+  if (s.type === 'honey') {
+    const st = getStockTypes().find(t => t.v === s.honeyType);
+    const name = st ? st.l.replace(/^[\p{Emoji}\s]+/u,'').trim() : 'Bal';
+    return `${s.qty} ${s.unit} ${name}`;
+  }
+  if (s.type === 'milk') return `${s.qty} ${s.unit} Arı Sütü`;
+  if (s.type === 'queen') return `${s.qty} adet Ana Arı`;
+  if (s.type === 'bee') return `${s.qty} kovan Arı`;
+  return `${s.qty} ${s.unit}`;
+}
+
 function renderSales() {
   let sales = [...data.sales];
   if (currentSaleFilter !== 'all') sales = sales.filter(s => s.type === currentSaleFilter);
+  const q = (document.getElementById('sale-search')?.value || '').toLowerCase().trim();
+  if (q) sales = sales.filter(s =>
+    (s.customer||'').toLowerCase().includes(q) ||
+    getSaleProductLabel(s).toLowerCase().includes(q) ||
+    (s.note||'').toLowerCase().includes(q)
+  );
   const total = data.sales.reduce((s, x) => s + Number(x.total||0), 0);
-  const thisMonth = data.sales.filter(s => monthStr(s.date) === monthStr()).reduce((s, x) => s + Number(x.total||0), 0);
   document.getElementById('sales-total').textContent = fmt(total) + ' ₺';
-  document.getElementById('sales-month').textContent = fmt(thisMonth) + ' ₺';
+  document.getElementById('sales-count').textContent = data.sales.length;
 
   const list = document.getElementById('sales-list');
   const empty = document.getElementById('sales-empty');
@@ -3059,11 +3127,13 @@ function renderSales() {
       .map(hid => { const h = data.hives.find(x => x.id === hid); return h ? '#'+h.num : null; })
       .filter(Boolean);
     const hiveStr = soldHiveNums.length ? ` · Kovan: ${soldHiveNums.join(', ')}` : '';
+    const productLabel = getSaleProductLabel(s);
     return `<div class="list-item">
       <div class="list-item-icon">${typeIcon[s.type]||'📦'}</div>
       <div class="list-item-content">
         <div class="list-item-title">${s.customer || 'Müşteri'}</div>
-        <div class="list-item-sub">${s.qty} ${s.unit} · ${fmtDate(s.date)}${hiveStr} ${payBadge[s.payment]||''}${s.orderStatus==='preorder'?' <span class="badge badge-yellow">📋 Ön Sipariş</span>':''}</div>
+        <div class="list-item-sub" style="font-weight:700;color:var(--text-mid)">${productLabel}</div>
+        <div class="list-item-sub">${fmtDate(s.date)}${hiveStr} ${payBadge[s.payment]||''}${s.orderStatus==='preorder'?' <span class="badge badge-yellow">📋 Ön Sipariş</span>':''}</div>
       </div>
       <div class="list-item-right">
         ${amountHtml}
@@ -3074,6 +3144,50 @@ function renderSales() {
       </div>
     </div>`;
   }).join('');
+}
+
+function openSaleReportModal() {
+  const sales = data.sales;
+  const ICONS = { honey:'🍯', milk:'🥛', queen:'👑', bee:'🐝', other:'📦' };
+  const NAMES = { milk:'Arı Sütü', queen:'Ana Arı', bee:'Arı Satışı', other:'Diğer' };
+  // Group: honey products by honeyType, others by type
+  const groups = {};
+  for (const s of sales) {
+    const key = s.type === 'honey' ? ('honey_' + (s.honeyType||'suzme_bal')) : s.type;
+    if (!groups[key]) {
+      let name;
+      if (s.type === 'honey') {
+        const st = getStockTypes().find(t => t.v === (s.honeyType||'suzme_bal'));
+        name = st ? st.l.replace(/^[\p{Emoji}\s]+/u,'').trim() : 'Bal';
+      } else { name = NAMES[s.type] || s.type; }
+      groups[key] = { name, icon: ICONS[s.type]||'📦', unit: s.unit, satis:0, satisTl:0, hediye:0, zekat:0, satisAdet:0 };
+    }
+    const g = groups[key];
+    g.unit = s.unit;
+    if (s.payment==='hediye') g.hediye+=Number(s.qty||0);
+    else if (s.payment==='zekat') g.zekat+=Number(s.qty||0);
+    else { g.satis+=Number(s.qty||0); g.satisTl+=Number(s.total||0); g.satisAdet++; }
+  }
+  const totalRevenue = sales.reduce((a,x)=>a+Number(x.total||0),0);
+  let html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+    <div class="ie-box income"><div class="ie-val income">${fmt(totalRevenue)} ₺</div><div class="ie-lbl">Toplam Gelir</div></div>
+    <div class="ie-box income"><div class="ie-val income">${sales.length}</div><div class="ie-lbl">İşlem Adedi</div></div>
+  </div>`;
+  if (!Object.keys(groups).length) { html += '<div style="text-align:center;color:var(--text-soft);padding:20px">Satış kaydı yok</div>'; }
+  else {
+    for (const g of Object.values(groups)) {
+      html += `<div style="background:var(--smoke);border-radius:12px;padding:12px;margin-bottom:10px">
+        <div style="font-weight:800;font-size:14px;margin-bottom:8px">${g.icon} ${g.name}</div>
+        <div style="display:flex;flex-direction:column;gap:5px;font-size:13px">
+          ${g.satis>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">💰 Satış (${g.satisAdet} işlem)</span><span style="font-weight:700">${fmt(g.satis)} ${g.unit} · ${fmt(g.satisTl)} ₺</span></div>`:''}
+          ${g.hediye>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--purple-special)">🎁 Hediye</span><span style="font-weight:700;color:var(--purple-special)">${fmt(g.hediye)} ${g.unit}</span></div>`:''}
+          ${g.zekat>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--purple-special)">🌙 Zekat</span><span style="font-weight:700;color:var(--purple-special)">${fmt(g.zekat)} ${g.unit}</span></div>`:''}
+        </div>
+      </div>`;
+    }
+  }
+  document.getElementById('sale-report-content').innerHTML = html;
+  openModal('sale-report-modal');
 }
 
 function setSaleFilter(f, el) {
@@ -3477,9 +3591,8 @@ function renderExpenses() {
   let expenses = [...data.expenses];
   if (currentExpFilter !== 'all') expenses = expenses.filter(e => e.type === currentExpFilter);
   const total = data.expenses.reduce((s, x) => s + Number(x.amount||0), 0);
-  const thisMonth = data.expenses.filter(e => monthStr(e.date) === monthStr()).reduce((s, x) => s + Number(x.amount||0), 0);
   document.getElementById('exp-total').textContent = fmt(total) + ' ₺';
-  document.getElementById('exp-month').textContent = fmt(thisMonth) + ' ₺';
+  document.getElementById('exp-count').textContent = data.expenses.length;
 
   // Category chart
   const cats = getExpenseTypes().map(t => t.v);
@@ -3517,6 +3630,36 @@ function renderExpenses() {
       </div>
     </div>
   `).join('');
+}
+
+function openExpenseReportModal() {
+  const expTypes = getExpenseTypes();
+  const totalAll = data.expenses.reduce((s,x)=>s+Number(x.amount||0),0);
+  let html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+    <div class="ie-box expense"><div class="ie-val expense">${fmt(totalAll)} ₺</div><div class="ie-lbl">Toplam Gider</div></div>
+    <div class="ie-box expense"><div class="ie-val expense">${data.expenses.length}</div><div class="ie-lbl">Kayıt Adedi</div></div>
+  </div>`;
+  const rows = expTypes.map(t => {
+    const entries = data.expenses.filter(e => e.type === t.v);
+    if (!entries.length) return null;
+    const total = entries.reduce((s,x)=>s+Number(x.amount||0),0);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--smoke)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px">${expIcon(t.v)}</span>
+        <div>
+          <div style="font-weight:700;font-size:14px">${expLabel(t.v)}</div>
+          <div style="font-size:12px;color:var(--text-soft)">${entries.length} kayıt</div>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:800;font-size:15px;color:var(--red-warn)">${fmt(total)} ₺</div>
+        <div style="font-size:11px;color:var(--text-soft)">%${totalAll ? Math.round(total/totalAll*100) : 0}</div>
+      </div>
+    </div>`;
+  }).filter(Boolean);
+  html += rows.length ? rows.join('') : '<div style="text-align:center;color:var(--text-soft);padding:20px">Gider kaydı yok</div>';
+  document.getElementById('expense-report-content').innerHTML = html;
+  openModal('expense-report-modal');
 }
 
 function setExpFilter(f, el) {
@@ -3811,7 +3954,7 @@ function renderBackup() {
 }
 
 function exportData() {
-  const backup = { data, settings, exportDate: new Date().toISOString(), version: '2.0' };
+  const backup = { data, settings, exportDate: new Date().toISOString(), version: '2.1' };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -4384,6 +4527,34 @@ function renderOzet() {
       <div class="stat-box stat-box-sm"><div class="stat-icon">💰</div><div class="stat-val color-honey">${totalSoldQ}</div><div class="stat-lbl">Satılan</div></div>
     </div>
   `;
+
+  // Stock report
+  const stockTypes = getStockTypes();
+  const stockRows = stockTypes.map(st => {
+    const allIn  = (data.stock||[]).filter(e => e.product === st.v && e.action === 'in');
+    const allOut = (data.stock||[]).filter(e => e.product === st.v && e.action === 'out');
+    if (!allIn.length && !allOut.length) return null;
+    const totalIn    = allIn.reduce((s,e)=>s+Number(e.amount||0),0);
+    const totalSatis = allOut.filter(e=>e.note&&e.note.startsWith('Satış')).reduce((s,e)=>s+Number(e.amount||0),0);
+    const totalHed   = allOut.filter(e=>e.note&&e.note.startsWith('Hediye')).reduce((s,e)=>s+Number(e.amount||0),0);
+    const totalZek   = allOut.filter(e=>e.note&&e.note.startsWith('Zekat')).reduce((s,e)=>s+Number(e.amount||0),0);
+    const mevcut = getStockLevel(st.v);
+    const p = STOCK_PRODS[st.v] || { icon: extractEmoji(st.l) };
+    const lbl = st.l.replace(/^[\p{Emoji}\s]+/u,'').trim();
+    return `<div style="background:var(--smoke);border-radius:12px;padding:12px;margin-bottom:10px">
+      <div style="font-weight:800;font-size:14px;margin-bottom:8px">${p.icon||'📦'} ${lbl}</div>
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:13px">
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">Toplam Giriş</span><span style="font-weight:700;color:var(--forest)">${fmt(totalIn)} ${st.unit}</span></div>
+        ${totalSatis>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">Toplam Satış</span><span style="font-weight:700;color:var(--honey-dark)">${fmt(totalSatis)} ${st.unit}</span></div>`:''}
+        ${totalHed>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--purple-special)">🎁 Hediye</span><span style="font-weight:700;color:var(--purple-special)">${fmt(totalHed)} ${st.unit}</span></div>`:''}
+        ${totalZek>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--purple-special)">🌙 Zekat</span><span style="font-weight:700;color:var(--purple-special)">${fmt(totalZek)} ${st.unit}</span></div>`:''}
+        <div style="display:flex;justify-content:space-between;border-top:1px solid #DDD;padding-top:4px;margin-top:2px"><span style="color:var(--text-soft)">Mevcut Stok</span><span style="font-weight:800;color:var(--honey-dark)">${fmt(mevcut)} ${st.unit}</span></div>
+      </div>
+    </div>`;
+  }).filter(Boolean);
+  const stockCard = document.getElementById('ozet-stock-card');
+  if (stockCard) stockCard.style.display = stockRows.length ? '' : 'none';
+  document.getElementById('ozet-stock').innerHTML = stockRows.join('') || '';
 }
 
 // ======================== QR SCANNER ========================
