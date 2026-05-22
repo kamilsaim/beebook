@@ -1026,7 +1026,10 @@
     <div class="page" id="page-stock">
       <div class="section-header">
         <div class="section-title">Stok Yönetimi</div>
-        <button class="btn btn-primary btn-sm" onclick="openStockAddModal()">+ Stok Ekle</button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="showZekatModal()">🌙 Zekat</button>
+          <button class="btn btn-primary btn-sm" onclick="openStockAddModal()">+ Stok Ekle</button>
+        </div>
       </div>
       <div class="stat-grid stat-grid-4" id="stock-overview"></div>
       <div class="filter-chips" id="stock-filter-chips" style="margin-bottom:12px"></div>
@@ -1563,30 +1566,8 @@
 <div class="modal-overlay" id="sale-modal">
   <div class="modal-box">
     <div class="modal-handle"></div>
-    <div class="modal-title">🍯 Satış Ekle</div>
+    <div class="modal-title" id="sale-modal-title">🍯 Satış Ekle</div>
     <input type="hidden" id="sale-edit-id">
-    <div class="form-group">
-      <label class="form-label">Satış Türü</label>
-      <select class="form-select" id="sale-type" onchange="updateSaleStockInfo()">
-        <option value="honey">🍯 Bal</option>
-        <option value="queen">👑 Ana Arı</option>
-        <option value="milk">🥛 Arı Sütü</option>
-        <option value="bee">🐝 Arı Satışı</option>
-        <option value="other">📦 Diğer</option>
-      </select>
-    </div>
-    <div class="form-group" id="sale-honey-type-group" style="display:none">
-      <label class="form-label">Ürün Türü</label>
-      <select class="form-select" id="sale-honey-type" onchange="updateSaleStockInfo()"></select>
-    </div>
-    <div class="form-group" id="sale-bee-hives-group" style="display:none">
-      <label class="form-label">Satılan Kovan(lar)</label>
-      <div id="sale-bee-hive-select" style="max-height:150px;overflow-y:auto;border:1px solid var(--comb-dark);border-radius:10px;padding:8px;background:var(--smoke)"></div>
-    </div>
-    <div id="sale-stock-info" style="display:none; margin-bottom:12px; padding:10px 12px; background:var(--smoke); border-radius:10px; border-left:3px solid var(--honey)">
-      <div style="font-size:11px; color:var(--text-soft); font-weight:700; text-transform:uppercase; letter-spacing:0.5px">Mevcut Stok</div>
-      <div style="font-size:16px; font-weight:900; color:var(--honey-dark); margin-top:2px" id="sale-stock-level">0</div>
-    </div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Müşteri Adı</label>
@@ -1597,31 +1578,8 @@
         <input class="form-input" type="date" id="sale-date">
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Miktar</label>
-        <input class="form-input" type="number" id="sale-qty" placeholder="0">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Birim</label>
-        <select class="form-select" id="sale-unit">
-          <option>kg</option>
-          <option>gr</option>
-          <option>adet</option>
-          <option>litre</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-row" id="sale-price-row">
-      <div class="form-group">
-        <label class="form-label">Birim Fiyat (₺)</label>
-        <input class="form-input" type="number" id="sale-price" placeholder="0">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Toplam (₺)</label>
-        <input class="form-input" id="sale-total-display" placeholder="Otomatik" readonly>
-      </div>
-    </div>
+    <div id="sale-items-container"></div>
+    <button id="sale-add-item-btn" class="btn btn-secondary" style="width:100%;margin-bottom:10px;font-size:13px" onclick="addSaleItem()">+ Ürün Ekle</button>
     <div class="form-group">
       <label class="form-label">Ödeme Durumu</label>
       <select class="form-select" id="sale-payment" onchange="onPaymentChange()">
@@ -1631,6 +1589,19 @@
         <option value="hediye">🎁 Hediye</option>
         <option value="zekat">🌙 Zekat</option>
       </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Sipariş Durumu</label>
+      <div style="display:flex;gap:8px">
+        <label style="display:flex;align-items:center;gap:6px;flex:1;padding:8px;background:var(--smoke);border-radius:8px;cursor:pointer">
+          <input type="radio" name="sale-order-status" id="sale-order-delivered" value="delivered" checked style="accent-color:var(--forest)">
+          <span style="font-size:13px;font-weight:700">✅ Teslim Edildi</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;flex:1;padding:8px;background:var(--smoke);border-radius:8px;cursor:pointer">
+          <input type="radio" name="sale-order-status" id="sale-order-preorder" value="preorder" style="accent-color:var(--honey-dark)">
+          <span style="font-size:13px;font-weight:700">📋 Ön Sipariş</span>
+        </label>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">Not</label>
@@ -1790,7 +1761,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Çıkan Adet</label>
-        <input class="form-input" type="number" id="result-emerged" placeholder="0">
+        <input class="form-input" type="number" id="result-emerged" placeholder="0" oninput="updateResultEmergedList()">
       </div>
     </div>
     <div class="form-group">
@@ -1830,6 +1801,10 @@
       </div>
     </div>
     <div class="form-group">
+      <label class="form-label">Birim Fiyat (₺) <span style="font-size:11px;color:var(--text-soft)">— satışta otomatik gelir</span></label>
+      <input class="form-input" type="number" id="stock-unit-price" placeholder="0 (opsiyonel)">
+    </div>
+    <div class="form-group">
       <label class="form-label">Not</label>
       <input class="form-input" id="stock-note" placeholder="Hasat, alış, açıklama...">
     </div>
@@ -1837,6 +1812,16 @@
       <button class="btn btn-secondary" style="flex:1" onclick="closeModal('stock-modal')">İptal</button>
       <button class="btn btn-success" style="flex:2" onclick="saveStockEntry()">📦 Stoka Ekle</button>
     </div>
+  </div>
+</div>
+
+<!-- ZEKAT MODAL -->
+<div class="modal-overlay" id="zekat-modal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🌙 Zekat Hesabı (%10)</div>
+    <div id="zekat-content" style="margin-bottom:12px"></div>
+    <button class="btn btn-secondary" style="width:100%" onclick="closeModal('zekat-modal')">Kapat</button>
   </div>
 </div>
 
@@ -2239,6 +2224,11 @@ function renderTaskList() {
 
 // ======================== HIVES ========================
 function renderHives() {
+  currentHiveView = settings.hiveView || 'grid';
+  const gBtn = document.getElementById('view-grid-btn');
+  const lBtn = document.getElementById('view-list-btn');
+  if (gBtn) gBtn.classList.toggle('active', currentHiveView === 'grid');
+  if (lBtn) lBtn.classList.toggle('active', currentHiveView === 'list');
   let hives = [...data.hives];
   const search = document.getElementById('hive-search').value.toLowerCase();
   if (search) hives = hives.filter(h => h.num?.toLowerCase().includes(search) || h.notes?.toLowerCase().includes(search) || h.race?.toLowerCase().includes(search));
@@ -2393,6 +2383,8 @@ function getHiveTypeSvg(type, floors) {
 
 function setHiveView(view) {
   currentHiveView = view;
+  settings.hiveView = view;
+  saveSettings();
   document.getElementById('view-grid-btn').classList.toggle('active', view === 'grid');
   document.getElementById('view-list-btn').classList.toggle('active', view === 'list');
   renderHives();
@@ -2873,13 +2865,27 @@ function openSeriesResult(seriesId) {
 }
 
 function updateResultQueenList() {
-  const count = Number(document.getElementById('result-accepted').value) || 0;
+  const accepted = Number(document.getElementById('result-accepted').value) || 0;
+  const emerged = Number(document.getElementById('result-emerged').value) || 0;
   const seriesId = document.getElementById('result-series-id').value;
   const s = data.queens.find(x => x.id === seriesId);
   if (!s) return;
   s.queens = s.queens || [];
-  while (s.queens.length < count) s.queens.push({ id: genId(), num: s.queens.length + 1, status: 'pending', targetHive: '' });
-  if (s.queens.length > count) s.queens = s.queens.slice(0, count);
+  const targetCount = emerged > 0 ? Math.min(emerged, accepted) : accepted;
+  while (s.queens.length < targetCount) s.queens.push({ id: genId(), num: s.queens.length + 1, status: 'pending', targetHive: '' });
+  if (s.queens.length > targetCount) s.queens = s.queens.slice(0, targetCount);
+  renderResultQueenList(s.queens);
+}
+
+function updateResultEmergedList() {
+  const accepted = Number(document.getElementById('result-accepted').value) || 0;
+  const emerged = Number(document.getElementById('result-emerged').value) || 0;
+  const seriesId = document.getElementById('result-series-id').value;
+  const s = data.queens.find(x => x.id === seriesId);
+  if (!s) return;
+  s.queens = s.queens || [];
+  const targetCount = emerged > 0 ? Math.min(emerged, accepted) : accepted;
+  if (s.queens.length > targetCount) s.queens = s.queens.slice(0, targetCount);
   renderResultQueenList(s.queens);
 }
 
@@ -3057,7 +3063,7 @@ function renderSales() {
       <div class="list-item-icon">${typeIcon[s.type]||'📦'}</div>
       <div class="list-item-content">
         <div class="list-item-title">${s.customer || 'Müşteri'}</div>
-        <div class="list-item-sub">${s.qty} ${s.unit} · ${fmtDate(s.date)}${hiveStr} ${payBadge[s.payment]||''}</div>
+        <div class="list-item-sub">${s.qty} ${s.unit} · ${fmtDate(s.date)}${hiveStr} ${payBadge[s.payment]||''}${s.orderStatus==='preorder'?' <span class="badge badge-yellow">📋 Ön Sipariş</span>':''}</div>
       </div>
       <div class="list-item-right">
         ${amountHtml}
@@ -3077,74 +3083,188 @@ function setSaleFilter(f, el) {
   renderSales();
 }
 
-function populateHoneyTypeSelect(selected) {
+// ======================== SALE MULTI-ITEM SYSTEM ========================
+let saleItems = [];
+
+function getSaleItemDefault() {
+  const defaultType = getSaleTypes()[0]?.v || 'honey';
+  const defaultHoney = getStockTypes().filter(st => st.v !== 'ari_sutu')[0]?.v || 'suzme_bal';
+  return { type: defaultType, honeyType: defaultHoney, qty: '', unit: 'kg', price: '', total: '' };
+}
+
+function addSaleItem() {
+  readSaleItemsFromDom();
+  saleItems.push(getSaleItemDefault());
+  renderSaleItems();
+}
+
+function removeSaleItem(idx) {
+  readSaleItemsFromDom();
+  saleItems.splice(idx, 1);
+  renderSaleItems();
+}
+
+function readSaleItemsFromDom() {
+  saleItems = saleItems.map((item, i) => ({
+    ...item,
+    type: document.getElementById(`sale-type-${i}`)?.value || item.type,
+    honeyType: document.getElementById(`sale-honey-type-${i}`)?.value || item.honeyType,
+    qty: document.getElementById(`sale-qty-${i}`)?.value || '',
+    unit: document.getElementById(`sale-unit-${i}`)?.value || item.unit,
+    price: document.getElementById(`sale-price-${i}`)?.value || '',
+    total: document.getElementById(`sale-total-${i}`)?.value || '',
+  }));
+}
+
+function renderSaleItems() {
+  const container = document.getElementById('sale-items-container');
+  if (!container) return;
+  const saleTypes = getSaleTypes();
   const honeyTypes = getStockTypes().filter(st => st.v !== 'ari_sutu');
-  populateSelect('sale-honey-type', honeyTypes.map(st => ({v:st.v,l:st.l})), selected || honeyTypes[0]?.v || 'suzme_bal');
+  const isFree = document.getElementById('sale-payment')?.value === 'hediye' || document.getElementById('sale-payment')?.value === 'zekat';
+  container.innerHTML = saleItems.map((item, idx) => {
+    const typeOpts = saleTypes.map(t => `<option value="${t.v}"${item.type===t.v?' selected':''}>${t.l}</option>`).join('');
+    const honeyOpts = honeyTypes.map(t => `<option value="${t.v}"${item.honeyType===t.v?' selected':''}>${t.l}</option>`).join('');
+    const isHoney = item.type === 'honey', isMilk = item.type === 'milk', isBee = item.type === 'bee';
+    const stockProduct = isMilk ? 'ari_sutu' : (isHoney ? (item.honeyType || '') : '');
+    const stockLevel = (isHoney || isMilk) ? (() => { const l=getStockLevel(stockProduct); const u=isMilk?'gr':(getStockTypes().find(s=>s.v===stockProduct)?.unit||'kg'); return fmt(l)+' '+u; })() : '';
+    const priceStyle = isFree ? 'opacity:0.4;pointer-events:none' : '';
+    const delBtn = saleItems.length > 1 ? `<button onclick="removeSaleItem(${idx})" style="background:none;border:none;font-size:18px;color:#BBB;cursor:pointer;line-height:1" title="Kaldır">✕</button>` : '';
+    const beeHives = isBee ? data.hives.map(h => `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;font-weight:600"><input type="checkbox" class="bee-hive-cb-${idx}" value="${h.id}" style="width:16px;height:16px;accent-color:var(--honey)"> Kovan #${h.num}${h.type?' ('+h.type+')':''}</label>`).join('') : '';
+    return `<div style="background:var(--smoke);border-radius:12px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:800;font-size:11px;color:var(--text-soft);text-transform:uppercase;letter-spacing:0.5px">ÜRÜN ${idx+1}</span>${delBtn}
+      </div>
+      <select class="form-select" id="sale-type-${idx}" onchange="onSaleItemTypeChange(${idx})" style="margin-bottom:8px">${typeOpts}</select>
+      <div id="sale-honey-group-${idx}" style="display:${isHoney?'':'none'};margin-bottom:8px">
+        <select class="form-select" id="sale-honey-type-${idx}" onchange="onSaleItemHoneyChange(${idx})">${honeyOpts}</select>
+      </div>
+      <div id="sale-stock-info-${idx}" style="display:${(isHoney||isMilk)?'':'none'};margin-bottom:8px;padding:6px 10px;background:#FFF;border-radius:8px;border-left:3px solid var(--honey)">
+        <div style="font-size:11px;color:var(--text-soft);font-weight:700">Mevcut Stok</div>
+        <div style="font-size:15px;font-weight:900;color:var(--honey-dark)" id="sale-stock-level-${idx}">${stockLevel}</div>
+      </div>
+      <div id="sale-bee-group-${idx}" style="display:${isBee?'':'none'};margin-bottom:8px;max-height:120px;overflow-y:auto;border:1px solid var(--comb-dark);border-radius:10px;padding:8px">${beeHives}</div>
+      <div class="form-row" style="margin-bottom:8px">
+        <div class="form-group"><label class="form-label">Miktar</label><input class="form-input" type="number" id="sale-qty-${idx}" placeholder="0" value="${item.qty}" oninput="recalcSaleItemTotal(${idx})"></div>
+        <div class="form-group"><label class="form-label">Birim</label><select class="form-select" id="sale-unit-${idx}"><option${item.unit==='kg'?' selected':''}>kg</option><option${item.unit==='gr'?' selected':''}>gr</option><option${item.unit==='adet'?' selected':''}>adet</option><option${item.unit==='litre'?' selected':''}>litre</option></select></div>
+      </div>
+      <div class="form-row" id="sale-price-row-${idx}" style="${priceStyle}">
+        <div class="form-group"><label class="form-label">Birim Fiyat (₺)</label><input class="form-input" type="number" id="sale-price-${idx}" placeholder="0" value="${item.price}" oninput="recalcSaleItemTotal(${idx})"></div>
+        <div class="form-group"><label class="form-label">Toplam (₺)</label><input class="form-input" type="number" id="sale-total-${idx}" placeholder="Otomatik" value="${item.total}"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function onSaleItemTypeChange(idx) {
+  readSaleItemsFromDom();
+  const type = document.getElementById(`sale-type-${idx}`)?.value || 'honey';
+  if (saleItems[idx]) saleItems[idx].type = type;
+  const isHoney = type === 'honey', isMilk = type === 'milk', isBee = type === 'bee';
+  const hg = document.getElementById(`sale-honey-group-${idx}`);
+  const si = document.getElementById(`sale-stock-info-${idx}`);
+  const bg = document.getElementById(`sale-bee-group-${idx}`);
+  if (hg) hg.style.display = isHoney ? '' : 'none';
+  if (si) si.style.display = (isHoney || isMilk) ? '' : 'none';
+  if (bg) { bg.style.display = isBee ? '' : 'none'; if (isBee && !bg.innerHTML.trim()) bg.innerHTML = data.hives.map(h=>`<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;font-weight:600"><input type="checkbox" class="bee-hive-cb-${idx}" value="${h.id}" style="width:16px;height:16px;accent-color:var(--honey)"> Kovan #${h.num}${h.type?' ('+h.type+')':''}</label>`).join(''); }
+  const product = isMilk ? 'ari_sutu' : (isHoney ? document.getElementById(`sale-honey-type-${idx}`)?.value : null);
+  if (product) {
+    const level = getStockLevel(product);
+    const unit = isMilk ? 'gr' : (getStockTypes().find(s=>s.v===product)?.unit||'kg');
+    const sl = document.getElementById(`sale-stock-level-${idx}`);
+    if (sl) sl.textContent = fmt(level)+' '+unit;
+    const savedPrice = (settings.stockPrices||{})[product];
+    if (savedPrice) { const pe = document.getElementById(`sale-price-${idx}`); if (pe) { pe.value = savedPrice; recalcSaleItemTotal(idx); } }
+  }
+}
+
+function onSaleItemHoneyChange(idx) {
+  const product = document.getElementById(`sale-honey-type-${idx}`)?.value;
+  if (!product) return;
+  if (saleItems[idx]) saleItems[idx].honeyType = product;
+  const level = getStockLevel(product);
+  const unit = getStockTypes().find(s=>s.v===product)?.unit||'kg';
+  const sl = document.getElementById(`sale-stock-level-${idx}`);
+  if (sl) sl.textContent = fmt(level)+' '+unit;
+  const savedPrice = (settings.stockPrices||{})[product];
+  if (savedPrice) { const pe = document.getElementById(`sale-price-${idx}`); if (pe) { pe.value = savedPrice; recalcSaleItemTotal(idx); } }
+}
+
+function recalcSaleItemTotal(idx) {
+  const qty = parseFloat(document.getElementById(`sale-qty-${idx}`)?.value) || 0;
+  const price = parseFloat(document.getElementById(`sale-price-${idx}`)?.value) || 0;
+  const te = document.getElementById(`sale-total-${idx}`);
+  if (te) te.value = qty && price ? (qty * price).toFixed(2) : '';
 }
 
 function openSaleModal() {
-  populateSelect('sale-type', getSaleTypes(), getSaleTypes()[0]?.v || 'honey');
-  populateHoneyTypeSelect();
+  document.getElementById('sale-modal-title').textContent = '🍯 Satış Ekle';
   document.getElementById('sale-edit-id').value = '';
   document.getElementById('sale-customer').value = '';
   document.getElementById('sale-date').value = today();
-  document.getElementById('sale-qty').value = '';
-  document.getElementById('sale-price').value = '';
-  document.getElementById('sale-total-display').value = '';
   document.getElementById('sale-note').value = '';
   document.getElementById('sale-payment').value = 'paid';
-  updateSaleStockInfo();
+  document.getElementById('sale-order-delivered').checked = true;
+  const addBtn = document.getElementById('sale-add-item-btn');
+  if (addBtn) addBtn.style.display = '';
+  saleItems = [getSaleItemDefault()];
+  renderSaleItems();
   onPaymentChange();
   openModal('sale-modal');
 }
 
 function onPaymentChange() {
   const payment = document.getElementById('sale-payment')?.value;
-  const row = document.getElementById('sale-price-row');
-  if (!row) return;
   const isFree = payment === 'hediye' || payment === 'zekat';
-  row.style.opacity = isFree ? '0.4' : '1';
-  row.style.pointerEvents = isFree ? 'none' : '';
+  saleItems.forEach((_, idx) => {
+    const row = document.getElementById(`sale-price-row-${idx}`);
+    if (!row) return;
+    row.style.opacity = isFree ? '0.4' : '1';
+    row.style.pointerEvents = isFree ? 'none' : '';
+  });
 }
 
 function saveSale() {
   const customer = document.getElementById('sale-customer').value.trim();
-  const qty = document.getElementById('sale-qty').value;
+  const date = document.getElementById('sale-date').value || today();
   const payment = document.getElementById('sale-payment').value;
   const isFree = payment === 'hediye' || payment === 'zekat';
-  const price = document.getElementById('sale-price').value;
-  if (!qty) { showToast('Miktar gerekli'); return; }
-  if (!isFree && !price) { showToast('Miktar ve fiyat gerekli'); return; }
+  const note = document.getElementById('sale-note').value;
+  const orderStatus = document.querySelector('input[name="sale-order-status"]:checked')?.value || 'delivered';
   const editId = document.getElementById('sale-edit-id').value;
-  const total = isFree ? 0 : Number(qty) * Number(price);
-  const soldHives = document.getElementById('sale-type')?.value === 'bee'
-    ? [...document.querySelectorAll('.bee-hive-cb:checked')].map(cb => cb.value)
-    : [];
-  const s = {
-    id: editId || genId(),
-    type: document.getElementById('sale-type').value,
-    customer,
-    date: document.getElementById('sale-date').value || today(),
-    qty: Number(qty),
-    unit: document.getElementById('sale-unit').value,
-    price: isFree ? 0 : Number(price),
-    total,
-    payment,
-    note: document.getElementById('sale-note').value,
-    soldHives,
-    honeyType: document.getElementById('sale-type').value === 'honey' ? document.getElementById('sale-honey-type')?.value : undefined
-  };
-  if (editId) { const idx = data.sales.findIndex(x => x.id === editId); if (idx >= 0) data.sales[idx] = s; }
-  else {
-    data.sales.push(s);
-    // Stoktan düş (ücretsiz de dahil)
-    let stockProduct = null;
-    if (s.type === 'milk') stockProduct = 'ari_sutu';
-    else if (s.type === 'honey') stockProduct = s.honeyType || (document.getElementById('sale-honey-type')?.value) || 'suzme_bal';
-    if (stockProduct) {
-      if (!data.stock) data.stock = [];
-      const label = isFree ? (payment === 'hediye' ? 'Hediye' : 'Zekat') : 'Satış';
-      data.stock.push({ id: genId(), product: stockProduct, action: 'out', amount: Number(qty), unit: document.getElementById('sale-unit').value, date: s.date, note: label + ': ' + (customer || 'Müşteri') });
+  readSaleItemsFromDom();
+  if (editId) {
+    const item = saleItems[0];
+    if (!item.qty) { showToast('Miktar gerekli'); return; }
+    if (!isFree && !item.price) { showToast('Fiyat gerekli'); return; }
+    const td = parseFloat(item.total) || 0;
+    const total = isFree ? 0 : (td > 0 ? td : Number(item.qty)*Number(item.price));
+    const soldHives = item.type === 'bee' ? [...document.querySelectorAll(`.bee-hive-cb-0:checked`)].map(cb => cb.value) : [];
+    const s = { id: editId, type: item.type, customer, date, qty: Number(item.qty), unit: item.unit, price: isFree?0:Number(item.price), total, payment, note, soldHives, honeyType: item.type==='honey'?item.honeyType:undefined, orderStatus };
+    const idx = data.sales.findIndex(x => x.id === editId);
+    if (idx >= 0) data.sales[idx] = s;
+  } else {
+    const validItems = saleItems.filter(item => item.qty);
+    if (!validItems.length) { showToast('En az bir ürün için miktar girin'); return; }
+    for (const item of validItems) {
+      if (!isFree && !item.price) { showToast('Fiyat gerekli'); return; }
+    }
+    const batchId = saleItems.length > 1 ? genId() : undefined;
+    for (const [i, item] of saleItems.entries()) {
+      if (!item.qty) continue;
+      const td = parseFloat(item.total) || 0;
+      const total = isFree ? 0 : (td > 0 ? td : Number(item.qty)*Number(item.price));
+      const soldHives = item.type === 'bee' ? [...document.querySelectorAll(`.bee-hive-cb-${i}:checked`)].map(cb => cb.value) : [];
+      const s = { id: genId(), type: item.type, customer, date, qty: Number(item.qty), unit: item.unit, price: isFree?0:Number(item.price), total, payment, note, soldHives, honeyType: item.type==='honey'?item.honeyType:undefined, orderStatus, batchId };
+      data.sales.push(s);
+      let stockProduct = null;
+      if (s.type === 'milk') stockProduct = 'ari_sutu';
+      else if (s.type === 'honey') stockProduct = s.honeyType || 'suzme_bal';
+      if (stockProduct) {
+        if (!data.stock) data.stock = [];
+        const label = isFree ? (payment==='hediye'?'Hediye':'Zekat') : 'Satış';
+        data.stock.push({ id: genId(), product: stockProduct, action: 'out', amount: Number(item.qty), unit: item.unit, date, note: label+': '+(customer||'Müşteri') });
+      }
     }
   }
   saveData(); closeModal('sale-modal'); renderSales(); renderDashboard(); showToast('Satış kaydedildi');
@@ -3160,35 +3280,30 @@ function deleteSale(id) {
 function openEditSale(id) {
   const s = data.sales.find(x => x.id === id);
   if (!s) return;
-  populateSelect('sale-type', getSaleTypes(), s.type);
-  populateHoneyTypeSelect(s.honeyType);
+  document.getElementById('sale-modal-title').textContent = '✏️ Satış Düzenle';
   document.getElementById('sale-edit-id').value = s.id;
-  document.getElementById('sale-type').value = s.type;
   document.getElementById('sale-customer').value = s.customer || '';
   document.getElementById('sale-date').value = s.date;
-  document.getElementById('sale-qty').value = s.qty;
-  document.getElementById('sale-unit').value = s.unit || 'kg';
-  document.getElementById('sale-price').value = s.price || '';
-  document.getElementById('sale-total-display').value = s.total ? fmt(s.total, 2) + ' ₺' : '';
   document.getElementById('sale-payment').value = s.payment || 'paid';
   document.getElementById('sale-note').value = s.note || '';
-  updateSaleStockInfo();
-  onPaymentChange();
-  // Restore bee hive checkboxes if editing a bee sale
+  const orderStatus = s.orderStatus || 'delivered';
+  document.querySelector(`input[name="sale-order-status"][value="${orderStatus}"]`).checked = true;
+  const addBtn = document.getElementById('sale-add-item-btn');
+  if (addBtn) addBtn.style.display = 'none';
+  saleItems = [{ type: s.type, honeyType: s.honeyType || (getStockTypes().filter(st=>st.v!=='ari_sutu')[0]?.v||'suzme_bal'), qty: s.qty||'', unit: s.unit||'kg', price: s.price||'', total: s.total?s.total.toFixed(2):'' }];
+  renderSaleItems();
   if (s.type === 'bee' && s.soldHives && s.soldHives.length) {
-    document.querySelectorAll('.bee-hive-cb').forEach(cb => {
-      cb.checked = s.soldHives.includes(cb.value);
-    });
+    setTimeout(() => { document.querySelectorAll('.bee-hive-cb-0').forEach(cb => { cb.checked = s.soldHives.includes(cb.value); }); }, 50);
   }
+  onPaymentChange();
   openModal('sale-modal');
 }
 
-// Auto-calculate total in sale modal
-document.addEventListener('input', function(e) {
-  if (e.target.id === 'sale-qty' || e.target.id === 'sale-price') {
-    const qty = parseFloat(document.getElementById('sale-qty').value) || 0;
-    const price = parseFloat(document.getElementById('sale-price').value) || 0;
-    document.getElementById('sale-total-display').value = qty && price ? fmt(qty * price, 2) + ' ₺' : '';
+// stock product change → update unit price
+document.addEventListener('change', function(e) {
+  if (e.target.id === 'stock-product') {
+    const saved = (settings.stockPrices || {})[e.target.value];
+    document.getElementById('stock-unit-price').value = saved || '';
   }
 });
 
@@ -3230,7 +3345,7 @@ function renderStock() {
 
 function renderStockList() {
   if (!data.stock) data.stock = [];
-  let entries = [...data.stock].sort((a,b) => new Date(b.date)-new Date(a.date));
+  let entries = [...data.stock].filter(e => e.action !== 'out').sort((a,b) => new Date(b.date)-new Date(a.date));
   if (currentStockFilter !== 'all') entries = entries.filter(e => e.product === currentStockFilter);
   const list = document.getElementById('stock-list');
   if (!entries.length) {
@@ -3257,6 +3372,31 @@ function renderStockList() {
   }).join('');
 }
 
+function showZekatModal() {
+  const types = getStockTypes();
+  const rows = types.map(st => {
+    const p = STOCK_PRODS[st.v] || { icon: extractEmoji(st.l), label: st.l.replace(/^[\p{Emoji}\s]+/u,'').trim() };
+    const level = getStockLevel(st.v);
+    const zekat = level * 0.1;
+    const lbl = p.label || st.l.replace(/^[\p{Emoji}\s]+/u,'').trim();
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--smoke)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px">${p.icon}</span>
+        <div>
+          <div style="font-weight:700;font-size:14px">${lbl}</div>
+          <div style="font-size:12px;color:var(--text-soft)">Mevcut: ${fmt(level)} ${st.unit}</div>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:800;font-size:16px;color:var(--purple-special)">${fmt(zekat)} ${st.unit}</div>
+        <div style="font-size:11px;color:var(--text-soft)">%10 zekat</div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('zekat-content').innerHTML = rows || '<div style="color:var(--text-soft);text-align:center;padding:16px">Stok verisi yok</div>';
+  openModal('zekat-modal');
+}
+
 function setStockFilter(f, el) {
   currentStockFilter = f;
   document.querySelectorAll('#page-stock .chip').forEach(c => c.classList.remove('active'));
@@ -3270,6 +3410,8 @@ function openStockAddModal() {
   document.getElementById('stock-date').value = today();
   document.getElementById('stock-note').value = '';
   populateSelect('stock-product', getStockTypes().map(st => ({v: st.v, l: st.l})), '');
+  const firstProduct = getStockTypes()[0]?.v || '';
+  document.getElementById('stock-unit-price').value = (settings.stockPrices || {})[firstProduct] || '';
   openModal('stock-modal');
 }
 
@@ -3283,6 +3425,8 @@ function saveStockEntry() {
   const entry = { id: editId || genId(), product, action: 'in', amount, unit, date: document.getElementById('stock-date').value || today(), note: document.getElementById('stock-note').value };
   if (editId) { const idx = data.stock.findIndex(x => x.id === editId); if (idx >= 0) data.stock[idx] = entry; }
   else data.stock.push(entry);
+  const unitPrice = parseFloat(document.getElementById('stock-unit-price').value);
+  if (unitPrice > 0) { if (!settings.stockPrices) settings.stockPrices = {}; settings.stockPrices[product] = unitPrice; saveSettings(); }
   saveData(); closeModal('stock-modal'); renderStock(); showToast(editId ? 'Stok güncellendi' : 'Stok eklendi');
 }
 
@@ -3294,6 +3438,7 @@ function openEditStockEntry(id) {
   document.getElementById('stock-amount').value = e.amount;
   document.getElementById('stock-date').value = e.date;
   document.getElementById('stock-note').value = e.note || '';
+  document.getElementById('stock-unit-price').value = (settings.stockPrices || {})[e.product] || '';
   openModal('stock-modal');
 }
 
@@ -3304,48 +3449,6 @@ function deleteStockEntry(id) {
   });
 }
 
-function renderBeeHiveSelect() {
-  const el = document.getElementById('sale-bee-hive-select');
-  if (!el) return;
-  if (!data.hives.length) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--text-soft)">Kovan bulunamadı</div>';
-    return;
-  }
-  el.innerHTML = data.hives.map(h => `
-    <label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;font-weight:600">
-      <input type="checkbox" class="bee-hive-cb" value="${h.id}" style="width:16px;height:16px;accent-color:var(--honey)">
-      Kovan #${h.num}${h.type ? ' ('+h.type+')' : ''}
-    </label>
-  `).join('');
-}
-
-function updateSaleStockInfo() {
-  const type = document.getElementById('sale-type')?.value;
-  const honeyGroup = document.getElementById('sale-honey-type-group');
-  const info = document.getElementById('sale-stock-info');
-  if (!type || !honeyGroup || !info) return;
-  if (type === 'honey') {
-    honeyGroup.style.display = 'block';
-    info.style.display = 'block';
-    const product = document.getElementById('sale-honey-type').value;
-    const level = getStockLevel(product);
-    const unit = getStockTypes().find(st => st.v === product)?.unit || STOCK_PRODS[product]?.unit || 'kg';
-    document.getElementById('sale-stock-level').textContent = fmt(level) + ' ' + unit;
-  } else if (type === 'milk') {
-    honeyGroup.style.display = 'none';
-    info.style.display = 'block';
-    document.getElementById('sale-stock-level').textContent = fmt(getStockLevel('ari_sutu')) + ' gr';
-  } else {
-    honeyGroup.style.display = 'none';
-    info.style.display = 'none';
-  }
-  const isBee = type === 'bee';
-  const beeGroup = document.getElementById('sale-bee-hives-group');
-  if (beeGroup) {
-    beeGroup.style.display = isBee ? '' : 'none';
-    if (isBee) renderBeeHiveSelect();
-  }
-}
 
 // ======================== EXPENSES ========================
 function expIcon(type) {
