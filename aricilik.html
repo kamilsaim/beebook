@@ -1605,6 +1605,10 @@
         <option value="zekat">🌙 Zekat</option>
       </select>
     </div>
+    <div class="form-group" id="sale-paid-amount-row" style="display:none">
+      <label class="form-label">Ödenen Tutar (₺)</label>
+      <input class="form-input" type="number" id="sale-paid-amount" placeholder="0" min="0">
+    </div>
     <div class="form-group">
       <label class="form-label">Sipariş Durumu</label>
       <div style="display:flex;gap:8px">
@@ -1655,6 +1659,18 @@
         <label class="form-label">Tarih</label>
         <input class="form-input" type="date" id="exp-date">
       </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ödeme Durumu</label>
+      <select class="form-select" id="exp-payment" onchange="onExpPaymentChange()">
+        <option value="paid">✅ Ödendi</option>
+        <option value="pending">⏳ Bekliyor</option>
+        <option value="partial">🔸 Kısmi Ödeme</option>
+      </select>
+    </div>
+    <div class="form-group" id="exp-paid-amount-row" style="display:none">
+      <label class="form-label">Ödenen Tutar (₺)</label>
+      <input class="form-input" type="number" id="exp-paid-amount" placeholder="0" min="0">
     </div>
     <div class="form-group">
       <label class="form-label">Açıklama</label>
@@ -2732,7 +2748,7 @@ function renderQueens() {
 function calcExitDate(transferDate) {
   if (!transferDate) return null;
   const d = new Date(transferDate);
-  d.setDate(d.getDate() + 16);
+  d.setDate(d.getDate() + 12);
   return d.toISOString().split('T')[0];
 }
 
@@ -2869,13 +2885,13 @@ function buildQueenTimeline(transferDate) {
   const transfer = new Date(transferDate);
   const now = new Date();
   const milestones = [
-    { day: 0, label: 'Transfer', icon: '🔬' },
-    { day: 8, label: 'Larva Kapanma', icon: '🫙' },
-    { day: 10, label: 'Pupa', icon: '🐛' },
-    { day: 14, label: 'Dağıtım', icon: '🏠' },
-    { day: 16, label: 'Çıkım', icon: '👑' },
+    { day: 0,  label: 'Transfer',  icon: '🔬' },
+    { day: 4,  label: 'Kapanma',   icon: '🫙' },
+    { day: 6,  label: 'Pupa',      icon: '🐛' },
+    { day: 10, label: 'Dağıtım',   icon: '🏠' },
+    { day: 12, label: 'Çıkım',     icon: '👑' },
   ];
-  const totalDays = 16;
+  const totalDays = 12;
   const daysPassed = Math.max(0, Math.min(totalDays, Math.floor((now - transfer) / 86400000)));
   const progressPct = Math.round((daysPassed / totalDays) * 100);
 
@@ -3128,6 +3144,10 @@ function renderSales() {
       .filter(Boolean);
     const hiveStr = soldHiveNums.length ? ` · Kovan: ${soldHiveNums.join(', ')}` : '';
     const productLabel = getSaleProductLabel(s);
+    const isPending = s.payment === 'pending' || s.payment === 'partial';
+    const paidInfo = s.payment === 'partial' && s.paidAmount != null
+      ? `<div style="font-size:11px;color:var(--blue-info);margin-top:1px">Ödenen: ${fmt(s.paidAmount)} ₺ · Kalan: ${fmt(Math.max(0, s.total - s.paidAmount))} ₺</div>`
+      : '';
     return `<div class="list-item">
       <div class="list-item-icon">${typeIcon[s.type]||'📦'}</div>
       <div class="list-item-content">
@@ -3137,10 +3157,12 @@ function renderSales() {
         </div>
         <div style="font-size:13px;font-weight:700;color:var(--honey-dark)">${productLabel}</div>
         <div class="list-item-sub">${payBadge[s.payment]||''}${s.orderStatus==='preorder'?' <span class="badge badge-yellow">📋 Ön Sipariş</span>':''}${hiveStr}</div>
+        ${paidInfo}
       </div>
       <div class="list-item-right">
         ${amountHtml}
         <div style="display:flex;gap:4px;margin-top:2px">
+          ${isPending ? `<button onclick="markSalePaid('${s.id}')" style="background:none;border:none;font-size:14px;color:#00b894;cursor:pointer" title="Ödeme Alındı">✅</button>` : ''}
           <button onclick="openEditSale('${s.id}')" style="background:none;border:none;font-size:14px;color:#74b9ff;cursor:pointer">✏️</button>
           <button onclick="deleteSale('${s.id}')" style="background:none;border:none;font-size:14px;color:#CCC;cursor:pointer">🗑️</button>
         </div>
@@ -3192,23 +3214,37 @@ function openSaleReportModal() {
   // Pending payments section
   const pending = data.sales.filter(s => s.payment === 'pending' || s.payment === 'partial');
   if (pending.length) {
-    const pendingTotal = pending.reduce((a,x)=>a+Number(x.total||0),0);
+    const pendingTotal = pending.reduce((a,x)=> a + (x.payment==='partial'&&x.paidAmount!=null ? Math.max(0,x.total-x.paidAmount) : Number(x.total||0)), 0);
     html += `<div style="margin-top:4px">
       <div style="font-weight:800;font-size:13px;color:var(--red-warn);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">⏳ Bekleyen Ödemeler — ${fmt(pendingTotal)} ₺</div>`;
     pending.sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(s => {
       const badge = s.payment==='partial' ? '<span class="badge badge-blue">Kısmi</span>' : '<span class="badge badge-yellow">Bekliyor</span>';
+      const remaining = s.payment==='partial' && s.paidAmount != null ? Math.max(0, s.total - s.paidAmount) : s.total;
+      const paidLine = s.payment==='partial' && s.paidAmount != null ? `<div style="font-size:11px;color:var(--blue-info)">Ödenen: ${fmt(s.paidAmount)} ₺</div>` : '';
       html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--smoke);border-radius:8px;margin-bottom:6px;border-left:3px solid ${s.payment==='partial'?'var(--blue-info)':'var(--amber)'}">
         <div>
           <div style="font-weight:700;font-size:13px">${s.customer||'Müşteri'} ${badge}</div>
           <div style="font-size:12px;color:var(--text-soft)">${getSaleProductLabel(s)} · ${fmtDate(s.date)}</div>
+          ${paidLine}
         </div>
-        <div style="font-weight:800;font-size:14px;color:var(--red-warn)">${fmt(s.total)} ₺</div>
+        <div style="text-align:right">
+          <div style="font-weight:800;font-size:14px;color:var(--red-warn)">${fmt(remaining)} ₺ kalan</div>
+          <button onclick="markSalePaid('${s.id}');openSaleReportModal()" style="background:var(--green-ok);color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer;margin-top:3px">✅ Alındı</button>
+        </div>
       </div>`;
     });
     html += '</div>';
   }
   document.getElementById('sale-report-content').innerHTML = html;
   openModal('sale-report-modal');
+}
+
+function markSalePaid(id) {
+  const s = data.sales.find(x => x.id === id);
+  if (!s) return;
+  s.payment = 'paid';
+  delete s.paidAmount;
+  saveData(); renderSales(); renderDashboard(); showToast('Ödeme alındı olarak işaretlendi');
 }
 
 function setSaleFilter(f, el) {
@@ -3357,6 +3393,8 @@ function onPaymentChange() {
     row.style.opacity = isFree ? '0.4' : '1';
     row.style.pointerEvents = isFree ? 'none' : '';
   });
+  const paidRow = document.getElementById('sale-paid-amount-row');
+  if (paidRow) paidRow.style.display = payment === 'partial' ? 'block' : 'none';
 }
 
 function saveSale() {
@@ -3364,6 +3402,7 @@ function saveSale() {
   const date = document.getElementById('sale-date').value || today();
   const payment = document.getElementById('sale-payment').value;
   const isFree = payment === 'hediye' || payment === 'zekat';
+  const paidAmount = payment === 'partial' ? (Number(document.getElementById('sale-paid-amount').value) || 0) : undefined;
   const note = document.getElementById('sale-note').value;
   const orderStatus = document.querySelector('input[name="sale-order-status"]:checked')?.value || 'delivered';
   const editId = document.getElementById('sale-edit-id').value;
@@ -3375,7 +3414,7 @@ function saveSale() {
     const td = parseFloat(item.total) || 0;
     const total = isFree ? 0 : (td > 0 ? td : Number(item.qty)*Number(item.price));
     const soldHives = item.type === 'bee' ? [...document.querySelectorAll(`.bee-hive-cb-0:checked`)].map(cb => cb.value) : [];
-    const s = { id: editId, type: item.type, customer, date, qty: Number(item.qty), unit: item.unit, price: isFree?0:Number(item.price), total, payment, note, soldHives, honeyType: item.type==='honey'?item.honeyType:undefined, orderStatus };
+    const s = { id: editId, type: item.type, customer, date, qty: Number(item.qty), unit: item.unit, price: isFree?0:Number(item.price), total, payment, paidAmount, note, soldHives, honeyType: item.type==='honey'?item.honeyType:undefined, orderStatus };
     const idx = data.sales.findIndex(x => x.id === editId);
     if (idx >= 0) data.sales[idx] = s;
   } else {
@@ -3390,7 +3429,7 @@ function saveSale() {
       const td = parseFloat(item.total) || 0;
       const total = isFree ? 0 : (td > 0 ? td : Number(item.qty)*Number(item.price));
       const soldHives = item.type === 'bee' ? [...document.querySelectorAll(`.bee-hive-cb-${i}:checked`)].map(cb => cb.value) : [];
-      const s = { id: genId(), type: item.type, customer, date, qty: Number(item.qty), unit: item.unit, price: isFree?0:Number(item.price), total, payment, note, soldHives, honeyType: item.type==='honey'?item.honeyType:undefined, orderStatus, batchId };
+      const s = { id: genId(), type: item.type, customer, date, qty: Number(item.qty), unit: item.unit, price: isFree?0:Number(item.price), total, payment, paidAmount, note, soldHives, honeyType: item.type==='honey'?item.honeyType:undefined, orderStatus, batchId };
       data.sales.push(s);
       let stockProduct = null;
       if (s.type === 'milk') stockProduct = 'ari_sutu';
@@ -3421,6 +3460,7 @@ function openEditSale(id) {
   document.getElementById('sale-customer').value = s.customer || '';
   document.getElementById('sale-date').value = s.date;
   document.getElementById('sale-payment').value = s.payment || 'paid';
+  document.getElementById('sale-paid-amount').value = s.paidAmount || '';
   document.getElementById('sale-note').value = s.note || '';
   const orderStatus = s.orderStatus || 'delivered';
   document.querySelector(`input[name="sale-order-status"][value="${orderStatus}"]`).checked = true;
@@ -3636,22 +3676,29 @@ function renderExpenses() {
   if (!sorted.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
 
-  list.innerHTML = sorted.map(e => `
-    <div class="list-item">
+  const expPayBadge = { pending:'<span class="badge badge-yellow">⏳ Bekliyor</span>', partial:'<span class="badge badge-blue">🔸 Kısmi</span>' };
+  list.innerHTML = sorted.map(e => {
+    const isPending = e.payment === 'pending' || e.payment === 'partial';
+    const paidInfo = e.payment === 'partial' && e.paidAmount != null
+      ? `<div style="font-size:11px;color:var(--blue-info)">Ödenen: ${fmt(e.paidAmount)} ₺ · Kalan: ${fmt(Math.max(0, e.amount - e.paidAmount))} ₺</div>`
+      : '';
+    return `<div class="list-item">
       <div class="list-item-icon">${expIcon(e.type)}</div>
       <div class="list-item-content">
         <div class="list-item-title">${e.desc || expLabel(e.type)}</div>
-        <div class="list-item-sub">${expLabel(e.type)} · ${fmtDate(e.date)}</div>
+        <div class="list-item-sub">${expLabel(e.type)} · ${fmtDate(e.date)}${isPending?' '+expPayBadge[e.payment]:''}</div>
+        ${paidInfo}
       </div>
       <div class="list-item-right">
         <div class="list-item-amount expense">${fmt(e.amount)} ₺</div>
         <div style="display:flex;gap:4px;margin-top:2px">
+          ${isPending ? `<button onclick="markExpensePaid('${e.id}')" style="background:none;border:none;font-size:14px;color:#00b894;cursor:pointer" title="Ödendi">✅</button>` : ''}
           <button onclick="openEditExpense('${e.id}')" style="background:none;border:none;font-size:14px;color:#74b9ff;cursor:pointer">✏️</button>
           <button onclick="deleteExpense('${e.id}')" style="background:none;border:none;font-size:14px;color:#CCC;cursor:pointer">🗑️</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function openExpenseReportModal() {
@@ -3691,12 +3738,21 @@ function setExpFilter(f, el) {
   renderExpenses();
 }
 
+function onExpPaymentChange() {
+  const v = document.getElementById('exp-payment')?.value;
+  const row = document.getElementById('exp-paid-amount-row');
+  if (row) row.style.display = v === 'partial' ? 'block' : 'none';
+}
+
 function openExpenseModal() {
   populateSelect('exp-type', getExpenseTypes(), getExpenseTypes()[0]?.v || 'yem');
   document.getElementById('exp-edit-id').value = '';
   document.getElementById('exp-amount').value = '';
   document.getElementById('exp-date').value = today();
   document.getElementById('exp-desc').value = '';
+  document.getElementById('exp-payment').value = 'paid';
+  document.getElementById('exp-paid-amount').value = '';
+  onExpPaymentChange();
   openModal('expense-modal');
 }
 
@@ -3704,16 +3760,28 @@ function saveExpense() {
   const amount = document.getElementById('exp-amount').value;
   if (!amount) { showToast('Tutar gerekli'); return; }
   const editId = document.getElementById('exp-edit-id').value;
+  const payment = document.getElementById('exp-payment').value || 'paid';
+  const paidAmount = payment === 'partial' ? (Number(document.getElementById('exp-paid-amount').value) || 0) : undefined;
   const e = {
     id: editId || genId(),
     type: document.getElementById('exp-type').value,
     amount: Number(amount),
     date: document.getElementById('exp-date').value || today(),
-    desc: document.getElementById('exp-desc').value
+    desc: document.getElementById('exp-desc').value,
+    payment,
+    paidAmount
   };
   if (editId) { const idx = data.expenses.findIndex(x => x.id === editId); if (idx >= 0) data.expenses[idx] = e; }
   else data.expenses.push(e);
   saveData(); closeModal('expense-modal'); renderExpenses(); renderDashboard(); showToast('Gider kaydedildi');
+}
+
+function markExpensePaid(id) {
+  const e = data.expenses.find(x => x.id === id);
+  if (!e) return;
+  e.payment = 'paid';
+  delete e.paidAmount;
+  saveData(); renderExpenses(); renderDashboard(); showToast('Gider ödendi olarak işaretlendi');
 }
 
 function deleteExpense(id) {
@@ -3732,6 +3800,9 @@ function openEditExpense(id) {
   document.getElementById('exp-amount').value = e.amount;
   document.getElementById('exp-date').value = e.date;
   document.getElementById('exp-desc').value = e.desc || '';
+  document.getElementById('exp-payment').value = e.payment || 'paid';
+  document.getElementById('exp-paid-amount').value = e.paidAmount || '';
+  onExpPaymentChange();
   openModal('expense-modal');
 }
 
@@ -5029,7 +5100,7 @@ function araziRenderHive(h) {
   el.appendChild(svgWrap);
 
   const qsMap   = { no:'qs-no', bakire:'qs-bakire', new:'qs-bakire', meme:'qs-meme', empty:'qs-empty' };
-  const qsLabel = { no:'❌ Arısız', bakire:'🐝 Bakire', new:'🐝 Bakire', meme:'🫙 Meme', empty:'📦 Boş' };
+  const qsLabel = { no:'❌ Ana Yok', bakire:'🐝 Bakire', new:'🐝 Bakire', meme:'🫙 Meme', empty:'📦 Arısız' };
   const qsCls   = { no:'s-no', bakire:'s-bakire', new:'s-bakire', meme:'s-meme', empty:'s-empty' };
   if (qsMap[h.queenStatus]) {
     el.classList.add(qsMap[h.queenStatus]);
