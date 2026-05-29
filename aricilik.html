@@ -3229,7 +3229,7 @@ function openSaleReportModal() {
         </div>
         <div style="text-align:right">
           <div style="font-weight:800;font-size:14px;color:var(--red-warn)">${fmt(remaining)} ₺ kalan</div>
-          <button onclick="markSalePaid('${s.id}');openSaleReportModal()" style="background:var(--green-ok);color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer;margin-top:3px">✅ Alındı</button>
+          <button onclick="markSalePaid('${s.id}', openSaleReportModal)" style="background:var(--green-ok);color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer;margin-top:3px">✅ Alındı</button>
         </div>
       </div>`;
     });
@@ -3239,12 +3239,17 @@ function openSaleReportModal() {
   openModal('sale-report-modal');
 }
 
-function markSalePaid(id) {
+function markSalePaid(id, afterFn) {
   const s = data.sales.find(x => x.id === id);
   if (!s) return;
-  s.payment = 'paid';
-  delete s.paidAmount;
-  saveData(); renderSales(); renderDashboard(); showToast('Ödeme alındı olarak işaretlendi');
+  const remaining = s.payment === 'partial' ? (s.total - (s.paidAmount||0)) : s.total;
+  const msg = `${s.customer||'Müşteri'} adlı müşterinin ${fmt(remaining)} ₺ ödemesi alındı ve hesap kapatılsın mı?`;
+  showConfirm('Ödeme Alındı', msg, () => {
+    s.payment = 'paid';
+    delete s.paidAmount;
+    saveData(); renderSales(); renderDashboard(); showToast('Ödeme alındı olarak işaretlendi');
+    if (afterFn) afterFn();
+  });
 }
 
 function setSaleFilter(f, el) {
@@ -3779,9 +3784,14 @@ function saveExpense() {
 function markExpensePaid(id) {
   const e = data.expenses.find(x => x.id === id);
   if (!e) return;
-  e.payment = 'paid';
-  delete e.paidAmount;
-  saveData(); renderExpenses(); renderDashboard(); showToast('Gider ödendi olarak işaretlendi');
+  const remaining = e.payment === 'partial' ? (e.amount - (e.paidAmount||0)) : e.amount;
+  const label = e.desc || expLabel(e.type);
+  const msg = `"${label}" gideri için ${fmt(remaining)} ₺ ödendi ve hesap kapatılsın mı?`;
+  showConfirm('Ödeme Alındı', msg, () => {
+    e.payment = 'paid';
+    delete e.paidAmount;
+    saveData(); renderExpenses(); renderDashboard(); showToast('Gider ödendi olarak işaretlendi');
+  });
 }
 
 function deleteExpense(id) {
