@@ -709,7 +709,7 @@
   <h1>Beebook</h1>
   <p>ARICININ EL DEFTERİ</p>
   <div class="splash-bar"><div class="splash-bar-fill"></div></div>
-  <p style="font-size:11px;opacity:0.6;font-weight:700;letter-spacing:1px;margin-top:-6px">v2.1</p>
+  <p style="font-size:11px;opacity:0.6;font-weight:700;letter-spacing:1px;margin-top:-6px">v2.2</p>
 </div>
 
 <!-- AUTH SCREEN -->
@@ -4047,7 +4047,7 @@ function renderBackup() {
 }
 
 function exportData() {
-  const backup = { data, settings, exportDate: new Date().toISOString(), version: '2.1' };
+  const backup = { data, settings, exportDate: new Date().toISOString(), version: '2.2' };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
