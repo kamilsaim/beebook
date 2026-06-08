@@ -5122,7 +5122,12 @@ function araziRenderHive(h) {
 
   araziAttachDrag(el, h.id, 'hive');
   el.addEventListener('dblclick', e => { e.stopPropagation(); araziOpenPopup(h.id); });
-  el.addEventListener('click',    e => { e.stopPropagation(); araziSelectItem(h.id); });
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    if (el.dataset.araziMoved === '1') return;
+    if (araziSelectedId === h.id) araziOpenPopup(h.id);
+    else araziSelectItem(h.id);
+  });
   canvas.appendChild(el);
 }
 
@@ -5153,6 +5158,7 @@ function araziAttachDrag(el, id, type) {
     sl = parseFloat(el.style.left) || 0;
     st = parseFloat(el.style.top)  || 0;
     moved = false;
+    el.dataset.araziMoved = '0';
     el.classList.add('dragging');
     el.style.zIndex = 500;
   }, { passive: false });
@@ -5161,7 +5167,7 @@ function araziAttachDrag(el, id, type) {
     if (!el.classList.contains('dragging')) return;
     e.preventDefault();
     const dx = e.clientX - sx, dy = e.clientY - sy;
-    if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+    if (Math.abs(dx) + Math.abs(dy) > 3) { moved = true; el.dataset.araziMoved = '1'; }
     let nx = sl + dx, ny = st + dy;
     if (araziSnapFactor > 0) {
       const s = araziCellPx * araziSnapFactor;
