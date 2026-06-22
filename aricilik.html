@@ -699,6 +699,7 @@
   .arazi-pbtn.close { background: var(--smoke); color: var(--text-dark); }
   .arazi-pbtn.nav { background: var(--blue-info); color: white; }
   .arazi-pbtn.del { background: var(--red-warn); color: white; }
+  .arazi-pbtn.edit { background: var(--forest); color: white; }
 </style>
 </head>
 <body>
@@ -1362,8 +1363,11 @@
           </div>
           <div class="arazi-popup-body" id="arazi-pu-body"></div>
           <div class="arazi-popup-btns">
-            <button class="arazi-pbtn close" onclick="araziClosePopup()">Kapat</button>
+            <button class="arazi-pbtn edit" onclick="araziEditHive()">✏️ Düzenle</button>
             <button class="arazi-pbtn nav" id="arazi-pu-nav" onclick="araziNavToSelected()">🎯 Kovan'a Git</button>
+          </div>
+          <div class="arazi-popup-btns" style="margin-top:8px">
+            <button class="arazi-pbtn close" onclick="araziClosePopup()">Kapat</button>
             <button class="arazi-pbtn del" onclick="araziDeleteHive()">🗑️ Kovandan Sil</button>
           </div>
         </div>
@@ -2583,6 +2587,11 @@ function saveHive() {
   closeModal('hive-modal');
   renderHives();
   renderDashboard();
+  if (araziFromEdit) {
+    araziFromEdit = false;
+    araziHives = [...(data.hives || [])];
+    araziRender();
+  }
   showToast(editId ? 'Kovan güncellendi' : 'Kovan eklendi');
 }
 
@@ -5028,6 +5037,7 @@ let araziCellPx      = 80;
 let araziSnapFactor  = 0.25;
 let araziSpacerMode  = false;
 let araziPopupHiveId = null;
+let araziFromEdit    = false;
 let araziLastSnapBtn = null;
 let araziEventsReady = false;
 
@@ -5270,6 +5280,15 @@ function araziDeleteHive() {
     araziRender();
     showToast('Kovan silindi');
   });
+}
+
+function araziEditHive() {
+  const id = araziPopupHiveId;
+  if (!id) return;
+  document.getElementById('arazi-overlay').classList.remove('open');
+  araziPopupHiveId = null;
+  araziFromEdit = true;
+  editHive(id);
 }
 
 // ═══════════════════════════════════════════════════════
