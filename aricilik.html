@@ -2225,13 +2225,39 @@ function loadData() {
   } catch(e) { console.error(e); }
 }
 
+let _bbSnap = null;
+let _bbSyncTimer = null;
+
 function saveData() {
+  if (!_bbSnap) _bbSnap = bbBuildSnapshot(data); // güvenlik: init öncesi çağrıda toplu damgalamayı önle
+  _bbSnap = bbDiffAndStamp(data, _bbSnap, Date.now());
   localStorage.setItem(DB_KEY, JSON.stringify(data));
-  if (_sb && currentUser) syncToSupabase();
+  if (_sb && currentUser) scheduleSync();
+}
+
+// Sync katmanının merge sonucunu yazması için: diff'siz, damgasız, sync tetiklemez
+function saveDataLocal() {
+  localStorage.setItem(DB_KEY, JSON.stringify(data));
+  _bbSnap = bbBuildSnapshot(data);
+}
+
+function scheduleSync() {
+  clearTimeout(_bbSyncTimer);
+  _bbSyncTimer = setTimeout(() => { _bbSyncTimer = null; syncToSupabase(); }, 2000);
+}
+
+function flushPendingSync() {
+  if (_bbSyncTimer) {
+    clearTimeout(_bbSyncTimer);
+    _bbSyncTimer = null;
+    if (_sb && currentUser) syncToSupabase();
+  }
 }
 
 function saveSettings() {
+  settings._up = Date.now();
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  if (_sb && currentUser) scheduleSync();
 }
 
 function capitalizeFirst(el) {
@@ -4882,6 +4908,7 @@ function importData2(event) {
 // ======================== INIT ========================
 function init() {
   loadData();
+  _bbSnap = bbBuildSnapshot(data);
   initSupabase();
   applyTheme();
   if (settings.fontSize) document.documentElement.style.fontSize = settings.fontSize + 'px';
@@ -4961,6 +4988,7 @@ function loadDemoData() {
     { id: genId(), product: 'karakovan_bal', action: 'in', amount: 12, unit: 'kg', date: `${y}-${m}-01`, note: 'Karakovan hasatı' },
   ];
 
+  data._demo = true; // login sonrası ilk sync'te demo veri hesaba karışmasın
   saveData();
 }
 
@@ -5127,6 +5155,10 @@ window.addEventListener('online', function() {
   if (syncPending && currentUser) syncToSupabase();
 });
 window.addEventListener('offline', function() { setSyncBadge('err'); });
+window.addEventListener('beforeunload', flushPendingSync);
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') flushPendingSync();
+});
 
 function startApp() {
   appReady = true;
@@ -5469,7 +5501,7 @@ function araziRefresh() {
 }
 
 function araziSaveLayout() {
-  data.araziLayout = { positions: araziPositions, spacers: araziSpacers };
+  data.araziLayout = { positions: araziPositions, spacers: araziSpacers, _up: Date.now() };
   saveData();
   showToast('Arazi düzeni kaydedildi ✓');
 }
