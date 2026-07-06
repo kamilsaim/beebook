@@ -5057,6 +5057,25 @@ async function signOut() {
   showAuthScreen();
 }
 
+// Login sonrası ilk sync'te demo veri hesaba karışmasın: yereli at, uzağı (varsa) al
+function bbDiscardDemoAndAdopt(rows) {
+  data = {
+    hives: [], sales: [], expenses: [], milk: [], queens: [], tasks: [],
+    seasons: [{ id: 's2025', year: 2025, name: '2025 Sezonu', active: true }],
+    stock: []
+  };
+  if (rows && rows.data && Object.keys(rows.data).length) data = Object.assign(data, rows.data);
+  delete data._demo;
+  if (rows && rows.settings) {
+    settings = Object.assign({}, settings, rows.settings);
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }
+  saveDataLocal();
+  applyTheme();
+  if (settings.fontSize) document.documentElement.style.fontSize = settings.fontSize + 'px';
+  navigate(currentPage || 'dashboard');
+}
+
 async function syncToSupabase() {
   if (!_sb || !currentUser || !navigator.onLine) {
     if (!navigator.onLine) syncPending = true;
@@ -5064,11 +5083,29 @@ async function syncToSupabase() {
   }
   try {
     setSyncBadge('syncing');
+    // Push'tan önce uzağı çek ve merge et (read-merge-write)
+    const { data: rows, error: selErr } = await _sb.from('user_data')
+      .select('data, settings, updated_at').eq('user_id', currentUser.id).maybeSingle();
+    if (selErr) throw selErr;
+
+    if (data._demo) {
+      bbDiscardDemoAndAdopt(rows);
+    } else if (rows && rows.data && Object.keys(rows.data).length) {
+      const res = bbMergeData(data, rows.data);
+      data = res.merged;
+      settings = bbMergeSettings(settings, rows.settings || {});
+      saveDataLocal();
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      if (res.localDirty) { applyTheme(); navigate(currentPage || 'dashboard'); }
+    }
+
+    const nowIso = new Date().toISOString();
     const { error } = await _sb.from('user_data').upsert(
-      { user_id: currentUser.id, data: data, settings: settings, updated_at: new Date().toISOString() },
+      { user_id: currentUser.id, data: data, settings: settings, updated_at: nowIso },
       { onConflict: 'user_id' }
     );
     if (error) throw error;
+    localStorage.setItem('_bb_sync_ts', String(new Date(nowIso).getTime()));
     setSyncBadge('ok');
     syncPending = false;
   } catch(e) {
@@ -5089,22 +5126,37 @@ async function syncFromSupabase() {
       timeout
     ]);
     if (error) throw error;
+
     if (!rows || !rows.data || !Object.keys(rows.data).length) {
+      if (data._demo) bbDiscardDemoAndAdopt(null); // uzak boş: demo atılır, boş başlanır
       setSyncBadge('ok');
       return;
     }
     const remoteTs = rows.updated_at ? new Date(rows.updated_at).getTime() : Date.now();
+
+    if (data._demo) {
+      bbDiscardDemoAndAdopt(rows);
+      localStorage.setItem('_bb_sync_ts', String(remoteTs));
+      showToast('Veriler güncellendi ☁️');
+      setSyncBadge('ok');
+      return;
+    }
+
     const localTs = parseInt(localStorage.getItem('_bb_sync_ts') || '0');
     if (remoteTs > localTs) {
-      data = Object.assign({}, data, rows.data);
-      settings = Object.assign({}, settings, rows.settings || {});
-      localStorage.setItem(DB_KEY, JSON.stringify(data));
+      const res = bbMergeData(data, rows.data);
+      data = res.merged;
+      settings = bbMergeSettings(settings, rows.settings || {});
+      saveDataLocal();
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       localStorage.setItem('_bb_sync_ts', String(remoteTs));
-      applyTheme();
-      if (settings.fontSize) document.documentElement.style.fontSize = settings.fontSize + 'px';
-      showToast('Veriler güncellendi ☁️');
-      navigate(currentPage || 'dashboard');
+      if (res.localDirty) {
+        applyTheme();
+        if (settings.fontSize) document.documentElement.style.fontSize = settings.fontSize + 'px';
+        showToast('Veriler güncellendi ☁️');
+        navigate(currentPage || 'dashboard');
+      }
+      if (res.remoteDirty) scheduleSync(); // yerelde uzakta olmayan değişiklik var -> geri push
     }
     setSyncBadge('ok');
   } catch(e) {
