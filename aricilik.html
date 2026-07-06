@@ -2087,6 +2087,132 @@ function populateSelect(selId, options, curVal) {
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 
+/* BB-MERGE-START */
+// Saf sync merge fonksiyonları — DOM/localStorage erişimi YOK.
+// tests/sync-merge.test.mjs bu bloğu extract edip Node'da test eder.
+const BB_SYNC_COLLECTIONS = ['hives','sales','expenses','milk','queens','tasks','seasons','stock'];
+const BB_TOMBSTONE_TTL = 90 * 24 * 60 * 60 * 1000; // 90 gün
+
+// Deterministik stringify: nesne anahtarları sıralı — içerik karşılaştırma için
+function bbStable(v) {
+  if (Array.isArray(v)) return '[' + v.map(bbStable).join(',') + ']';
+  if (v && typeof v === 'object')
+    return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + bbStable(v[k])).join(',') + '}';
+  const s = JSON.stringify(v);
+  return s === undefined ? 'null' : s;
+}
+
+function bbPruneTombstones(list, now) {
+  return (list || []).filter(t => now - t.ts < BB_TOMBSTONE_TTL);
+}
+
+// Koleksiyon -> Map(id -> stableJson). saveData diff'i bunun üstünden çalışır.
+function bbBuildSnapshot(d) {
+  const snap = {};
+  BB_SYNC_COLLECTIONS.forEach(c => {
+    snap[c] = new Map((d[c] || []).map(r => [r.id, bbStable(r)]));
+  });
+  return snap;
+}
+
+// d'yi YERİNDE damgalar (yeni/değişen kayda _up=now, silinene tombstone), yeni snapshot döner.
+function bbDiffAndStamp(d, snap, now) {
+  if (!d.deleted) d.deleted = [];
+  BB_SYNC_COLLECTIONS.forEach(c => {
+    const prev = (snap && snap[c]) || new Map();
+    const seen = new Set();
+    (d[c] || []).forEach(rc => {
+      seen.add(rc.id);
+      const old = prev.get(rc.id);
+      if (old === undefined || old !== bbStable(rc)) rc._up = now;
+    });
+    prev.forEach((_, id) => {
+      if (!seen.has(id)) d.deleted.push({ id, c, ts: now });
+    });
+  });
+  d.deleted = bbPruneTombstones(d.deleted, now);
+  return bbBuildSnapshot(d);
+}
+
+const bbTombSort = (a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+
+// Karşılaştırılabilir normalize blob — dirty bayrağı hesabı için
+function bbComparable(d) {
+  const o = {};
+  BB_SYNC_COLLECTIONS.forEach(c => { o[c] = d[c] || []; });
+  o.deleted = (d.deleted || []).slice().sort(bbTombSort);
+  if (d.araziLayout) o.araziLayout = d.araziLayout;
+  Object.keys(d).forEach(k => {
+    if (k in o || k === '_demo' || k === 'araziLayout') return;
+    o[k] = d[k];
+  });
+  return o;
+}
+
+// Kayıt bazlı merge. Dönen: { merged, localDirty, remoteDirty }
+//   localDirty : merged != local  -> yerel yazım + render gerekir
+//   remoteDirty: merged != remote -> uzağa push gerekir
+function bbMergeData(local, remote) {
+  const l = local || {}, r = remote || {};
+  const merged = {};
+
+  // Tombstone union: aynı id için büyük ts
+  const tombMap = new Map();
+  [].concat(l.deleted || [], r.deleted || []).forEach(t => {
+    const cur = tombMap.get(t.id);
+    if (!cur || t.ts > cur.ts) tombMap.set(t.id, t);
+  });
+
+  BB_SYNC_COLLECTIONS.forEach(c => {
+    const loc = l[c] || [], rem = r[c] || [];
+    const remMap = new Map(rem.map(x => [x.id, x]));
+    const locIds = new Set(loc.map(x => x.id));
+    const out = [];
+    const keep = rc => {
+      const t = tombMap.get(rc.id);
+      if (t && t.ts > (rc._up || 0)) return false; // silme daha yeni
+      if (t) tombMap.delete(rc.id);                // kayıt daha yeni -> diriltme
+      return true;
+    };
+    loc.forEach(lr => {
+      const rr = remMap.get(lr.id);
+      const winner = rr ? (((rr._up || 0) >= (lr._up || 0)) ? rr : lr) : lr;
+      if (keep(winner)) out.push(winner);
+    });
+    rem.forEach(rr => { if (!locIds.has(rr.id) && keep(rr)) out.push(rr); });
+    merged[c] = out;
+  });
+
+  merged.deleted = Array.from(tombMap.values()).sort(bbTombSort);
+
+  // araziLayout: blob LWW — _up büyük olan; eşitlikte remote
+  const lLay = l.araziLayout, rLay = r.araziLayout;
+  const lay = (lLay && rLay) ? (((rLay._up || 0) >= (lLay._up || 0)) ? rLay : lLay) : (rLay || lLay);
+  if (lay) merged.araziLayout = lay;
+
+  // Koleksiyon dışı ileride eklenebilecek alanlar: remote varsa remote, yoksa local
+  Object.keys(Object.assign({}, l, r)).forEach(k => {
+    if (k in merged || k === '_demo' || k === 'deleted' || k === 'araziLayout') return;
+    merged[k] = (k in r) ? r[k] : l[k];
+  });
+
+  return {
+    merged,
+    localDirty: bbStable(merged) !== bbStable(bbComparable(l)),
+    remoteDirty: bbStable(merged) !== bbStable(bbComparable(r))
+  };
+}
+
+// settings: blob LWW — _up büyük olan bütün olarak kazanır; eşitse eski assign davranışı
+function bbMergeSettings(local, remote) {
+  const l = local || {}, r = remote || {};
+  const lu = l._up || 0, ru = r._up || 0;
+  if (ru > lu) return r;
+  if (lu > ru) return l;
+  return Object.assign({}, l, r);
+}
+/* BB-MERGE-END */
+
 function loadData() {
   try {
     const d = localStorage.getItem(DB_KEY);
