@@ -4929,6 +4929,27 @@ function init() {
 
   // Start app after splash
   setTimeout(startApp, 1800);
+
+  // Capacitor APK: sistem tarayıcısından dönen Google OAuth callback'ini yakala
+  if (window.Capacitor) {
+    const { App, Browser } = Capacitor.Plugins;
+    App.addListener('appUrlOpen', async ({ url }) => {
+      if (url && url.includes('auth-callback')) {
+        try { await Browser.close(); } catch (e) {}
+        const hash = url.split('#')[1];
+        if (hash) {
+          const params = new URLSearchParams(hash);
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+          if (access_token && refresh_token && _sb) {
+            const { error } = await _sb.auth.setSession({ access_token, refresh_token });
+            if (error) showToast('Giriş tamamlanamadı: ' + error.message);
+            else showToast('Giriş başarılı — hoş geldin!');
+          }
+        }
+      }
+    });
+  }
 }
 
 function loadDemoData() {
@@ -5023,11 +5044,25 @@ function initSupabase() {
 async function signInWithGoogle() {
   if (!_sb) { showToast('Supabase bağlantısı yok'); return; }
   try {
-    const { error } = await _sb.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin + window.location.pathname }
-    });
-    if (error) showToast('Giriş hatası: ' + error.message);
+    if (window.Capacitor) {
+      // APK: WebView'da Google girişi engelli — sistem tarayıcısında aç
+      const redirectTo = 'com.kamilsaim.beebook://auth-callback';
+      const { data, error } = await _sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo, skipBrowserRedirect: true }
+      });
+      if (error) { showToast('Giriş hatası: ' + error.message); return; }
+      if (data?.url) {
+        const { Browser } = Capacitor.Plugins;
+        await Browser.open({ url: data.url, windowName: '_self' });
+      }
+    } else {
+      const { error } = await _sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin + window.location.pathname }
+      });
+      if (error) showToast('Giriş hatası: ' + error.message);
+    }
   } catch(e) { showToast('Giriş hatası: ' + e.message); }
 }
 
