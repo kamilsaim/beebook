@@ -1,94 +1,67 @@
-# 🍯 Beebook — Arıcının El Defteri
+<div align="center">
 
-Arıcılar için mobil öncelikli, offline-first kovan yönetim uygulaması.
+<img src="logo.png" alt="Beebook" width="240">
 
-**Canlı uygulama:** [kamilsaim.github.io/beebook](https://kamilsaim.github.io/beebook/)
+# Beebook
 
----
+**Arıcının El Defteri**
 
-## Özellikler
+_Arıcılar için mobil öncelikli, offline çalışan kovan ve işletme yönetim uygulaması._
 
-### Kovan Yönetimi
-- Langstroth, Dadant, Yerli, Çerçeveli, Ana Arı Kovanı, Nükleus (Ruşet) tipleri
-- Her tipe özel SVG illüstrasyon
-- Grid / Liste görünüm toggle
-- QR kod ile kovan arama
-- Ana arı durumu takibi (Var, Yok, Bakire, Meme Var, Bilinmiyor)
-- Ana arı renk kodu sistemi (yıla göre otomatik)
-- Toplu kovan ekleme
+[**▶ Uygulamayı Aç**](https://kamilsaim.github.io/beebook/)
 
-### Ana Arı Üretimi
-- Seri bazlı takip: ırk, kuşak, damızlık kovan
-- Gelişim timeline: Transfer → Kapanma (G8) → Pupa (G10) → Çıkım (G16) → Dağıtım (G20)
-- Meme başına durum takibi
-
-### Finansal Takip
-- Satış kayıtları: Bal, Ana Arı, Arı Sütü, Petek Bal, Karakovan Bal, Arı Satışı
-- Ödeme türleri: Nakit, Havale, Veresiye, Hediye, Zekat
-- Gider kayıtları ve kategori grafikleri
-- Finansal özet ve dağılım grafikleri
-
-### Stok Yönetimi
-- Süzme Bal, Petek Bal, Arı Sütü, Karakovan Bal takibi
-- Hasat kaydında otomatik stok artışı
-- Satışlarda otomatik stok düşümü
-
-### Hava Durumu
-- Güncel durum: sıcaklık, nem, rüzgar, hissedilen
-- Saatlik tahmin şeridi (sonraki 12 saat)
-- open-meteo.com API (ücretsiz, anahtar gerektirmez)
-
-### Diğer
-- Arı sütü hasat kayıtları ve grafik
-- Görev listesi
-- Sezon yönetimi
-- Karanlık tema + yazı boyutu ayarı
+</div>
 
 ---
 
-## Teknik Yapı
+## Beebook nedir?
 
-| | |
-|---|---|
-| **Frontend** | Vanilla HTML + CSS + JavaScript (framework yok) |
-| **Yerel Veri** | localStorage |
-| **Bulut Sync** | Supabase (PostgreSQL) |
-| **Auth** | Google OAuth via Supabase |
-| **Hosting** | GitHub Pages |
-| **Hava Durumu** | open-meteo.com |
-| **QR Okuma** | BarcodeDetector API |
+Beebook, arıcıların kovanlarını, ana arı üretimini, satışlarını ve giderlerini tek bir yerden takip etmesi için geliştirilmiş bir el defteri uygulaması. Kağıt deftere veya dağınık notlara alternatif olarak, arazide de ofiste de aynı rahatlıkla kullanılabilmesi hedeflenir.
+
+İnternet olmadan da tam işlevseldir — kovan bilgileri, satışlar, giderler ve üretim kayıtları cihazda saklanır. Google ile giriş yapıldığında veriler otomatik olarak buluta yedeklenir ve birden fazla cihaz arasında senkronize edilir.
+
+## Nasıl çalışır?
+
+1. **Kovanları tanımla** — tip, ana arı durumu, ırk ve kuşak bilgisiyle kovan listeni oluştur.
+2. **Üretimi kaydet** — ana arı serileri, arı sütü hasadı ve stok girişlerini işle.
+3. **Satış ve gideri işle** — her satış otomatik olarak stoktan düşer, ödeme durumu (ödendi/bekliyor/kısmi) takip edilir.
+4. **Özet sayfasından bak** — kovan, üretim ve finansal dağılımları grafiklerle gör.
+5. **Google ile giriş yaparsan** verilerin otomatik olarak senkronize edilir, cihaz değiştirsen de kaldığın yerden devam edersin.
+
+## Öne çıkan özellikler
+
+- 🐝 **Kovan takibi** — Langstroth, Dadant, Yerli gibi tiplere özel illüstrasyonlar, QR ile hızlı arama, grid/liste görünüm
+- 👑 **Ana arı üretimi** — seri bazlı takip, transfer'den dağıtıma gelişim takvimi, meme başına durum
+- 🍯 **Arı sütü ve stok** — hasat kayıtları otomatik stoğa işler, satışta otomatik düşer
+- 💰 **Satış ve gider takibi** — çoklu ürün satışı, ödendi/bekliyor/kısmi ödeme, hediye ve zekat kayıtları
+- 🗺️ **Arazi düzeni** — kovanlarını haritada konumlandır, tek bakışta arazini gör
+- ☀️ **Hava durumu** — güncel durum ve saatlik tahmin, arazi planlaması için
+- 📊 **Özet ve raporlar** — kovan, üretim ve finansal dağılımlar; tıklanabilir grafikler
+- 📴 **Offline-first** — internet olmadan da tam işlevsel, bağlantı gelince otomatik senkronize olur
+
+## Teknoloji
+
+Beebook, [Supabase](https://supabase.com) (PostgreSQL + Google OAuth) üzerinde çalışan, framework kullanmayan tek dosyalık bir HTML/JS uygulamasıdır; hava durumu için [open-meteo.com](https://open-meteo.com) kullanır ve [GitHub Pages](https://pages.github.com) üzerinden yayınlanır. Telefona ana ekrana ekle ile PWA gibi kurulabilir, ayrıca Capacitor ile paketlenmiş bir Android (APK) sürümü mevcuttur.
+
+## Sürüm Geçmişi
+
+| Sürüm | Öne çıkanlar |
+|-------|--------------|
+| **v2.3** | Kayıt bazlı senkronizasyon merge'i — tombstone ve `_up` damgasıyla sessiz veri kaybı önlendi |
+| **v2.2** | Kısmi ödeme takibi, hızlı ödeme alma butonu, ana arı takvimi düzeltmesi |
+| **v2.1** | Çoklu ürün satışı, sipariş durumu, satış/gider raporları, zekat hesabı |
+| **v2.0** | Arazi düzeni ana uygulamaya entegre edildi, arısız kovan durumu eklendi |
+| **v1.7** | Kovan tipi/ırk/satış/gider listeleri ayarlardan özelleştirilebilir hale geldi |
+| **v1.6** | Arı ırkı güncellemeleri, düzenleme butonları, tıklanabilir özet grafikleri |
+| **v1.5** | Supabase senkronizasyon iyileştirmeleri, iOS/Firefox QR desteği, PWA desteği |
+| **v1.4** | Supabase entegrasyonu, Google OAuth, GitHub Pages yayını |
+
+## Katkı
+
+Beebook kişisel bir proje olarak geliştiriliyor. Öneri ve hata bildirimleri için depo üzerinden issue açabilirsin.
 
 ---
 
-## Kurulum
-
-Uygulama tarayıcıda doğrudan çalışır, herhangi bir kurulum gerektirmez.
-
-```
-**Mobil kurulum:** Tarayıcıda aç → "Ana Ekrana Ekle" ile PWA gibi yükle.
-
----
-
-## Veri ve Gizlilik
-
-- Tüm veriler cihazınızda (localStorage) saklanır.
-- Google ile giriş yapıldığında veriler Supabase'e yedeklenir.
-- Giriş yapmadan da tam işlevsel olarak kullanılabilir (offline mod).
-- Ayarlar → Yedek bölümünden JSON olarak dışa/içe aktarım yapılabilir.
-
----
-
-## Versiyon
-
-**v1.4** — Mayıs 2026
-
-- Supabase entegrasyonu ve Google OAuth
-- Offline-first mimari, otomatik çift yönlü senkronizasyon
-- Sync badge göstergesi
-- GitHub Pages ve GitHub Actions otomatik deploy
-
----
-
-## Lisans
-
-Kişisel kullanım için geliştirilmiştir.
+<div align="center">
+<sub>🍯 Beebook — Arıcının El Defteri</sub>
+</div>
