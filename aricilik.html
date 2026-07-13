@@ -1959,18 +1959,9 @@
       <input class="form-input" id="new-season-name" placeholder="2025 İlkbahar Sezonu" autocapitalize="sentences" oninput="capitalizeFirst(this)">
     </div>
     <div class="form-group">
-      <label class="form-label" style="margin-bottom:8px">Yeni sezona aktarılacaklar</label>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;cursor:pointer">
-          <input type="checkbox" id="transfer-hives" checked style="width:18px;height:18px;accent-color:var(--honey)">
-          🏠 Kovanlar
-        </label>
-        <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;cursor:pointer">
-          <input type="checkbox" id="transfer-tasks" style="width:18px;height:18px;accent-color:var(--honey)">
-          📋 Tamamlanmamış görevler
-        </label>
-      </div>
-      <div style="font-size:11px;color:var(--text-soft);margin-top:8px">Stok, satış ve gider kayıtları tarihe bağlıdır; bakiyeler zaten korunur, aktarım gerekmez.</div>
+      <label class="form-label">Sezon Başlangıç Tarihi</label>
+      <input class="form-input" type="date" id="new-season-start">
+      <div style="font-size:11px;color:var(--text-soft);margin-top:6px">Bu tarihten itibaren girilen satış, gider ve arı sütü kayıtları yeni sezona ait olur. Önceki kayıtlar eski sezonda kalır. Kovanlar, ana arı ve stok bakiyesi tüm sezonlarda ortaktır.</div>
     </div>
     <div style="display:flex; gap:10px">
       <button class="btn btn-secondary" style="flex:1" onclick="closeModal('new-season-modal')">İptal</button>
@@ -2371,8 +2362,8 @@ function renderDashboard() {
   document.getElementById('dash-avg-strength').textContent = avgStr;
 
   const now = monthStr();
-  const income = data.sales.reduce((s, x) => s + Number(x.total||0), 0);
-  const expense = data.expenses.reduce((s, x) => s + Number(x.amount||0), 0);
+  const income = bySeason(data.sales).reduce((s, x) => s + Number(x.total||0), 0);
+  const expense = bySeason(data.expenses).reduce((s, x) => s + Number(x.amount||0), 0);
   document.getElementById('dash-income').textContent = fmt(income) + ' ₺';
   document.getElementById('dash-expense').textContent = fmt(expense) + ' ₺';
 
@@ -2390,8 +2381,8 @@ function renderDashboard() {
 
   // Recent transactions
   const allTx = [
-    ...data.sales.map(s => ({ ...s, txtype: 'income', icon: s.type === 'honey' ? '🍯' : s.type === 'queen' ? '👑' : '🥛', label: s.customer || 'Müşteri' })),
-    ...data.expenses.map(e => ({ ...e, txtype: 'expense', icon: expIcon(e.type), label: e.desc || e.type }))
+    ...bySeason(data.sales).map(s => ({ ...s, txtype: 'income', icon: s.type === 'honey' ? '🍯' : s.type === 'queen' ? '👑' : '🥛', label: s.customer || 'Müşteri' })),
+    ...bySeason(data.expenses).map(e => ({ ...e, txtype: 'expense', icon: expIcon(e.type), label: e.desc || e.type }))
   ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
 
   const container = document.getElementById('recent-transactions');
@@ -2427,7 +2418,7 @@ function renderDashboard() {
     <div style="display:flex; justify-content:space-between; align-items:center">
       <div>
         <div style="font-weight:800;font-size:15px">${activeSeason.name}</div>
-        <div style="font-size:12px; color:var(--text-soft); margin-top:2px">${activeSeason.year} Sezonu</div>
+        <div style="font-size:12px; color:var(--text-soft); margin-top:2px">${(() => { const r = getActiveSeasonRange(); if (!r) return activeSeason.year + ' Sezonu'; return (r.start ? fmtDate(r.start) : '…') + ' → ' + (r.end ? fmtDate(r.end) : 'devam ediyor'); })()}</div>
       </div>
       <span class="badge badge-green">Aktif</span>
     </div>
@@ -3175,15 +3166,16 @@ function renderMilk() {
   const list = document.getElementById('milk-list');
   const empty = document.getElementById('milk-empty');
   const now = monthStr();
-  const total = data.milk.reduce((s, m) => s + Number(m.amount||0), 0);
-  const thisMonth = data.milk.filter(m => monthStr(m.date) === now).reduce((s, m) => s + Number(m.amount||0), 0);
-  const avg = data.milk.length ? (total / data.milk.length).toFixed(0) : 0;
+  const seasonMilk = bySeason(data.milk);
+  const total = seasonMilk.reduce((s, m) => s + Number(m.amount||0), 0);
+  const thisMonth = seasonMilk.filter(m => monthStr(m.date) === now).reduce((s, m) => s + Number(m.amount||0), 0);
+  const avg = seasonMilk.length ? (total / seasonMilk.length).toFixed(0) : 0;
   document.getElementById('milk-total').textContent = fmt(total);
   document.getElementById('milk-thismonth').textContent = fmt(thisMonth);
   document.getElementById('milk-avg').textContent = fmt(avg);
 
   // Chart
-  const recent7 = [...data.milk].sort((a,b) => new Date(a.date)-new Date(b.date)).slice(-7);
+  const recent7 = [...seasonMilk].sort((a,b) => new Date(a.date)-new Date(b.date)).slice(-7);
   const maxVal = Math.max(...recent7.map(m => m.amount||0), 1);
   document.getElementById('milk-chart').innerHTML = recent7.map(m => `
     <div style="flex:1;display:flex;flex-direction:column;align-items:center">
@@ -3194,7 +3186,7 @@ function renderMilk() {
     <div style="flex:1;text-align:center;font-size:9px;color:var(--text-soft)">${m.date ? new Date(m.date).getDate() : ''}</div>
   `).join('');
 
-  const sorted = [...data.milk].sort((a,b) => new Date(b.date)-new Date(a.date));
+  const sorted = [...seasonMilk].sort((a,b) => new Date(b.date)-new Date(a.date));
   if (!sorted.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
   list.innerHTML = sorted.map(m => `
@@ -3281,7 +3273,8 @@ function getSaleProductLabel(s) {
 }
 
 function renderSales() {
-  let sales = [...data.sales];
+  const seasonSales = bySeason(data.sales);
+  let sales = [...seasonSales];
   if (currentSaleFilter !== 'all') sales = sales.filter(s => s.type === currentSaleFilter);
   const q = (document.getElementById('sale-search')?.value || '').toLowerCase().trim();
   if (q) sales = sales.filter(s =>
@@ -3289,9 +3282,9 @@ function renderSales() {
     getSaleProductLabel(s).toLowerCase().includes(q) ||
     (s.note||'').toLowerCase().includes(q)
   );
-  const total = data.sales.reduce((s, x) => s + Number(x.total||0), 0);
+  const total = seasonSales.reduce((s, x) => s + Number(x.total||0), 0);
   document.getElementById('sales-total').textContent = fmt(total) + ' ₺';
-  document.getElementById('sales-count').textContent = data.sales.length;
+  document.getElementById('sales-count').textContent = seasonSales.length;
 
   const list = document.getElementById('sales-list');
   const empty = document.getElementById('sales-empty');
@@ -3340,7 +3333,7 @@ function renderSales() {
 }
 
 function openSaleReportModal() {
-  const sales = data.sales;
+  const sales = bySeason(data.sales);
   const ICONS = { honey:'🍯', milk:'🥛', queen:'👑', bee:'🐝', other:'📦' };
   const NAMES = { milk:'Arı Sütü', queen:'Ana Arı', bee:'Arı Satışı', other:'Diğer' };
   // Group: honey products by honeyType, others by type
@@ -3380,7 +3373,7 @@ function openSaleReportModal() {
     }
   }
   // Pending payments section
-  const pending = data.sales.filter(s => s.payment === 'pending' || s.payment === 'partial');
+  const pending = sales.filter(s => s.payment === 'pending' || s.payment === 'partial');
   if (pending.length) {
     const pendingTotal = pending.reduce((a,x)=> a + (x.payment==='partial'&&x.paidAmount!=null ? Math.max(0,x.total-x.paidAmount) : Number(x.total||0)), 0);
     html += `<div style="margin-top:4px">
@@ -3854,15 +3847,16 @@ function renderExpenseFilterChips() {
 
 function renderExpenses() {
   renderExpenseFilterChips();
-  let expenses = [...data.expenses];
+  const seasonExpenses = bySeason(data.expenses);
+  let expenses = [...seasonExpenses];
   if (currentExpFilter !== 'all') expenses = expenses.filter(e => e.type === currentExpFilter);
-  const total = data.expenses.reduce((s, x) => s + Number(x.amount||0), 0);
+  const total = seasonExpenses.reduce((s, x) => s + Number(x.amount||0), 0);
   document.getElementById('exp-total').textContent = fmt(total) + ' ₺';
-  document.getElementById('exp-count').textContent = data.expenses.length;
+  document.getElementById('exp-count').textContent = seasonExpenses.length;
 
   // Category chart
   const cats = getExpenseTypes().map(t => t.v);
-  const catTotals = cats.map(c => ({ cat: c, total: data.expenses.filter(e => e.type === c).reduce((s,x) => s + Number(x.amount||0), 0) }));
+  const catTotals = cats.map(c => ({ cat: c, total: seasonExpenses.filter(e => e.type === c).reduce((s,x) => s + Number(x.amount||0), 0) }));
   const maxCat = Math.max(...catTotals.map(c => c.total), 1);
   document.getElementById('exp-chart').innerHTML = catTotals.filter(c => c.total > 0).map(c => `
     <div>
@@ -3907,13 +3901,14 @@ function renderExpenses() {
 
 function openExpenseReportModal() {
   const expTypes = getExpenseTypes();
-  const totalAll = data.expenses.reduce((s,x)=>s+Number(x.amount||0),0);
+  const seasonExpenses = bySeason(data.expenses);
+  const totalAll = seasonExpenses.reduce((s,x)=>s+Number(x.amount||0),0);
   let html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
     <div class="ie-box expense"><div class="ie-val expense">${fmt(totalAll)} ₺</div><div class="ie-lbl">Toplam Gider</div></div>
-    <div class="ie-box expense"><div class="ie-val expense">${data.expenses.length}</div><div class="ie-lbl">Kayıt Adedi</div></div>
+    <div class="ie-box expense"><div class="ie-val expense">${seasonExpenses.length}</div><div class="ie-lbl">Kayıt Adedi</div></div>
   </div>`;
   const rows = expTypes.map(t => {
-    const entries = data.expenses.filter(e => e.type === t.v);
+    const entries = seasonExpenses.filter(e => e.type === t.v);
     if (!entries.length) return null;
     const total = entries.reduce((s,x)=>s+Number(x.amount||0),0);
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--smoke)">
@@ -4131,6 +4126,30 @@ function saveCalTask() {
 }
 
 // ======================== SEASONS ========================
+// ======================== SEASON FILTER ========================
+// Sezon = tarih aralığı: start (yoksa year-01-01) → sonraki sezonun start'ı.
+// En eski sezon geçmişteki tüm kayıtları, en yeni sezon geleceği de kapsar.
+// Satış / gider / arı sütü tarihine göre sezona ait olur; kovan, ana arı ve stok sezon-üstüdür.
+function seasonStartOf(s) { return s.start || (s.year + '-01-01'); }
+function getActiveSeasonRange() {
+  const act = data.seasons.find(s => s.id === settings.activeSeason);
+  if (!act || data.seasons.length < 2) return null;
+  const starts = data.seasons.map(seasonStartOf).sort();
+  const myStart = seasonStartOf(act);
+  const next = starts.find(d => d > myStart);
+  return { start: myStart === starts[0] ? null : myStart, end: next || null };
+}
+function inSeason(dateStr) {
+  const r = getActiveSeasonRange();
+  if (!r) return true;
+  const d = String(dateStr || '').slice(0, 10);
+  if (!d) return true;
+  if (r.start && d < r.start) return false;
+  if (r.end && d >= r.end) return false;
+  return true;
+}
+function bySeason(arr) { return (arr || []).filter(x => inSeason(x.date)); }
+
 function renderSeasons() {
   const list = document.getElementById('season-list');
   if (!data.seasons.length) { list.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🌸</span><div class="empty-state-title">Sezon yok</div></div>'; return; }
@@ -4139,7 +4158,7 @@ function renderSeasons() {
       <div class="list-item-icon">🌸</div>
       <div class="list-item-content">
         <div class="list-item-title">${s.name}</div>
-        <div class="list-item-sub">${s.year} · ${s.id === settings.activeSeason ? '✅ Aktif Sezon' : 'Pasif'}</div>
+        <div class="list-item-sub">${fmtDate(seasonStartOf(s))} başlangıç · ${s.id === settings.activeSeason ? '✅ Aktif Sezon' : 'Pasif'}</div>
       </div>
       <div style="display:flex; gap:6px; align-items:center">
         ${s.id !== settings.activeSeason ? `<button class="btn btn-primary btn-sm" onclick="setActiveSeason('${s.id}')">Aktifleştir</button>` : '<span class="badge badge-green">Aktif</span>'}
@@ -4153,7 +4172,7 @@ function showSeasonModal() {
   document.getElementById('season-modal-list').innerHTML = data.seasons.map(s => `
     <div class="list-item" onclick="setActiveSeason('${s.id}'); closeModal('season-modal')">
       <div class="list-item-icon">🌸</div>
-      <div class="list-item-content"><div class="list-item-title">${s.name}</div><div class="list-item-sub">${s.year}</div></div>
+      <div class="list-item-content"><div class="list-item-title">${s.name}</div><div class="list-item-sub">${fmtDate(seasonStartOf(s))} →</div></div>
       ${s.id === settings.activeSeason ? '<span class="badge badge-green">Aktif</span>' : ''}
     </div>
   `).join('');
@@ -4163,42 +4182,38 @@ function showSeasonModal() {
 function setActiveSeason(id) {
   settings.activeSeason = id;
   data.seasons.forEach(s => s.active = s.id === id);
-  saveSettings(); saveData(); renderSeasons(); renderSeasonsInSettings(); renderDashboard(); showToast('Sezon değiştirildi');
+  saveSettings(); saveData(); renderSeasons(); renderSeasonsInSettings(); navigate(currentPage); showToast('Sezon değiştirildi');
 }
 
 function openNewSeasonModal() {
   document.getElementById('new-season-year').value = new Date().getFullYear();
   document.getElementById('new-season-name').value = new Date().getFullYear() + ' Sezonu';
+  document.getElementById('new-season-start').value = today();
   openModal('new-season-modal');
 }
 
 function createNewSeason() {
   const year = parseInt(document.getElementById('new-season-year').value);
   const name = document.getElementById('new-season-name').value.trim();
+  const start = document.getElementById('new-season-start').value || (year + '-01-01');
   if (!year || !name) { showToast('Yıl ve ad zorunlu'); return; }
+  if (data.seasons.some(x => seasonStartOf(x) === start)) { showToast('Bu başlangıç tarihinde zaten bir sezon var'); return; }
 
   const newSeasonId = 'season_' + genId();
-  const s = { id: newSeasonId, year, name, active: false };
+  const s = { id: newSeasonId, year, name, start, active: false };
   data.seasons.push(s);
 
-  const notes = [];
-
-  // Kovan aktarımı (bilgisel — kovanlar zaten tüm sezonlarda)
-  const transferHives = document.getElementById('transfer-hives')?.checked;
-  if (transferHives) notes.push(data.hives.length + ' kovan');
-
-  // Görev bilgisi
-  const transferTasks = document.getElementById('transfer-tasks')?.checked;
-  if (transferTasks) {
-    const pending = data.tasks.filter(t => !t.done).length;
-    if (pending > 0) notes.push(pending + ' bekleyen görev');
-  }
+  // Yeni sezon otomatik aktif olur
+  settings.activeSeason = newSeasonId;
+  data.seasons.forEach(x => x.active = x.id === newSeasonId);
 
   saveData();
+  saveSettings();
   closeModal('new-season-modal');
   renderSeasons();
   renderSeasonsInSettings();
-  showToast('Sezon oluşturuldu' + (notes.length ? ' (' + notes.join(', ') + ')' : ''));
+  navigate(currentPage);
+  showToast('Sezon oluşturuldu ve aktifleştirildi — ' + fmtDate(start) + ' itibarıyla kayıtlar bu sezona yazılır');
 }
 
 function deleteSeason(id) {
@@ -4206,7 +4221,8 @@ function deleteSeason(id) {
   showConfirm('Sezonu Sil', 'Bu sezonu silmek istiyor musunuz?', () => {
     data.seasons = data.seasons.filter(s => s.id !== id);
     if (settings.activeSeason === id) settings.activeSeason = data.seasons[0]?.id;
-    saveData(); saveSettings(); renderSeasons(); renderSeasonsInSettings(); showToast('Sezon silindi');
+    data.seasons.forEach(s => s.active = s.id === settings.activeSeason);
+    saveData(); saveSettings(); renderSeasons(); renderSeasonsInSettings(); navigate(currentPage); showToast('Sezon silindi');
   });
 }
 
@@ -4475,7 +4491,7 @@ function renderSeasonsInSettings() {
       <div class="list-item-icon" style="font-size:20px">🌸</div>
       <div class="list-item-content">
         <div class="list-item-title">${s.name}</div>
-        <div class="list-item-sub">${s.year}</div>
+        <div class="list-item-sub">${fmtDate(seasonStartOf(s))} →</div>
       </div>
       <div style="display:flex; gap:6px; align-items:center">
         ${s.id !== settings.activeSeason
@@ -4731,13 +4747,15 @@ function renderOzet() {
     </div>
   `).join('');
 
-  // Financial
-  const totalIncome = data.sales.reduce((s,x)=>s+Number(x.total||0),0);
-  const totalExpense = data.expenses.reduce((s,x)=>s+Number(x.amount||0),0);
+  // Financial (aktif sezon)
+  const seasonSales = bySeason(data.sales);
+  const seasonExpenses = bySeason(data.expenses);
+  const totalIncome = seasonSales.reduce((s,x)=>s+Number(x.total||0),0);
+  const totalExpense = seasonExpenses.reduce((s,x)=>s+Number(x.amount||0),0);
   const profit = totalIncome - totalExpense;
   const now = monthStr();
-  const monthIncome = data.sales.filter(s=>monthStr(s.date)===now).reduce((s,x)=>s+Number(x.total||0),0);
-  const monthExpense = data.expenses.filter(e=>monthStr(e.date)===now).reduce((s,x)=>s+Number(x.amount||0),0);
+  const monthIncome = seasonSales.filter(s=>monthStr(s.date)===now).reduce((s,x)=>s+Number(x.total||0),0);
+  const monthExpense = seasonExpenses.filter(e=>monthStr(e.date)===now).reduce((s,x)=>s+Number(x.amount||0),0);
   document.getElementById('ozet-finance').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
       <div class="ie-box income"><div class="ie-val income">${fmt(totalIncome)} ₺</div><div class="ie-lbl">Toplam Gelir</div></div>
@@ -4753,10 +4771,10 @@ function renderOzet() {
     </div>
   `;
 
-  // Production
-  const totalHoney = data.sales.filter(s=>s.type==='honey').reduce((s,x)=>s+Number(x.qty||0),0);
-  const totalMilk = data.milk.reduce((s,m)=>s+Number(m.amount||0),0);
-  const totalQueenSales = data.sales.filter(s=>s.type==='queen').reduce((s,x)=>s+Number(x.qty||0),0);
+  // Production (aktif sezon)
+  const totalHoney = seasonSales.filter(s=>s.type==='honey').reduce((s,x)=>s+Number(x.qty||0),0);
+  const totalMilk = bySeason(data.milk).reduce((s,m)=>s+Number(m.amount||0),0);
+  const totalQueenSales = seasonSales.filter(s=>s.type==='queen').reduce((s,x)=>s+Number(x.qty||0),0);
   document.getElementById('ozet-production').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
       <div class="stat-box"><div class="stat-icon">🍯</div><div class="stat-val color-honey">${fmt(totalHoney)}</div><div class="stat-lbl">kg Bal</div></div>
