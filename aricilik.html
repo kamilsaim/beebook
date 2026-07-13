@@ -1030,6 +1030,7 @@
       <div class="section-header">
         <div class="section-title">Stok Yönetimi</div>
         <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="openStockReportModal()">📊 Rapor</button>
           <button class="btn btn-secondary btn-sm" onclick="showZekatModal()">🌙 Zekat</button>
           <button class="btn btn-primary btn-sm" onclick="openStockAddModal()">+ Stok Ekle</button>
         </div>
@@ -1870,6 +1871,16 @@
   </div>
 </div>
 
+<!-- STOCK REPORT MODAL -->
+<div class="modal-overlay" id="stock-report-modal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📊 Stok Raporu</div>
+    <div id="stock-report-content" style="max-height:70vh;overflow-y:auto"></div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="closeModal('stock-report-modal')">Kapat</button>
+  </div>
+</div>
+
 <!-- EXPENSE REPORT MODAL -->
 <div class="modal-overlay" id="expense-report-modal">
   <div class="modal-box">
@@ -1955,15 +1966,11 @@
           🏠 Kovanlar
         </label>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;cursor:pointer">
-          <input type="checkbox" id="transfer-stock" style="width:18px;height:18px;accent-color:var(--honey)">
-          📦 Stok (mevcut bakiyeler devir kaydı)
-        </label>
-        <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;cursor:pointer">
           <input type="checkbox" id="transfer-tasks" style="width:18px;height:18px;accent-color:var(--honey)">
           📋 Tamamlanmamış görevler
         </label>
       </div>
-      <div style="font-size:11px;color:var(--text-soft);margin-top:8px">Satış ve gider tarihe bağlı, aktarılmaz.</div>
+      <div style="font-size:11px;color:var(--text-soft);margin-top:8px">Stok, satış ve gider kayıtları tarihe bağlıdır; bakiyeler zaten korunur, aktarım gerekmez.</div>
     </div>
     <div style="display:flex; gap:10px">
       <button class="btn btn-secondary" style="flex:1" onclick="closeModal('new-season-modal')">İptal</button>
@@ -3739,6 +3746,37 @@ function showZekatModal() {
   openModal('zekat-modal');
 }
 
+function openStockReportModal() {
+  const types = getStockTypes();
+  const rows = types.map(st => {
+    const allIn = (data.stock||[]).filter(e => e.product === st.v && e.action === 'in');
+    if (!allIn.length) return null;
+    const totalIn = allIn.reduce((s,e)=>s+Number(e.amount||0),0);
+    const isMilk = st.v === 'ari_sutu';
+    const salePred = s => isMilk ? s.type==='milk' : (s.type==='honey' && s.honeyType===st.v);
+    const saleEntries = data.sales.filter(s=>salePred(s)&&s.payment!=='hediye'&&s.payment!=='zekat');
+    const totalSatis = saleEntries.reduce((s,e)=>s+Number(e.qty||0),0);
+    const totalTutar = saleEntries.reduce((s,e)=>s+Number(e.total||0),0);
+    const totalHed   = data.sales.filter(s=>salePred(s)&&s.payment==='hediye').reduce((s,e)=>s+Number(e.qty||0),0);
+    const totalZek   = data.sales.filter(s=>salePred(s)&&s.payment==='zekat').reduce((s,e)=>s+Number(e.qty||0),0);
+    const mevcut = getStockLevel(st.v);
+    const p = STOCK_PRODS[st.v] || { icon: extractEmoji(st.l) };
+    const lbl = st.l.replace(/^[\p{Emoji}\s]+/u,'').trim();
+    return `<div style="background:var(--smoke);border-radius:12px;padding:12px;margin-bottom:10px">
+      <div style="font-weight:800;font-size:14px;margin-bottom:8px">${p.icon||'📦'} ${lbl}</div>
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:13px">
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">Toplam Giriş</span><span style="font-weight:700;color:var(--forest)">${fmt(totalIn)} ${st.unit}</span></div>
+        ${totalSatis>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">Toplam Satış</span><span style="font-weight:700;color:var(--honey-dark)">${fmt(totalSatis)} ${st.unit} · ${fmt(totalTutar)} ₺</span></div>`:''}
+        ${totalHed>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--purple-special)">🎁 Hediye</span><span style="font-weight:700;color:var(--purple-special)">${fmt(totalHed)} ${st.unit}</span></div>`:''}
+        ${totalZek>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--purple-special)">🌙 Zekat</span><span style="font-weight:700;color:var(--purple-special)">${fmt(totalZek)} ${st.unit}</span></div>`:''}
+        <div style="display:flex;justify-content:space-between;border-top:1px solid #DDD;padding-top:4px;margin-top:2px"><span style="color:var(--text-soft)">Mevcut Stok</span><span style="font-weight:800;color:var(--honey-dark)">${fmt(mevcut)} ${st.unit}</span></div>
+      </div>
+    </div>`;
+  }).filter(Boolean);
+  document.getElementById('stock-report-content').innerHTML = rows.length ? rows.join('') : '<div style="text-align:center;color:var(--text-soft);padding:20px">Stok kaydı yok</div>';
+  openModal('stock-report-modal');
+}
+
 function setStockFilter(f, el) {
   currentStockFilter = f;
   document.querySelectorAll('#page-stock .chip').forEach(c => c.classList.remove('active'));
@@ -4148,30 +4186,6 @@ function createNewSeason() {
   // Kovan aktarımı (bilgisel — kovanlar zaten tüm sezonlarda)
   const transferHives = document.getElementById('transfer-hives')?.checked;
   if (transferHives) notes.push(data.hives.length + ' kovan');
-
-  // Stok devir kaydı
-  const transferStock = document.getElementById('transfer-stock')?.checked;
-  if (transferStock) {
-    const products = [...new Set(data.stock.map(s => s.product))];
-    products.forEach(product => {
-      const balance = data.stock
-        .filter(s => s.product === product)
-        .reduce((sum, s) => s.action === 'in' ? sum + Number(s.amount) : sum - Number(s.amount), 0);
-      if (balance > 0) {
-        const stockUnit = getStockTypes().find(st => st.v === product)?.unit || 'kg';
-        data.stock.push({
-          id: genId(),
-          product,
-          action: 'in',
-          amount: balance,
-          unit: stockUnit,
-          date: year + '-01-01',
-          note: (year - 1) + ' sezonu devri'
-        });
-      }
-    });
-    notes.push('stok devri');
-  }
 
   // Görev bilgisi
   const transferTasks = document.getElementById('transfer-tasks')?.checked;
