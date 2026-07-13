@@ -36,7 +36,8 @@ Beebook, arıcıların kovanlarını, ana arı üretimini, satışlarını ve gi
 - 💰 **Satış ve gider takibi** — çoklu ürün satışı, ödendi/bekliyor/kısmi ödeme, hediye ve zekat kayıtları
 - 🗺️ **Arazi düzeni** — kovanlarını haritada konumlandır, tek bakışta arazini gör
 - ☀️ **Hava durumu** — güncel durum ve saatlik tahmin, arazi planlaması için
-- 📊 **Özet ve raporlar** — kovan, üretim ve finansal dağılımlar; tıklanabilir grafikler
+- 📊 **Özet ve raporlar** — kovan, üretim ve finansal dağılımlar; satış, gider ve stok raporları
+- 🌸 **Sezon yönetimi** — her sezon ayrı hesap dönemi; satış, gider ve hasat kayıtları sezona göre ayrılır, kovanlar ve stok devam eder
 - 📴 **Offline-first** — internet olmadan da tam işlevsel, bağlantı gelince otomatik senkronize olur
 
 ## Teknoloji
@@ -47,6 +48,7 @@ Beebook, [Supabase](https://supabase.com) (PostgreSQL + Google OAuth) üzerinde 
 
 | Sürüm | Öne çıkanlar |
 |-------|--------------|
+| **v2.4** | Sezonlar gerçek hesap dönemi oldu — satış, gider ve arı sütü aktif sezona göre ayrılır; stok raporu; sezon rozeti sezon adını gösterir |
 | **v2.3** | Kayıt bazlı senkronizasyon merge'i — tombstone ve `_up` damgasıyla sessiz veri kaybı önlendi |
 | **v2.2** | Kısmi ödeme takibi, hızlı ödeme alma butonu, ana arı takvimi düzeltmesi |
 | **v2.1** | Çoklu ürün satışı, sipariş durumu, satış/gider raporları, zekat hesabı |
