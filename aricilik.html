@@ -6,9 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#1565c0">
+<meta name="theme-color" content="#E8A020">
 <link rel="icon" type="image/png" id="favicon-link" href="">
-<link rel="apple-touch-icon" href="logo.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="window._sbFailed=true"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
@@ -30,6 +30,8 @@
     --bark-light: #C4956A;
     --cream: #FFFDF0;
     --smoke: #F7F2E8;
+    --card: #FFFFFF;
+    --card-line: #EEEEEE;
     --text-dark: #1A1208;
     --text-mid: #4A3520;
     --text-soft: #8B7355;
@@ -50,12 +52,17 @@
     --cream: #1A1208;
     --smoke: #241A0C;
     --comb: #2A1F08;
+    --card: #262014;
+    --card-line: #3A2E1A;
     --text-dark: #F5E8C0;
     --text-mid: #D4B896;
     --text-soft: #8B7355;
     --shadow-soft: 0 2px 12px rgba(0,0,0,0.3);
     --shadow-card: 0 4px 20px rgba(0,0,0,0.4);
   }
+  [data-theme="dark"] .card-honey  { background: linear-gradient(135deg, #2A2108, #332708); border-color: #4A3A10; }
+  [data-theme="dark"] .card-forest { background: linear-gradient(135deg, #1C2A10, #223314); border-color: #31491D; }
+  [data-theme="dark"] .card-red    { background: linear-gradient(135deg, #2E1414, #381A1A); border-color: #5A2626; }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -70,7 +77,7 @@
   /* SPLASH SCREEN */
   #splash {
     position: fixed; inset: 0; z-index: 9999;
-    background: linear-gradient(145deg, #1565c0 0%, #1976d2 50%, #42a5f5 100%);
+    background: linear-gradient(145deg, #F5C842 0%, #E8A020 45%, #B8860B 100%);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     gap: 16px; transition: opacity 0.5s, transform 0.5s;
@@ -91,10 +98,10 @@
   /* HEADER */
   #header {
     height: var(--header-height); min-height: var(--header-height);
-    background: linear-gradient(135deg, #1565c0, #1976d2);
+    background: linear-gradient(135deg, var(--honey-dark), var(--honey));
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 16px;
-    box-shadow: 0 2px 12px rgba(21,101,192,0.3);
+    box-shadow: 0 2px 12px rgba(184,134,11,0.35);
     position: relative; z-index: 100;
   }
   #header-title { font-family: 'Playfair Display', serif; font-size: 20px; color: white; font-weight: 700; }
@@ -127,7 +134,7 @@
   /* BOTTOM NAV */
   #bottom-nav {
     height: var(--nav-height); min-height: var(--nav-height);
-    background: white; border-top: 1px solid #EEE;
+    background: var(--card); border-top: 1px solid var(--card-line);
     display: flex; align-items: stretch;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
     position: relative; z-index: 100;
@@ -137,6 +144,14 @@
     touch-action: pan-x;
   }
   #bottom-nav::-webkit-scrollbar { display: none; }
+  #nav-fade {
+    position: fixed; right: 0; bottom: 0;
+    width: 44px; height: var(--nav-height);
+    background: linear-gradient(to left, var(--card) 20%, transparent);
+    pointer-events: none; z-index: 101;
+    transition: opacity 0.25s;
+  }
+  #nav-fade.hidden { opacity: 0; }
   .nav-item {
     flex: 1; min-width: 56px; max-width: 80px;
     display: flex; flex-direction: column;
@@ -160,7 +175,7 @@
 
   /* CARDS */
   .card {
-    background: white; border-radius: var(--radius);
+    background: var(--card); border-radius: var(--radius);
     box-shadow: var(--shadow-soft); padding: 16px;
     margin-bottom: 12px;
   }
@@ -174,7 +189,7 @@
   .stat-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
   .stat-grid-4 { grid-template-columns: repeat(4,1fr); }
   .stat-box {
-    background: white; border-radius: 14px; padding: 14px 10px;
+    background: var(--card); border-radius: 14px; padding: 14px 10px;
     box-shadow: var(--shadow-soft); text-align: center;
     border-bottom: 3px solid var(--comb-dark);
   }
@@ -242,7 +257,7 @@
   .modal-title { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--text-dark); margin-bottom: 20px; }
 
   /* HIVE TYPE SVG */
-  .hive-type-svg { position: absolute; right: 6px; bottom: 6px; width: 38px; height: 42px; opacity: 0.18; pointer-events: none; }
+  .hive-type-svg { position: absolute; right: 6px; bottom: 6px; width: 38px; height: 42px; opacity: 0.45; pointer-events: none; }
   .hive-type-svg-list { width: 36px; height: 40px; flex-shrink: 0; }
 
   /* VIEW TOGGLE */
@@ -253,7 +268,7 @@
   /* HIVE CARDS */
   .hive-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .hive-card {
-    background: white; border-radius: 14px; padding: 14px;
+    background: var(--card); border-radius: 14px; padding: 14px;
     box-shadow: var(--shadow-soft); cursor: pointer;
     border-left: 4px solid var(--comb-dark);
     transition: transform 0.15s, box-shadow 0.15s;
@@ -312,7 +327,7 @@
 
   /* LISTS */
   .list-item {
-    background: white; border-radius: 12px; padding: 14px;
+    background: var(--card); border-radius: 12px; padding: 14px;
     margin-bottom: 8px; box-shadow: var(--shadow-soft);
     display: flex; align-items: center; gap: 12px;
   }
@@ -339,19 +354,19 @@
 
   /* SEARCH BAR */
   .search-bar { position: relative; margin-bottom: 12px; }
-  .search-bar input { width: 100%; padding: 12px 14px 12px 42px; border-radius: 12px; border: 2px solid #E8E0D0; background: white; font-family: 'Nunito', sans-serif; font-size: 14px; outline: none; }
+  .search-bar input { width: 100%; padding: 12px 14px 12px 42px; border-radius: 12px; border: 2px solid #E8E0D0; background: var(--card); color: var(--text-dark); font-family: 'Nunito', sans-serif; font-size: 14px; outline: none; }
   .search-bar input:focus { border-color: var(--honey); }
   .search-bar .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 16px; pointer-events: none; }
 
   /* FILTER CHIPS */
   .filter-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
   .filter-chips::-webkit-scrollbar { display: none; }
-  .chip { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 2px solid #E0D0B0; background: white; color: var(--text-mid); cursor: pointer; transition: all 0.15s; }
+  .chip { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 2px solid #E0D0B0; background: var(--card); color: var(--text-mid); cursor: pointer; transition: all 0.15s; }
   .chip.active { background: var(--honey); border-color: var(--honey); color: white; }
 
   /* QUICK ACTIONS */
   .quick-actions { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
-  .quick-action { background: white; border-radius: 12px; padding: 10px 6px; text-align: center; cursor: pointer; box-shadow: var(--shadow-soft); transition: transform 0.15s; border: none; font-family: 'Nunito', sans-serif; }
+  .quick-action { background: var(--card); border-radius: 12px; padding: 10px 6px; text-align: center; cursor: pointer; box-shadow: var(--shadow-soft); transition: transform 0.15s; border: none; font-family: 'Nunito', sans-serif; }
   .quick-action:active { transform: scale(0.94); }
   .quick-action .qa-icon { font-size: 24px; display: block; margin-bottom: 4px; }
   .quick-action .qa-label { font-size: 10px; font-weight: 700; color: var(--text-mid); line-height: 1.2; }
@@ -393,7 +408,7 @@
 
   /* SERIES CARD (Queen Production) */
   .series-card {
-    background: white; border-radius: 14px; padding: 14px;
+    background: var(--card); border-radius: 14px; padding: 14px;
     box-shadow: var(--shadow-soft); margin-bottom: 10px;
     border-top: 4px solid var(--purple-special);
   }
@@ -523,7 +538,7 @@
   /* ====== AUTH & SYNC ====== */
   #auth-screen {
     position: fixed; inset: 0; z-index: 9998;
-    background: linear-gradient(145deg, #1565c0 0%, #1976d2 60%, #42a5f5 100%);
+    background: linear-gradient(145deg, #F5C842 0%, #E8A020 55%, #B8860B 100%);
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
   }
   #auth-screen.hidden { display: none; }
@@ -531,7 +546,7 @@
     background: white; border-radius: 24px; padding: 36px 28px; text-align: center;
     box-shadow: 0 12px 48px rgba(0,0,0,0.3); max-width: 340px; width: 90%;
   }
-  .auth-card h2 { font-family: 'Playfair Display', serif; font-size: 26px; color: #1565c0; margin-bottom: 6px; }
+  .auth-card h2 { font-family: 'Playfair Display', serif; font-size: 26px; color: #B8860B; margin-bottom: 6px; }
   .auth-sub { color: #888; font-size: 13px; margin-bottom: 26px; margin-top: 2px; }
   .btn-google {
     display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
@@ -540,13 +555,13 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-family: 'Nunito', sans-serif;
   }
   .btn-google:hover { border-color: #4285f4; box-shadow: 0 4px 16px rgba(66,133,244,0.25); }
-  .auth-or { color: #ddd; font-size: 12px; margin: 12px 0; }
+  .auth-or { color: #C8B890; font-size: 12px; margin: 12px 0; }
   .btn-offline {
-    background: none; border: 2px solid rgba(255,255,255,0.6); color: white; border-radius: 12px;
-    padding: 11px 26px; font-size: 14px; font-weight: 600; cursor: pointer;
+    background: #F7F2E8; border: 2px solid #E0D0B0; color: #4A3520; border-radius: 12px;
+    padding: 11px 26px; font-size: 14px; font-weight: 700; cursor: pointer;
     font-family: 'Nunito', sans-serif; transition: background 0.2s;
   }
-  .btn-offline:hover { background: rgba(255,255,255,0.15); }
+  .btn-offline:hover { background: #F0E6D2; border-color: #D0BC90; }
   #sync-badge {
     position: fixed; top: 8px; right: 48px; z-index: 999;
     font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px;
@@ -580,7 +595,7 @@
   }
   #arazi-toolbar::-webkit-scrollbar { display: none; }
   .atbtn {
-    background: white; border: 1.5px solid #E0D0B0;
+    background: var(--card); border: 1.5px solid #E0D0B0;
     color: var(--text-mid); border-radius: 7px; padding: 5px 10px;
     font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap;
     transition: all .15s; flex-shrink: 0;
@@ -1406,6 +1421,7 @@
       <span class="nav-icon">⚙️</span><span>Ayarlar</span>
     </button>
   </div>
+  <div id="nav-fade"></div>
 </div><!-- end app -->
 
 <!-- TOAST -->
@@ -4978,6 +4994,16 @@ function init() {
   // Start app after splash
   setTimeout(startApp, 1800);
 
+  // Alt nav kaydırma ipucu: sona gelince sağdaki fade gizlenir
+  const navEl = document.getElementById('bottom-nav');
+  const navFade = document.getElementById('nav-fade');
+  if (navEl && navFade) {
+    const updateNavFade = () => navFade.classList.toggle('hidden', navEl.scrollLeft + navEl.clientWidth >= navEl.scrollWidth - 6);
+    navEl.addEventListener('scroll', updateNavFade, { passive: true });
+    window.addEventListener('resize', updateNavFade);
+    updateNavFade();
+  }
+
   // Capacitor APK: sistem tarayıcısından dönen Google OAuth callback'ini yakala
   if (window.Capacitor) {
     const { App, Browser } = Capacitor.Plugins;
@@ -5262,11 +5288,11 @@ function renderAuthInfoCard() {
   if (!el) return;
   if (currentUser) {
     el.innerHTML =
-      '<div class="card" style="margin-bottom:12px;background:linear-gradient(135deg,#e3f2fd,#bbdefb)">' +
+      '<div class="card" style="margin-bottom:12px;background:linear-gradient(135deg,#FFF8E7,#FFF3C4)">' +
       '<div style="display:flex;align-items:center;gap:12px">' +
-      '<div style="width:44px;height:44px;background:#1565c0;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:22px;flex-shrink:0">👤</div>' +
+      '<div style="width:44px;height:44px;background:#B8860B;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:22px;flex-shrink:0">👤</div>' +
       '<div style="flex:1;min-width:0">' +
-      '<div style="font-weight:700;font-size:13px;color:#1565c0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + currentUser.email + '</div>' +
+      '<div style="font-weight:700;font-size:13px;color:#B8860B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + currentUser.email + '</div>' +
       '<div style="font-size:11px;color:#666;margin-top:2px">✅ Hesap bağlı · Otomatik senkronize</div>' +
       '</div>' +
       '<button onclick="signOut()" style="background:#d63031;color:white;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">Çıkış</button>' +
@@ -5278,7 +5304,7 @@ function renderAuthInfoCard() {
       '<div style="width:44px;height:44px;background:#f39c12;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:22px;flex-shrink:0">📵</div>' +
       '<div style="flex:1"><div style="font-weight:700;font-size:13px;color:#b8860b">Çevrimdışı Mod</div>' +
       '<div style="font-size:11px;color:#666;margin-top:2px">Veriler sadece bu cihazda saklanıyor</div></div>' +
-      '<button onclick="showAuthScreen()" style="background:#1565c0;color:white;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">Giriş Yap</button>' +
+      '<button onclick="showAuthScreen()" style="background:#B8860B;color:white;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">Giriş Yap</button>' +
       '</div></div>';
   } else {
     el.innerHTML = '';
