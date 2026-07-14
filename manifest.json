@@ -4,8 +4,8 @@
   "description": "Arıcılar için mobil yönetim uygulaması",
   "start_url": "./aricilik.html",
   "display": "standalone",
-  "background_color": "#FFFDF0",
-  "theme_color": "#E8A020",
+  "background_color": "#1565c0",
+  "theme_color": "#1565c0",
   "orientation": "portrait",
   "icons": [
     {
