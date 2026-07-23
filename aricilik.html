@@ -1810,11 +1810,11 @@
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Tutan Adet</label>
-        <input class="form-input" type="number" id="result-accepted" placeholder="0" oninput="updateResultQueenList()">
+        <input class="form-input" type="number" id="result-accepted" placeholder="0" onchange="updateResultQueenList()">
       </div>
       <div class="form-group">
         <label class="form-label">Çıkan Adet</label>
-        <input class="form-input" type="number" id="result-emerged" placeholder="0" oninput="updateResultEmergedList()">
+        <input class="form-input" type="number" id="result-emerged" placeholder="0" onchange="updateResultEmergedList()">
       </div>
     </div>
     <div class="form-group">
@@ -3128,6 +3128,7 @@ function updateResultEmergedList() {
   if (!s) return;
   s.queens = s.queens || [];
   const targetCount = emerged > 0 ? Math.min(emerged, accepted) : accepted;
+  while (s.queens.length < targetCount) s.queens.push({ id: genId(), num: s.queens.length + 1, status: 'pending', targetHive: '' });
   if (s.queens.length > targetCount) s.queens = s.queens.slice(0, targetCount);
   renderResultQueenList(s.queens);
 }

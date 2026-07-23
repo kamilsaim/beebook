@@ -66,4 +66,6 @@ Beebook kişisel bir proje olarak geliştiriliyor. Öneri ve hata bildirimleri i
 
 <div align="center">
 <sub>🍯 Beebook — Arıcının El Defteri</sub>
+
+<sub>Geliştirici: <a href="https://kamilsaim.web.app">kamilsaim.web.app</a></sub>
 </div>
