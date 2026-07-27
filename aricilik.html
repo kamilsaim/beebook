@@ -5167,6 +5167,48 @@ async function signOut() {
   showAuthScreen();
 }
 
+// Hesap silme — Google Play zorunluluğu. İki aşamalı onay + delete-account Edge Function.
+async function deleteAccount() {
+  if (!currentUser || !_sb) { showToast('Bu işlem için giriş yapmış olmalısınız'); return; }
+  if ((currentUser.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    showToast('Yönetici hesabı silinemez'); return;
+  }
+  // 1. onay
+  showConfirm('Hesabımı Sil',
+    'Hesabın ve Beebook\'taki tüm verin (kovanlar, satışlar, giderler, ana arı kayıtları...) kalıcı olarak silinecek. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?',
+    () => {
+      // 2. onay
+      showConfirm('Son Onay',
+        'Emin misin? Silmeyi onaylıyorsan bu son adım. Verilerin bulutdan ve bu cihazdan tamamen silinecek.',
+        async () => { await performDeleteAccount(); });
+    });
+}
+
+async function performDeleteAccount() {
+  showToast('Hesap siliniyor...');
+  try {
+    const { data, error } = await _sb.functions.invoke('beebook-delete-account');
+    if (error) throw error;
+    if (data && data.error) throw new Error(data.message || data.error);
+    // Yerel veriyi temizle
+    try { localStorage.removeItem(DB_KEY); } catch(e) {}
+    try { localStorage.removeItem(SETTINGS_KEY); } catch(e) {}
+    try { localStorage.removeItem('_bb_sync_ts'); } catch(e) {}
+    await _sb.auth.signOut();
+    currentUser = null;
+    isOfflineMode = false;
+    if (data && data.account_deleted === false) {
+      showToast('Beebook verilerin silindi. (Diğer uygulamalardaki hesabın korundu)');
+    } else {
+      showToast('Hesabın tamamen silindi.');
+    }
+    setTimeout(() => location.reload(), 1500);
+  } catch(e) {
+    showToast('Silme başarısız: ' + (e.message || e));
+    console.error('deleteAccount error:', e);
+  }
+}
+
 // Login sonrası ilk sync'te demo veri hesaba karışmasın: yereli at, uzağı (varsa) al
 function bbDiscardDemoAndAdopt(rows) {
   data = {
@@ -5297,7 +5339,12 @@ function renderAuthInfoCard() {
       '<div style="font-size:11px;color:#666;margin-top:2px">✅ Hesap bağlı · Otomatik senkronize</div>' +
       '</div>' +
       '<button onclick="signOut()" style="background:#d63031;color:white;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">Çıkış</button>' +
-      '</div></div>';
+      '</div>' +
+      '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">' +
+      '<div style="font-size:11px;color:#777;flex:1;min-width:140px">Hesabını ve tüm verini kalıcı olarak silebilirsin.</div>' +
+      '<button onclick="deleteAccount()" style="background:transparent;color:#c0392b;border:1px solid #c0392b;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">🗑️ Hesabımı Sil</button>' +
+      '</div>' +
+      '</div>';
   } else if (isOfflineMode) {
     el.innerHTML =
       '<div class="card" style="margin-bottom:12px;background:linear-gradient(135deg,#fff8e1,#ffecb3)">' +
