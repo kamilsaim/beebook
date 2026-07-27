@@ -68,6 +68,7 @@
 
   html, body {
     height: 100%; width: 100%; overflow: hidden;
+    overscroll-behavior: none;   /* kenardan sola/sağa çekince tarayıcı geri/ileri gitmesin (giriş ekranına dönme sorunu) */
     font-family: 'Nunito', sans-serif;
     background: var(--cream);
     color: var(--text-dark);
@@ -123,7 +124,8 @@
 
   .page {
     position: absolute; inset: 0;
-    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     padding: 12px 12px calc(var(--nav-height) + 16px);
     display: none; background: var(--cream);
     animation: pageIn 0.25s ease;
@@ -138,22 +140,10 @@
     display: flex; align-items: stretch;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
     position: relative; z-index: 100;
-    overflow-x: auto; -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    overscroll-behavior-x: contain;
-    touch-action: pan-x;
+    overflow: visible;
   }
-  #bottom-nav::-webkit-scrollbar { display: none; }
-  #nav-fade {
-    position: fixed; right: 0; bottom: 0;
-    width: 44px; height: var(--nav-height);
-    background: linear-gradient(to left, var(--card) 20%, transparent);
-    pointer-events: none; z-index: 101;
-    transition: opacity 0.25s;
-  }
-  #nav-fade.hidden { opacity: 0; }
   .nav-item {
-    flex: 1; min-width: 56px; max-width: 80px;
+    flex: 1; min-width: 0; max-width: none;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     gap: 3px; cursor: pointer;
@@ -172,6 +162,43 @@
     background: var(--honey); border-radius: 3px 3px 0 0;
   }
   .nav-item:active { transform: scale(0.95); }
+
+  /* Daha Fazla paneli (bottom sheet) */
+  #more-sheet-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,0,0.4);
+    display: none; align-items: flex-end;
+    opacity: 0; transition: opacity 0.22s;
+  }
+  #more-sheet-overlay.open { display: flex; opacity: 1; }
+  #more-sheet {
+    width: 100%; background: var(--card);
+    border-radius: 22px 22px 0 0;
+    padding: 10px 16px calc(20px + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.2);
+    transform: translateY(100%); transition: transform 0.28s cubic-bezier(.2,.8,.2,1);
+  }
+  #more-sheet-overlay.open #more-sheet { transform: translateY(0); }
+  #more-sheet-handle {
+    width: 40px; height: 4px; border-radius: 3px;
+    background: var(--card-line); margin: 4px auto 12px;
+  }
+  #more-sheet-title {
+    font-weight: 800; font-size: 14px; color: var(--text-mid);
+    text-align: center; margin-bottom: 14px;
+  }
+  #more-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  }
+  #more-grid button {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    border: 1px solid var(--card-line); background: var(--smoke);
+    border-radius: 14px; padding: 14px 6px; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 700;
+    color: var(--text-dark);
+  }
+  #more-grid button span { font-size: 24px; }
+  #more-grid button:active { transform: scale(0.95); }
 
   /* CARDS */
   .card {
@@ -1056,6 +1083,33 @@
       <div id="stock-list"></div>
     </div>
 
+    <!-- INVENTORY (Envanter) -->
+    <div class="page" id="page-inventory">
+      <div class="section-header">
+        <div class="section-title">Envanter</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="openInventoryReportModal()">📊 Rapor</button>
+          <button class="btn btn-primary btn-sm" onclick="openInventoryModal()">+ Malzeme</button>
+        </div>
+      </div>
+      <div class="income-expense-row">
+        <div class="ie-box">
+          <div class="ie-val" id="inv-total-items">0</div>
+          <div class="ie-lbl">Kalem</div>
+        </div>
+        <div class="ie-box">
+          <div class="ie-val" id="inv-total-qty">0</div>
+          <div class="ie-lbl">Toplam Adet</div>
+        </div>
+      </div>
+      <div id="inventory-list"></div>
+      <div id="inventory-empty" style="display:none" class="empty-state">
+        <span class="empty-state-icon">📋</span>
+        <div class="empty-state-title">Henüz malzeme yok</div>
+        <div class="empty-state-text">Kovan, ballık, körük, elbise... ekipmanlarını ekle</div>
+      </div>
+    </div>
+
     <!-- SALES -->
     <div class="page" id="page-sales">
       <div class="section-header">
@@ -1398,31 +1452,37 @@
     <button class="nav-item active" onclick="navigate('dashboard')" data-page="dashboard">
       <span class="nav-icon">🏡</span><span>Ana Sayfa</span>
     </button>
-    <button class="nav-item" onclick="navigate('ozet')" data-page="ozet"><span class="nav-icon">📊</span><span>Özet</span></button>
     <button class="nav-item" onclick="navigate('hives')" data-page="hives">
       <span class="nav-icon" style="display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg"><path d="M3.5 18.5Q3.5 7 11 5Q18.5 7 18.5 18.5Z" fill="currentColor"/><path d="M5 15Q11 13.5 17 15" stroke="white" stroke-width="0.9" fill="none" opacity="0.45"/><path d="M5.5 12Q11 10.5 16.5 12" stroke="white" stroke-width="0.9" fill="none" opacity="0.45"/><path d="M7 9.2Q11 8 15 9.2" stroke="white" stroke-width="0.9" fill="none" opacity="0.45"/><rect x="2.5" y="18.5" width="17" height="2" rx="1" fill="currentColor"/><rect x="9" y="19.8" width="4" height="1" rx="0.5" fill="white" opacity="0.4"/></svg></span><span>Kovanlar</span>
-    </button>
-    <button class="nav-item" onclick="navigate('queens')" data-page="queens">
-      <span class="nav-icon" style="display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg"><ellipse cx="11" cy="14.5" rx="4.5" ry="5" fill="currentColor"/><rect x="7" y="13" width="8" height="1.8" rx="0.8" fill="white" opacity="0.42"/><rect x="7" y="16" width="8" height="1.8" rx="0.8" fill="white" opacity="0.42"/><path d="M15,12.5 Q18.5,9.5 16.5,7.5 Q14.5,9.5 15,12.5Z" fill="currentColor" opacity="0.38"/><path d="M7,12.5 Q3.5,9.5 5.5,7.5 Q7.5,9.5 7,12.5Z" fill="currentColor" opacity="0.38"/><circle cx="11" cy="8.5" r="2.4" fill="currentColor"/><path d="M8,7 L9,4.5 L11,6.2 L13,4.5 L14,7" fill="currentColor"/><circle cx="9" cy="4.2" r="1" fill="currentColor"/><circle cx="11" cy="3.4" r="1" fill="currentColor"/><circle cx="13" cy="4.2" r="1" fill="currentColor"/></svg></span><span>Ana Arı</span>
-    </button>
-    <button class="nav-item" onclick="navigate('milk')" data-page="milk">
-      <span class="nav-icon">🥛</span><span>Arı Sütü</span>
     </button>
     <button class="nav-item" onclick="navigate('sales')" data-page="sales">
       <span class="nav-icon">🍯</span><span>Satışlar</span>
     </button>
-    <button class="nav-item" onclick="navigate('stock')" data-page="stock">
-      <span class="nav-icon">📦</span><span>Stok</span>
-    </button>
-    <button class="nav-item" onclick="navigate('expenses')" data-page="expenses">
-      <span class="nav-icon">💸</span><span>Giderler</span>
-    </button>
     <button class="nav-item" onclick="navigate('settings')" data-page="settings">
       <span class="nav-icon">⚙️</span><span>Ayarlar</span>
     </button>
+    <button class="nav-item" id="nav-more-btn" onclick="openMoreSheet()" data-page="__more">
+      <span class="nav-icon">⋯</span><span>Daha</span>
+    </button>
   </div>
-  <div id="nav-fade"></div>
 </div><!-- end app -->
+
+<!-- MORE SHEET (Daha Fazla paneli) -->
+<div id="more-sheet-overlay" onclick="if(event.target===this)closeMoreSheet()">
+  <div id="more-sheet">
+    <div id="more-sheet-handle"></div>
+    <div id="more-sheet-title">Tüm Bölümler</div>
+    <div id="more-grid">
+      <button onclick="navFromMore('ozet')"><span>📊</span>Özet</button>
+      <button onclick="navFromMore('queens')"><span>👑</span>Ana Arı</button>
+      <button onclick="navFromMore('milk')"><span>🥛</span>Arı Sütü</button>
+      <button onclick="navFromMore('stock')"><span>📦</span>Stok</button>
+      <button onclick="navFromMore('expenses')"><span>💸</span>Giderler</button>
+      <button onclick="navFromMore('inventory')"><span>📋</span>Envanter</button>
+      <button onclick="navFromMore('arazi')"><span>🗺️</span>Arazi</button>
+    </div>
+  </div>
+</div>
 
 <!-- TOAST -->
 <div id="toast"></div>
@@ -1742,6 +1802,73 @@
   </div>
 </div>
 
+<!-- INVENTORY MODAL -->
+<div class="modal-overlay" id="inventory-modal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="inventory-modal-title">📋 Malzeme Ekle</div>
+    <input type="hidden" id="inv-edit-id">
+    <div class="form-group">
+      <label class="form-label">Malzeme Adı</label>
+      <input class="form-input" id="inv-name" list="inv-suggest" placeholder="Örn: Ballık" autocomplete="off">
+      <datalist id="inv-suggest">
+        <option value="Kovan"></option>
+        <option value="Ballık"></option>
+        <option value="Yarım ballık"></option>
+        <option value="Strafor kovan"></option>
+        <option value="Yarım strafor kovan"></option>
+        <option value="Ana kutusu"></option>
+        <option value="El demiri"></option>
+        <option value="Körük"></option>
+        <option value="Elbise"></option>
+        <option value="Eldiven"></option>
+        <option value="Maske"></option>
+        <option value="Süzme makinesi"></option>
+        <option value="Sır alma bıçağı"></option>
+        <option value="Temel petek"></option>
+        <option value="Çıta"></option>
+        <option value="Tel"></option>
+        <option value="Mengene"></option>
+        <option value="Polen tuzağı"></option>
+        <option value="Besleme kabı"></option>
+        <option value="Izgara"></option>
+      </datalist>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Adet</label>
+        <input class="form-input" type="number" id="inv-qty" placeholder="0" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Durum</label>
+        <select class="form-select" id="inv-status">
+          <option value="saglam">✅ Sağlam</option>
+          <option value="tamir">🔧 Tamir gerek</option>
+          <option value="eksik">⚠️ Eksik / Az</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Not</label>
+      <input class="form-input" id="inv-note" placeholder="Opsiyonel...">
+    </div>
+    <div style="display:flex; gap:10px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('inventory-modal')">İptal</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveInventoryItem()">💾 Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVENTORY REPORT MODAL -->
+<div class="modal-overlay" id="inventory-report-modal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📊 Envanter Raporu</div>
+    <div id="inventory-report-body"></div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="closeModal('inventory-report-modal')">Kapat</button>
+  </div>
+</div>
+
 <!-- SERIES MODAL -->
 <div class="modal-overlay" id="series-modal">
   <div class="modal-box">
@@ -2037,7 +2164,9 @@ const DEFAULT_STOCK_TYPES = [
 ];
 function getStockTypes() { return settings.stockTypes || DEFAULT_STOCK_TYPES; }
 
-const DEFAULT_NAV_ICONS = { dashboard:'🏡', ozet:'📊', hives:'🏠', queens:'👑', milk:'🥛', sales:'🍯', stock:'📦', expenses:'💸', settings:'⚙️' };
+const DEFAULT_NAV_ICONS = { dashboard:'🏡', ozet:'📊', hives:'🏠', queens:'👑', milk:'🥛', sales:'🍯', stock:'📦', expenses:'💸', settings:'⚙️', arazi:'🗺️', inventory:'📋' };
+// Alt barda hep görünen sabit sayfalar; gerisi ⋯ "Daha Fazla" panelinde
+const NAV_OVERFLOW_PAGES = ['ozet','queens','milk','stock','expenses','arazi','inventory'];
 function getNavIcon(page) { return (settings.navIcons && settings.navIcons[page]) || DEFAULT_NAV_ICONS[page] || '📄'; }
 function renderNavIcons() {
   document.querySelectorAll('#bottom-nav .nav-item').forEach(btn => {
@@ -2061,7 +2190,8 @@ let data = {
   queens: [],
   tasks: [],
   seasons: [{ id: 's2025', year: 2025, name: '2025 Sezonu', active: true }],
-  stock: []
+  stock: [],
+  inventory: []
 };
 
 let settings = {
@@ -2105,7 +2235,7 @@ let calMonth = new Date().getMonth();
 /* BB-MERGE-START */
 // Saf sync merge fonksiyonları — DOM/localStorage erişimi YOK.
 // tests/sync-merge.test.mjs bu bloğu extract edip Node'da test eder.
-const BB_SYNC_COLLECTIONS = ['hives','sales','expenses','milk','queens','tasks','seasons','stock'];
+const BB_SYNC_COLLECTIONS = ['hives','sales','expenses','milk','queens','tasks','seasons','stock','inventory'];
 const BB_TOMBSTONE_TTL = 90 * 24 * 60 * 60 * 1000; // 90 gün
 
 // Deterministik stringify: nesne anahtarları sıralı — içerik karşılaştırma için
@@ -2313,6 +2443,12 @@ function navigate(page) {
   document.getElementById('page-' + page).classList.add('active');
   const navBtn = document.querySelector(`.nav-item[data-page="${page}"]`);
   if (navBtn) navBtn.classList.add('active');
+  // Overflow sayfalarındayken ⋯ Daha butonu aktif görünsün
+  if (NAV_OVERFLOW_PAGES.includes(page)) {
+    const moreBtn = document.getElementById('nav-more-btn');
+    if (moreBtn) moreBtn.classList.add('active');
+  }
+  closeMoreSheet();
   // Refresh page content
   switch(page) {
     case 'dashboard': renderDashboard(); break;
@@ -2327,7 +2463,137 @@ function navigate(page) {
     case 'backup': renderBackup(); break;
     case 'settings': renderSettings(); break;
     case 'arazi': araziInitPage(); break;
+    case 'inventory': renderInventory(); break;
   }
+}
+
+// ======================== DAHA FAZLA PANELİ ========================
+function openMoreSheet() {
+  const ov = document.getElementById('more-sheet-overlay');
+  if (ov) ov.classList.add('open');
+}
+function closeMoreSheet() {
+  const ov = document.getElementById('more-sheet-overlay');
+  if (ov) ov.classList.remove('open');
+}
+function navFromMore(page) {
+  closeMoreSheet();
+  navigate(page);
+}
+
+// ======================== ENVANTER ========================
+const INV_STATUS = {
+  saglam: { icon: '✅', label: 'Sağlam',      color: 'var(--green-ok)' },
+  tamir:  { icon: '🔧', label: 'Tamir gerek', color: 'var(--amber)' },
+  eksik:  { icon: '⚠️', label: 'Eksik / Az',  color: 'var(--red-warn)' },
+};
+function invStatus(s) { return INV_STATUS[s] || INV_STATUS.saglam; }
+
+function renderInventory() {
+  const items = data.inventory || [];
+  const list = document.getElementById('inventory-list');
+  const empty = document.getElementById('inventory-empty');
+  const totalQty = items.reduce((s, it) => s + (Number(it.qty) || 0), 0);
+  document.getElementById('inv-total-items').textContent = items.length;
+  document.getElementById('inv-total-qty').textContent = fmt(totalQty);
+
+  if (!items.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  const sorted = [...items].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
+  list.innerHTML = sorted.map(it => {
+    const st = invStatus(it.status);
+    return `
+    <div class="list-item">
+      <div class="list-item-icon">📋</div>
+      <div class="list-item-content">
+        <div class="list-item-title">${it.name || 'İsimsiz'}</div>
+        <div class="list-item-sub"><span style="color:${st.color};font-weight:700">${st.icon} ${st.label}</span>${it.note ? ' · ' + it.note : ''}</div>
+      </div>
+      <div class="list-item-right">
+        <div class="list-item-date" style="font-size:18px;font-weight:800;color:var(--text-dark)">${fmt(Number(it.qty) || 0)}</div>
+        <div style="display:flex;gap:4px;margin-top:4px">
+          <button onclick="openInventoryModal('${it.id}')" style="background:none;border:none;font-size:14px;color:#74b9ff;cursor:pointer">✏️</button>
+          <button onclick="deleteInventoryItem('${it.id}')" style="background:none;border:none;font-size:14px;color:#CCC;cursor:pointer">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openInventoryModal(id) {
+  document.getElementById('inv-edit-id').value = id || '';
+  const it = id ? (data.inventory || []).find(x => x.id === id) : null;
+  document.getElementById('inventory-modal-title').textContent = it ? '📋 Malzeme Düzenle' : '📋 Malzeme Ekle';
+  document.getElementById('inv-name').value = it ? (it.name || '') : '';
+  document.getElementById('inv-qty').value = it ? (it.qty ?? '') : '';
+  document.getElementById('inv-status').value = it ? (it.status || 'saglam') : 'saglam';
+  document.getElementById('inv-note').value = it ? (it.note || '') : '';
+  openModal('inventory-modal');
+}
+
+function saveInventoryItem() {
+  const name = document.getElementById('inv-name').value.trim();
+  if (!name) { showToast('Malzeme adı gerekli'); return; }
+  const qty = Number(document.getElementById('inv-qty').value) || 0;
+  const status = document.getElementById('inv-status').value;
+  const note = document.getElementById('inv-note').value.trim();
+  const id = document.getElementById('inv-edit-id').value;
+  if (!data.inventory) data.inventory = [];
+  if (id) {
+    const it = data.inventory.find(x => x.id === id);
+    if (it) { it.name = name; it.qty = qty; it.status = status; it.note = note; }
+  } else {
+    data.inventory.push({ id: genId(), name, qty, status, note });
+  }
+  saveData();
+  closeModal('inventory-modal');
+  renderInventory();
+  showToast('Kaydedildi');
+}
+
+function deleteInventoryItem(id) {
+  const it = (data.inventory || []).find(x => x.id === id);
+  showConfirm('Malzeme Sil', `"${it ? it.name : 'Bu malzeme'}" silinsin mi?`, () => {
+    data.inventory = (data.inventory || []).filter(x => x.id !== id);
+    saveData();
+    renderInventory();
+    showToast('Silindi');
+  });
+}
+
+function openInventoryReportModal() {
+  const items = data.inventory || [];
+  const totalQty = items.reduce((s, it) => s + (Number(it.qty) || 0), 0);
+  const byStatus = { saglam: 0, tamir: 0, eksik: 0 };
+  items.forEach(it => { byStatus[it.status || 'saglam'] = (byStatus[it.status || 'saglam'] || 0) + 1; });
+  const sorted = [...items].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
+  const rows = sorted.map(it => {
+    const st = invStatus(it.status);
+    return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--card-line);font-size:13px">
+      <span>${st.icon} ${it.name || 'İsimsiz'}</span>
+      <span style="font-weight:700">${fmt(Number(it.qty) || 0)}</span>
+    </div>`;
+  }).join('') || '<div style="color:var(--text-soft);font-size:12px;padding:16px 0">Henüz malzeme yok</div>';
+
+  document.getElementById('inventory-report-body').innerHTML = `
+    <div class="income-expense-row" style="margin-bottom:12px">
+      <div class="ie-box"><div class="ie-val">${items.length}</div><div class="ie-lbl">Kalem</div></div>
+      <div class="ie-box"><div class="ie-val">${fmt(totalQty)}</div><div class="ie-lbl">Toplam Adet</div></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <div style="flex:1;text-align:center;background:var(--smoke);border-radius:10px;padding:8px 4px">
+        <div style="font-size:16px;font-weight:800;color:var(--green-ok)">${byStatus.saglam || 0}</div>
+        <div style="font-size:10px;color:var(--text-soft)">✅ Sağlam</div></div>
+      <div style="flex:1;text-align:center;background:var(--smoke);border-radius:10px;padding:8px 4px">
+        <div style="font-size:16px;font-weight:800;color:var(--amber)">${byStatus.tamir || 0}</div>
+        <div style="font-size:10px;color:var(--text-soft)">🔧 Tamir</div></div>
+      <div style="flex:1;text-align:center;background:var(--smoke);border-radius:10px;padding:8px 4px">
+        <div style="font-size:16px;font-weight:800;color:var(--red-warn)">${byStatus.eksik || 0}</div>
+        <div style="font-size:10px;color:var(--text-soft)">⚠️ Eksik</div></div>
+    </div>
+    <div style="font-weight:700;font-size:13px;margin-bottom:4px">Tüm Malzemeler</div>
+    ${rows}`;
+  openModal('inventory-report-modal');
 }
 
 // ======================== DASHBOARD ========================
@@ -4560,7 +4826,7 @@ function setFontSize(size) {
 
 function clearAllData() {
   showConfirm('Tüm Verileri Sil', '⚠️ Bu işlem TÜM verilerinizi kalıcı olarak siler. Önce yedek almayı unutmayın!', () => {
-    data = { hives:[], sales:[], expenses:[], milk:[], queens:[], tasks:[], seasons:[{id:'s2025', year:2025, name:'2025 Sezonu', active:true}], stock:[] };
+    data = { hives:[], sales:[], expenses:[], milk:[], queens:[], tasks:[], seasons:[{id:'s2025', year:2025, name:'2025 Sezonu', active:true}], stock:[], inventory:[] };
     saveData(); renderDashboard(); showToast('Tüm veriler silindi');
   });
 }
@@ -4966,7 +5232,7 @@ function importData2(event) {
 
 // ======================== INIT ========================
 // Sürüm tek yerden yönetilir — her sürüm değişiminde SADECE burayı güncelle.
-const APP_VERSION = '2.4';
+const APP_VERSION = '2.5';
 function init() {
   const vs = document.getElementById('app-version-splash');
   if (vs) vs.textContent = 'v' + APP_VERSION;
@@ -4994,16 +5260,6 @@ function init() {
 
   // Start app after splash
   setTimeout(startApp, 1800);
-
-  // Alt nav kaydırma ipucu: sona gelince sağdaki fade gizlenir
-  const navEl = document.getElementById('bottom-nav');
-  const navFade = document.getElementById('nav-fade');
-  if (navEl && navFade) {
-    const updateNavFade = () => navFade.classList.toggle('hidden', navEl.scrollLeft + navEl.clientWidth >= navEl.scrollWidth - 6);
-    navEl.addEventListener('scroll', updateNavFade, { passive: true });
-    window.addEventListener('resize', updateNavFade);
-    updateNavFade();
-  }
 
   // Capacitor APK: sistem tarayıcısından dönen Google OAuth callback'ini yakala
   if (window.Capacitor) {
@@ -5214,7 +5470,7 @@ function bbDiscardDemoAndAdopt(rows) {
   data = {
     hives: [], sales: [], expenses: [], milk: [], queens: [], tasks: [],
     seasons: [{ id: 's2025', year: 2025, name: '2025 Sezonu', active: true }],
-    stock: []
+    stock: [], inventory: []
   };
   if (rows && rows.data && Object.keys(rows.data).length) data = Object.assign(data, rows.data);
   delete data._demo;
