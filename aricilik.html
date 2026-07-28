@@ -190,15 +190,61 @@
   #more-grid {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
   }
-  #more-grid button {
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
-    border: 1px solid var(--card-line); background: var(--smoke);
-    border-radius: 14px; padding: 14px 6px; cursor: pointer;
+  .more-tile {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    border: 1.5px solid color-mix(in srgb, var(--acc) 22%, transparent);
+    background: color-mix(in srgb, var(--acc) 9%, var(--card));
+    border-radius: 16px; padding: 13px 6px 11px; cursor: pointer;
     font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 700;
     color: var(--text-dark);
+    opacity: 0; transform: translateY(8px);
+    animation: tileIn 0.32s ease forwards;
+    -webkit-tap-highlight-color: transparent;
   }
-  #more-grid button span { font-size: 24px; }
-  #more-grid button:active { transform: scale(0.95); }
+  @keyframes tileIn { to { opacity: 1; transform: translateY(0); } }
+  .more-tile-ic {
+    width: 42px; height: 42px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 23px;
+    background: color-mix(in srgb, var(--acc) 20%, transparent);
+    color: var(--acc);
+  }
+  .more-tile-ic svg { width: 24px; height: 24px; }
+  .more-tile-lbl { line-height: 1.1; text-align: center; }
+  .more-tile:active { transform: scale(0.94); }
+  .more-tile.active {
+    border-color: var(--acc);
+    background: color-mix(in srgb, var(--acc) 16%, var(--card));
+    box-shadow: 0 0 0 1px var(--acc) inset;
+  }
+  .more-tile.active::after {
+    content: '✓'; position: absolute; top: 6px; right: 8px;
+    font-size: 11px; font-weight: 800; color: var(--acc);
+  }
+  .more-badge {
+    position: absolute; top: 7px; right: 8px;
+    min-width: 17px; height: 17px; padding: 0 4px;
+    background: var(--red-warn); color: #fff;
+    border-radius: 9px; font-size: 10px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
+  .more-tile.active .more-badge { right: 24px; }
+  #more-sheet-hint {
+    text-align: center; font-size: 10.5px; color: var(--text-soft);
+    margin-top: 12px;
+  }
+  /* Alt bar: Daha ızgara ikonu + bekleyen ödeme rozeti */
+  .nav-more-ic svg { width: 21px; height: 21px; }
+  .nav-item { position: relative; }
+  .nav-badge {
+    position: absolute; top: 6px; right: 50%; margin-right: -22px;
+    min-width: 16px; height: 16px; padding: 0 4px;
+    background: var(--red-warn); color: #fff;
+    border-radius: 8px; font-size: 9px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
 
   /* CARDS */
   .card {
@@ -1447,24 +1493,8 @@
 
   </div><!-- end pages -->
 
-  <!-- BOTTOM NAV -->
-  <div id="bottom-nav">
-    <button class="nav-item active" onclick="navigate('dashboard')" data-page="dashboard">
-      <span class="nav-icon">🏡</span><span>Ana Sayfa</span>
-    </button>
-    <button class="nav-item" onclick="navigate('hives')" data-page="hives">
-      <span class="nav-icon" style="display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg"><path d="M3.5 18.5Q3.5 7 11 5Q18.5 7 18.5 18.5Z" fill="currentColor"/><path d="M5 15Q11 13.5 17 15" stroke="white" stroke-width="0.9" fill="none" opacity="0.45"/><path d="M5.5 12Q11 10.5 16.5 12" stroke="white" stroke-width="0.9" fill="none" opacity="0.45"/><path d="M7 9.2Q11 8 15 9.2" stroke="white" stroke-width="0.9" fill="none" opacity="0.45"/><rect x="2.5" y="18.5" width="17" height="2" rx="1" fill="currentColor"/><rect x="9" y="19.8" width="4" height="1" rx="0.5" fill="white" opacity="0.4"/></svg></span><span>Kovanlar</span>
-    </button>
-    <button class="nav-item" onclick="navigate('sales')" data-page="sales">
-      <span class="nav-icon">🍯</span><span>Satışlar</span>
-    </button>
-    <button class="nav-item" onclick="navigate('settings')" data-page="settings">
-      <span class="nav-icon">⚙️</span><span>Ayarlar</span>
-    </button>
-    <button class="nav-item" id="nav-more-btn" onclick="openMoreSheet()" data-page="__more">
-      <span class="nav-icon">⋯</span><span>Daha</span>
-    </button>
-  </div>
+  <!-- BOTTOM NAV (dinamik: renderBottomNav) -->
+  <div id="bottom-nav"></div>
 </div><!-- end app -->
 
 <!-- MORE SHEET (Daha Fazla paneli) -->
@@ -1472,15 +1502,8 @@
   <div id="more-sheet">
     <div id="more-sheet-handle"></div>
     <div id="more-sheet-title">Tüm Bölümler</div>
-    <div id="more-grid">
-      <button onclick="navFromMore('ozet')"><span>📊</span>Özet</button>
-      <button onclick="navFromMore('queens')"><span>👑</span>Ana Arı</button>
-      <button onclick="navFromMore('milk')"><span>🥛</span>Arı Sütü</button>
-      <button onclick="navFromMore('stock')"><span>📦</span>Stok</button>
-      <button onclick="navFromMore('expenses')"><span>💸</span>Giderler</button>
-      <button onclick="navFromMore('inventory')"><span>📋</span>Envanter</button>
-      <button onclick="navFromMore('arazi')"><span>🗺️</span>Arazi</button>
-    </div>
+    <div id="more-grid"></div>
+    <div id="more-sheet-hint">İpucu: bir kutucuğa uzun bas → alt menüye sabitle</div>
   </div>
 </div>
 
@@ -2165,21 +2188,115 @@ const DEFAULT_STOCK_TYPES = [
 function getStockTypes() { return settings.stockTypes || DEFAULT_STOCK_TYPES; }
 
 const DEFAULT_NAV_ICONS = { dashboard:'🏡', ozet:'📊', hives:'🏠', queens:'👑', milk:'🥛', sales:'🍯', stock:'📦', expenses:'💸', settings:'⚙️', arazi:'🗺️', inventory:'📋' };
-// Alt barda hep görünen sabit sayfalar; gerisi ⋯ "Daha Fazla" panelinde
-const NAV_OVERFLOW_PAGES = ['ozet','queens','milk','stock','expenses','arazi','inventory'];
+// Sayfa meta: etiket (n) + vurgu rengi (c). Sıra = "Daha Fazla" panelindeki sıra.
+const NAV_PAGE_META = {
+  dashboard:{ n:'Ana Sayfa', c:'#F39C12' },
+  hives:    { n:'Kovanlar',  c:'#2e8b57' },
+  sales:    { n:'Satışlar',  c:'#E0A030' },
+  settings: { n:'Ayarlar',   c:'#7f8c8d' },
+  ozet:     { n:'Özet',      c:'#0984E3' },
+  queens:   { n:'Ana Arı',   c:'#8e44ad' },
+  milk:     { n:'Arı Sütü',  c:'#00a8b5' },
+  stock:    { n:'Stok',      c:'#c47a2c' },
+  expenses: { n:'Giderler',  c:'#d63031' },
+  inventory:{ n:'Envanter',  c:'#6C5CE7' },
+  arazi:    { n:'Arazi',     c:'#16a085' },
+};
+const DEFAULT_NAV_PINNED = ['dashboard','hives','sales','settings']; // alt barda sabit (maks 4)
+// Kovan/Ana Arı için özel SVG ikonlar (emoji yerine)
+const NAV_SVG = {
+  hives: '<svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg"><path d="M3.5 18.5Q3.5 7 11 5Q18.5 7 18.5 18.5Z" fill="currentColor"/><path d="M5 15Q11 13.5 17 15" stroke="white" stroke-width="0.9" fill="none" opacity="0.45"/><path d="M5.5 12Q11 10.5 16.5 12" stroke="white" stroke-width="0.9" fill="none" opacity="0.45"/><path d="M7 9.2Q11 8 15 9.2" stroke="white" stroke-width="0.9" fill="none" opacity="0.45"/><rect x="2.5" y="18.5" width="17" height="2" rx="1" fill="currentColor"/><rect x="9" y="19.8" width="4" height="1" rx="0.5" fill="white" opacity="0.4"/></svg>',
+  queens: '<svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg"><ellipse cx="11" cy="14.5" rx="4.5" ry="5" fill="currentColor"/><rect x="7" y="13" width="8" height="1.8" rx="0.8" fill="white" opacity="0.42"/><rect x="7" y="16" width="8" height="1.8" rx="0.8" fill="white" opacity="0.42"/><path d="M15,12.5 Q18.5,9.5 16.5,7.5 Q14.5,9.5 15,12.5Z" fill="currentColor" opacity="0.38"/><path d="M7,12.5 Q3.5,9.5 5.5,7.5 Q7.5,9.5 7,12.5Z" fill="currentColor" opacity="0.38"/><circle cx="11" cy="8.5" r="2.4" fill="currentColor"/><path d="M8,7 L9,4.5 L11,6.2 L13,4.5 L14,7" fill="currentColor"/><circle cx="9" cy="4.2" r="1" fill="currentColor"/><circle cx="11" cy="3.4" r="1" fill="currentColor"/><circle cx="13" cy="4.2" r="1" fill="currentColor"/></svg>',
+};
+const GRID_ICON_SVG = '<svg width="21" height="21" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="7" height="7" rx="2" fill="currentColor"/><rect x="11" y="2" width="7" height="7" rx="2" fill="currentColor"/><rect x="2" y="11" width="7" height="7" rx="2" fill="currentColor"/><rect x="11" y="11" width="7" height="7" rx="2" fill="currentColor"/></svg>';
+
 function getNavIcon(page) { return (settings.navIcons && settings.navIcons[page]) || DEFAULT_NAV_ICONS[page] || '📄'; }
-function renderNavIcons() {
-  document.querySelectorAll('#bottom-nav .nav-item').forEach(btn => {
-    const page = btn.dataset.page;
-    if (!page) return;
-    const iconSpan = btn.querySelector('.nav-icon');
-    if (iconSpan) iconSpan.textContent = getNavIcon(page);
+function navIconRaw(page) {
+  const custom = settings.navIcons && settings.navIcons[page];
+  if (!custom && NAV_SVG[page]) return NAV_SVG[page];
+  return getNavIcon(page);
+}
+function navIconMarkup(page) {
+  const raw = navIconRaw(page);
+  const isSvg = raw.charAt(0) === '<';
+  return `<span class="nav-icon"${isSvg ? ' style="display:flex;align-items:center;justify-content:center"' : ''}>${raw}</span>`;
+}
+function getNavPinned() {
+  let p = Array.isArray(settings.navPinned) ? settings.navPinned.filter(x => NAV_PAGE_META[x]) : null;
+  if (!p || !p.length) p = DEFAULT_NAV_PINNED.slice();
+  return p.slice(0, 4);
+}
+function setNavPinned(arr) { settings.navPinned = arr.slice(0, 4); saveSettings(); }
+function navOverflowPages() { const pinned = getNavPinned(); return Object.keys(NAV_PAGE_META).filter(p => !pinned.includes(p)); }
+
+// Bekleyen ödeme sayacı (Satışlar / Giderler)
+function navPendingBadge(page) {
+  if (page === 'sales')    return bySeason(data.sales || []).filter(s => s.payment === 'pending' || s.payment === 'partial').length;
+  if (page === 'expenses') return bySeason(data.expenses || []).filter(e => e.payment === 'pending' || e.payment === 'partial').length;
+  return 0;
+}
+
+function renderBottomNav() {
+  const nav = document.getElementById('bottom-nav');
+  if (!nav) return;
+  const pinned = getNavPinned();
+  let html = pinned.map(p => {
+    const b = navPendingBadge(p);
+    return `<button class="nav-item" onclick="navigate('${p}')" data-page="${p}">${navIconMarkup(p)}<span>${NAV_PAGE_META[p].n}</span>${b ? `<span class="nav-badge">${b > 99 ? '99+' : b}</span>` : ''}</button>`;
+  }).join('');
+  html += `<button class="nav-item" id="nav-more-btn" onclick="openMoreSheet()" data-page="__more"><span class="nav-icon nav-more-ic">${GRID_ICON_SVG}</span><span>Daha</span></button>`;
+  nav.innerHTML = html;
+  setNavActive(currentPage);
+  nav.querySelectorAll('.nav-item[data-page]').forEach(btn => {
+    const p = btn.dataset.page;
+    if (p && p !== '__more') addLongPress(btn, () => unpinTab(p));
   });
 }
+function setNavActive(page) {
+  document.querySelectorAll('#bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
+  const b = document.querySelector(`#bottom-nav .nav-item[data-page="${page}"]`);
+  if (b) b.classList.add('active');
+  else if (navOverflowPages().includes(page)) {
+    const m = document.getElementById('nav-more-btn'); if (m) m.classList.add('active');
+  }
+}
+// renderNavIcons eski adı — artık tüm barı yeniden çizer
+function renderNavIcons() { renderBottomNav(); }
 function setNavIcon(page, icon) {
   if (!settings.navIcons) settings.navIcons = {};
   settings.navIcons[page] = icon.trim() || DEFAULT_NAV_ICONS[page];
-  saveSettings(); renderNavIcons(); renderSettingLists();
+  saveSettings(); renderBottomNav(); renderSettingLists();
+}
+
+function pinTab(page) {
+  const pinned = getNavPinned();
+  if (pinned.includes(page)) return;
+  if (pinned.length >= 4) { showToast('En fazla 4 sabit sekme — bar\'daki bir sekmeye uzun bas ve kaldır'); return; }
+  pinned.push(page); setNavPinned(pinned);
+  renderBottomNav(); renderMoreSheet();
+  showToast(NAV_PAGE_META[page].n + ' alt menüye sabitlendi');
+}
+function unpinTab(page) {
+  const pinned = getNavPinned();
+  if (!pinned.includes(page)) return;
+  if (pinned.length <= 1) { showToast('En az 1 sabit sekme kalmalı'); return; }
+  setNavPinned(pinned.filter(x => x !== page));
+  renderBottomNav(); renderMoreSheet();
+  showToast(NAV_PAGE_META[page].n + ' sabitlemesi kaldırıldı');
+}
+
+// Uzun basma yardımcısı — long-press cb tetikler, ardından gelen click iptal edilir
+function addLongPress(el, cb) {
+  let t = null, moved = false, fired = false;
+  const start = () => { moved = false; fired = false; t = setTimeout(() => { t = null; fired = true; if (navigator.vibrate) navigator.vibrate(15); cb(); }, 550); };
+  const cancel = () => { if (t) { clearTimeout(t); t = null; } };
+  el.addEventListener('touchstart', start, { passive: true });
+  el.addEventListener('touchmove', () => { moved = true; cancel(); }, { passive: true });
+  el.addEventListener('touchend', cancel);
+  el.addEventListener('mousedown', start);
+  el.addEventListener('mouseup', cancel);
+  el.addEventListener('mouseleave', cancel);
+  el.addEventListener('click', (e) => { if (fired) { e.preventDefault(); e.stopImmediatePropagation(); fired = false; } }, true);
 }
 
 let data = {
@@ -2439,15 +2556,8 @@ function navigate(page) {
   const fab = document.getElementById('fab-add-hive');
   if (fab) fab.style.display = page === 'hives' ? 'flex' : 'none';
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  const navBtn = document.querySelector(`.nav-item[data-page="${page}"]`);
-  if (navBtn) navBtn.classList.add('active');
-  // Overflow sayfalarındayken ⋯ Daha butonu aktif görünsün
-  if (NAV_OVERFLOW_PAGES.includes(page)) {
-    const moreBtn = document.getElementById('nav-more-btn');
-    if (moreBtn) moreBtn.classList.add('active');
-  }
+  renderBottomNav();  // aktiflik + bekleyen ödeme rozetlerini tazeler
   closeMoreSheet();
   // Refresh page content
   switch(page) {
@@ -2468,17 +2578,61 @@ function navigate(page) {
 }
 
 // ======================== DAHA FAZLA PANELİ ========================
+function renderMoreSheet() {
+  const grid = document.getElementById('more-grid');
+  if (!grid) return;
+  const pages = navOverflowPages();
+  grid.innerHTML = pages.map((p, i) => {
+    const meta = NAV_PAGE_META[p];
+    const active = (p === currentPage);
+    const badge = navPendingBadge(p);
+    return `<button class="more-tile${active ? ' active' : ''}" style="--acc:${meta.c};animation-delay:${i * 35}ms" onclick="navFromMore('${p}')" data-page="${p}">
+      <span class="more-tile-ic">${navIconRaw(p)}</span>
+      <span class="more-tile-lbl">${meta.n}</span>
+      ${badge ? `<span class="more-badge">${badge > 99 ? '99+' : badge}</span>` : ''}
+    </button>`;
+  }).join('');
+  grid.querySelectorAll('.more-tile').forEach(btn => {
+    const p = btn.dataset.page;
+    addLongPress(btn, () => pinTab(p));
+  });
+}
 function openMoreSheet() {
+  renderMoreSheet();
   const ov = document.getElementById('more-sheet-overlay');
   if (ov) ov.classList.add('open');
 }
 function closeMoreSheet() {
   const ov = document.getElementById('more-sheet-overlay');
   if (ov) ov.classList.remove('open');
+  const sheet = document.getElementById('more-sheet');
+  if (sheet) sheet.style.transform = '';
 }
 function navFromMore(page) {
   closeMoreSheet();
   navigate(page);
+}
+// Aşağı kaydırarak kapatma
+function initMoreSheetGestures() {
+  const sheet = document.getElementById('more-sheet');
+  if (!sheet) return;
+  let startY = null, dy = 0, dragging = false;
+  sheet.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.more-tile')) return; // kutucuk üstünde sürükleme yok (tık/uzun-bas için)
+    startY = e.touches[0].clientY; dy = 0; dragging = true;
+  }, { passive: true });
+  sheet.addEventListener('touchmove', (e) => {
+    if (!dragging || startY == null) return;
+    dy = e.touches[0].clientY - startY;
+    if (dy > 0) sheet.style.transform = `translateY(${dy}px)`;
+  }, { passive: true });
+  sheet.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    if (dy > 90) closeMoreSheet();
+    else sheet.style.transform = '';
+    startY = null; dy = 0;
+  });
 }
 
 // ======================== ENVANTER ========================
@@ -5627,7 +5781,8 @@ document.addEventListener('visibilitychange', function() {
 
 function startApp() {
   appReady = true;
-  renderNavIcons();
+  renderBottomNav();
+  initMoreSheetGestures();
   if (!data.hives.length && !data.sales.length && !currentUser) loadDemoData();
   const adminSec = document.getElementById('admin-list-section');
   if (adminSec) adminSec.style.display = isAdmin() ? '' : 'none';
