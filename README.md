@@ -49,6 +49,7 @@ Beebook, [Supabase](https://supabase.com) (PostgreSQL + Google OAuth) üzerinde 
 
 | Sürüm | Öne çıkanlar |
 |-------|--------------|
+| **v2.6.1** | Android geri tuşu artık standart davranıyor (ana sayfaya dön, çift basışta çık) ve arka plandan dönünce oturum açık kalıyor |
 | **v2.6** | Yenilenen alt menü — renkli "Daha Fazla" paneli, sabit sekmeleri kişiselleştirme (uzun bas), bekleyen ödeme rozetleri |
 | **v2.5** | Envanter bölümü (ekipman/malzeme takibi); taşan menü için "Daha Fazla" paneli; uygulama içi hesap silme ve gizlilik politikası |
 | **v2.4** | Sezonlar gerçek hesap dönemi oldu — satış, gider ve arı sütü aktif sezona göre ayrılır; stok raporu; sezon rozeti sezon adını gösterir |
