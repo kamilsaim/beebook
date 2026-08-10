@@ -690,7 +690,7 @@
     background-image: radial-gradient(circle, rgba(0,0,0,.08) 1px, transparent 1px);
     background-size: var(--arazi-cell) var(--arazi-cell);
   }
-  #arazi-canvas { position: relative; min-width: 3000px; min-height: 2000px; }
+  #arazi-canvas { position: relative; }
 
   /* North indicator */
   #arazi-north {
@@ -5912,7 +5912,27 @@ function araziRender() {
   canvas.innerHTML = '';
   araziSpacers.forEach(sp => araziRenderSpacer(sp));
   araziHives.forEach(h => araziRenderHive(h));
+  araziFitCanvas();
   araziUpdateBadge();
+}
+
+// Kanvası yerleştirilmiş kovan/ayraçların kapladığı alana göre boyutlandırır
+// (görünür alandan küçük olmaz, kenarlarda yeni kovan için boşluk payı bırakır)
+function araziFitCanvas() {
+  const wrap   = document.getElementById('arazi-cw');
+  const canvas = document.getElementById('arazi-canvas');
+  const pad = Math.round(araziCellPx * 2.5);
+  let maxR = 0, maxB = 0;
+  canvas.querySelectorAll('.hi, .spi').forEach(el => {
+    const r = el.offsetLeft + el.offsetWidth;
+    const b = el.offsetTop + el.offsetHeight;
+    if (r > maxR) maxR = r;
+    if (b > maxB) maxB = b;
+  });
+  const floorW = wrap ? wrap.clientWidth  : 800;
+  const floorH = wrap ? wrap.clientHeight : 600;
+  canvas.style.width  = Math.max(floorW, maxR + pad) + 'px';
+  canvas.style.height = Math.max(floorH, maxB + pad) + 'px';
 }
 
 function araziRenderHive(h) {
@@ -6024,6 +6044,7 @@ function araziAttachDrag(el, id, type) {
     const nx = parseFloat(el.style.left), ny = parseFloat(el.style.top);
     if (type === 'hive') araziPositions[id] = { x: nx, y: ny };
     else { const sp = araziSpacers.find(s => s.id === id); if (sp) { sp.x = nx; sp.y = ny; } }
+    araziFitCanvas();
     araziSilentSave();
   });
 }
