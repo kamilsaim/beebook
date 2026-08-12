@@ -29,7 +29,7 @@
   <p>Arıcının El Defteri</p>
 </header>
 <main>
-  <p class="muted" style="margin-bottom:16px">Son güncelleme: 27 Temmuz 2026</p>
+  <p class="muted" style="margin-bottom:16px">Son güncelleme: 12 Ağustos 2026</p>
 
   <div class="card">
     <h2>Genel Bakış</h2>
@@ -47,10 +47,25 @@
   </div>
 
   <div class="card">
+    <h2>Kamera İzni</h2>
+    <p>Beebook, kovanlarınızın üzerindeki <strong>QR kodlarını okumak</strong> için cihazınızın kamerasını kullanır. Kamera yalnızca QR okuma ekranını açtığınızda çalışır.</p>
+    <ul>
+      <li>Görüntüler <strong>kaydedilmez</strong>, saklanmaz ve hiçbir sunucuya gönderilmez.</li>
+      <li>Kare çözümlemesi tamamen cihazınızda, tarayıcı içinde yapılır.</li>
+      <li>Kamera iznini vermeseniz de kovan numarasını elle girerek uygulamayı tam olarak kullanabilirsiniz.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Cihazda Depolama</h2>
+    <p>Verileriniz cihazınızın tarayıcı deposunda (<em>localStorage</em>) tutulur. Bu depolama yalnızca uygulamanın çalışması içindir; reklam veya takip amaçlı çerez kullanılmaz. Uygulama verilerini tarayıcı verilerini temizleyerek de cihazınızdan silebilirsiniz.</p>
+  </div>
+
+  <div class="card">
     <h2>Bilgiler Nasıl Kullanılır</h2>
     <ul>
       <li>Hesabınızı oluşturmak ve verilerinizi cihazlar arasında senkronize etmek.</li>
-      <li>Seçtiğiniz şehir için hava durumunu göstermek (open-meteo.com üzerinden — kişisel veri gönderilmez).</li>
+      <li>Seçtiğiniz şehir için hava durumunu göstermek. Bu istek <a href="https://open-meteo.com/" target="_blank" rel="noopener">open-meteo.com</a> servisine gönderilir; yalnızca seçtiğiniz konumun adı/koordinatı iletilir. Her internet isteğinde olduğu gibi cihazınızın IP adresi de bu servise ulaşır. Adınız, e-postanız veya uygulama kayıtlarınız <strong>hiçbir zaman</strong> paylaşılmaz.</li>
       <li>Uygulama işlevlerini (kayıt, rapor, grafik) sağlamak.</li>
     </ul>
   </div>
@@ -58,7 +73,25 @@
   <div class="card">
     <h2>Verilerin Saklanması ve Paylaşımı</h2>
     <p>Bulut verileriniz Supabase üzerinde, yalnızca sizin erişebileceğiniz şekilde <strong>satır düzeyi güvenlik (RLS)</strong> ile saklanır. Veriler HTTPS ile şifreli aktarılır.</p>
+    <p style="margin-top:8px">Bulut sunucuları <strong>Avrupa Birliği (Frankfurt / eu-central-1)</strong> bölgesinde bulunur.</p>
     <p style="margin-top:8px">Verileriniz <strong>üçüncü taraflarla paylaşılmaz, satılmaz</strong> ve pazarlama amacıyla kullanılmaz.</p>
+    <p style="margin-top:8px">Uygulamanın çalışması için kullanılan hizmet sağlayıcılar (veri işleyenler):</p>
+    <ul>
+      <li><strong>Google LLC</strong> — yalnızca kimlik doğrulama (Google ile giriş) için.</li>
+      <li><strong>Supabase Inc.</strong> — veritabanı ve kimlik doğrulama altyapısı için.</li>
+      <li><strong>Open-Meteo</strong> — hava durumu bilgisi için (hesap verisi iletilmez).</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Verilerin Saklanma Süresi</h2>
+    <ul>
+      <li>Bulut verileriniz, <strong>hesabınız aktif olduğu sürece</strong> saklanır.</li>
+      <li>Uygulama içinden hesabınızı sildiğinizde verileriniz <strong>anında ve kalıcı olarak</strong> silinir.</li>
+      <li>E-posta ile silme talebi gönderdiğinizde talebiniz en geç <strong>30 gün</strong> içinde işleme alınır ve verileriniz silinir.</li>
+      <li>Cihazınızdaki yerel kayıtlar, siz uygulamayı kaldırana veya tarayıcı verilerini temizleyene kadar cihazınızda kalır.</li>
+      <li>Silme sonrası hiçbir yedek kopya saklanmaz.</li>
+    </ul>
   </div>
 
   <div class="card">
@@ -77,8 +110,28 @@
   </div>
 
   <div class="card">
+    <h2>Haklarınız (KVKK / GDPR)</h2>
+    <p>6698 sayılı KVKK ve AB Genel Veri Koruma Tüzüğü (GDPR) kapsamında şu haklara sahipsiniz:</p>
+    <ul>
+      <li>Verilerinizin işlenip işlenmediğini öğrenme ve verilerinize <strong>erişme</strong>.</li>
+      <li>Eksik veya yanlış verilerin <strong>düzeltilmesini</strong> isteme (uygulama içinden doğrudan düzenleyebilirsiniz).</li>
+      <li>Verilerinizin <strong>silinmesini</strong> isteme (uygulama içi "Hesabımı Sil" düğmesi veya e-posta).</li>
+      <li>Verilerinizi okunabilir bir biçimde dışa <strong>aktarma</strong> (<em>Ayarlar → Yedekleme</em> ile JSON olarak indirebilirsiniz).</li>
+      <li>İşlemeye <strong>itiraz etme</strong> ve şikâyet hakkı.</li>
+    </ul>
+    <p style="margin-top:8px">Verilerin işlenmesindeki hukuki dayanak, uygulamayı kullanmanız yoluyla verdiğiniz <strong>açık rızanız</strong> ve hizmetin sunulması için gerekliliktir. Rızanızı hesabınızı silerek dilediğiniz zaman geri çekebilirsiniz.</p>
+    <p class="muted" style="margin-top:8px">Veri sorumlusu: Kamil Saim — saimkamil@gmail.com</p>
+  </div>
+
+  <div class="card">
+    <h2>Politikadaki Değişiklikler</h2>
+    <p>Bu gizlilik politikası zaman zaman güncellenebilir. Değişiklikler bu sayfada yayınlanır ve sayfanın üst kısmındaki "Son güncelleme" tarihi yenilenir. Önemli değişikliklerde uygulama içinde de bilgilendirme yapılır. Uygulamayı kullanmaya devam etmeniz güncel politikayı kabul ettiğiniz anlamına gelir.</p>
+  </div>
+
+  <div class="card">
     <h2>İletişim</h2>
-    <p>Gizlilikle ilgili her türlü soru için: <a href="mailto:saimkamil@gmail.com">saimkamil@gmail.com</a></p>
+    <p>Gizlilikle ilgili her türlü soru, talep veya şikâyet için: <a href="mailto:saimkamil@gmail.com">saimkamil@gmail.com</a></p>
+    <p class="muted" style="margin-top:6px">Geliştirici: Kamil Saim · Türkiye</p>
   </div>
 </main>
 <footer>© 2026 Beebook · Kamil Saim</footer>
