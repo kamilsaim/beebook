@@ -522,7 +522,7 @@
 
   /* IN-APP BROWSER UYARISI */
   #inapp-banner {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 9500;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10000;
     background: linear-gradient(135deg, var(--forest), var(--forest-mid));
     color: #fff; padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top));
     display: flex; align-items: center; gap: 10px;
@@ -819,7 +819,7 @@
 </div>
 
 <!-- AUTH SCREEN -->
-<div id="auth-screen" class="hidden">
+<div id="auth-screen">
   <div class="auth-card">
     <img class="auth-logo" src="" style="width:68px;height:68px;object-fit:contain;border-radius:16px;margin-bottom:14px;box-shadow:0 4px 16px rgba(0,0,0,0.15)">
     <h2>Beebook</h2>
@@ -5443,6 +5443,8 @@ function init() {
   _bbSnap = bbBuildSnapshot(data);
   initSupabase();
   applyTheme();
+  // Facebook/Instagram/vb. in-app tarayıcı uyarısı — splash/giriş ekranından önce göster
+  checkInAppBrowser();
   if (settings.fontSize) document.documentElement.style.fontSize = settings.fontSize + 'px';
   // Set favicon from embedded logo (no extra base64 copy)
   const splashLogo = document.querySelector('#splash img');
@@ -5461,7 +5463,6 @@ function init() {
 
   // Start app after splash
   setTimeout(startApp, 1800);
-  setTimeout(checkInAppBrowser, 1900);
 
   // Capacitor APK: sistem tarayıcısından dönen Google OAuth callback'ini yakala
   if (window.Capacitor) {
@@ -5661,9 +5662,11 @@ function useOfflineMode() {
   if (adminSec) adminSec.style.display = isAdmin() ? '' : 'none';
 }
 
-function showAuthScreen() {
+function showAuthScreen(show) {
   const as = document.getElementById('auth-screen');
-  if (as) as.classList.remove('hidden');
+  if (!as) return;
+  if (show === false) as.classList.add('hidden');
+  else as.classList.remove('hidden');
 }
 
 async function signOut() {
@@ -5886,18 +5889,16 @@ function startApp() {
   const adminSec = document.getElementById('admin-list-section');
   if (adminSec) adminSec.style.display = isAdmin() ? '' : 'none';
   if (currentUser) {
+    showAuthScreen(false);
     renderDashboard();
     syncFromSupabase();
   } else if (isOfflineMode) {
+    showAuthScreen(false);
     renderDashboard();
   } else {
-    setTimeout(function() {
-      if (!currentUser && !isOfflineMode) {
-        showAuthScreen();
-      } else {
-        renderDashboard();
-      }
-    }, 400);
+    // Zaten varsayılan olarak görünür (bkz. auth-screen HTML) — panonun
+    // arkasından bir an için görünüp sonra giriş ekranına geçme yanılsaması olmasın diye
+    showAuthScreen(true);
   }
 }
 // ═══════════════════════════════════════════════════════
