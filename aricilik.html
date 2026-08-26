@@ -520,6 +520,22 @@
   }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+  /* IN-APP BROWSER UYARISI */
+  #inapp-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9500;
+    background: linear-gradient(135deg, var(--forest), var(--forest-mid));
+    color: #fff; padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top));
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; line-height: 1.4; box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    transform: translateY(-100%); transition: transform 0.3s;
+  }
+  #inapp-banner.show { transform: translateY(0); }
+  #inapp-banner b { display: block; margin-bottom: 2px; }
+  #inapp-banner .ib-close {
+    flex-shrink: 0; background: rgba(255,255,255,0.18); border: none; color: #fff;
+    width: 28px; height: 28px; border-radius: 50%; font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
   /* DIVIDER */
   .divider { height: 1px; background: linear-gradient(90deg, transparent, #DDD, transparent); margin: 16px 0; }
 
@@ -5384,6 +5400,37 @@ function importData2(event) {
   event.target.value = '';
 }
 
+// ======================== IN-APP BROWSER UYARISI ========================
+// Facebook/Instagram/X/Threads/Messenger paylaşılan linki kendi WebView'ında açar;
+// bu WebView'lar PWA "Ana Ekrana Ekle" özelliğini desteklemez (platform kısıtı, kodla düzeltilemez).
+// Çözüm: tespit edip kullanıcıyı "..." menüsünden sistem tarayıcısında açmaya yönlendirmek.
+function isInAppBrowser() {
+  const ua = navigator.userAgent || '';
+  return /FBAN|FBAV|FB_IAB|Instagram|Messenger|Threads|Twitter|\bX\/(iOS|Android)\b/i.test(ua);
+}
+function checkInAppBrowser() {
+  if (!isInAppBrowser()) return;
+  if (sessionStorage.getItem('bb_inapp_dismissed')) return;
+  const b = document.createElement('div');
+  b.id = 'inapp-banner';
+  b.innerHTML = `
+    <div style="flex:1">
+      <b>📲 Ana ekrana eklemek için</b>
+      Sağ üst/alttaki ⋯ menüsünden "Tarayıcıda Aç" seçeneğine dokun.
+    </div>
+    <button class="ib-close" onclick="dismissInAppBanner()">✕</button>
+  `;
+  document.body.appendChild(b);
+  requestAnimationFrame(() => b.classList.add('show'));
+}
+function dismissInAppBanner() {
+  const b = document.getElementById('inapp-banner');
+  if (!b) return;
+  b.classList.remove('show');
+  sessionStorage.setItem('bb_inapp_dismissed', '1');
+  setTimeout(() => b.remove(), 300);
+}
+
 // ======================== INIT ========================
 // Sürüm tek yerden yönetilir — her sürüm değişiminde SADECE burayı güncelle.
 const APP_VERSION = '2.6.1';
@@ -5414,6 +5461,7 @@ function init() {
 
   // Start app after splash
   setTimeout(startApp, 1800);
+  setTimeout(checkInAppBrowser, 1900);
 
   // Capacitor APK: sistem tarayıcısından dönen Google OAuth callback'ini yakala
   if (window.Capacitor) {
