@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="window._sbFailed=true"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <title>Beebook - Arıcının El Defteri</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Playfair+Display:wght@700&display=swap');
@@ -5322,6 +5322,7 @@ function renderOzet() {
 let qrStream = null;
 let qrInterval = null;
 let qrTarget = null;
+let qrZXingReader = null;
 
 async function startQRScanner(target) {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -5341,18 +5342,17 @@ async function startQRScanner(target) {
           if (barcodes.length > 0) handleQRResult(barcodes[0].rawValue);
         } catch(e) {}
       }, 400);
-    } else if (window.jsQR) {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      qrInterval = setInterval(() => {
-        if (!video.videoWidth) return;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0);
-        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
-        if (code) handleQRResult(code.data);
-      }, 300);
+    } else if (window.ZXing) {
+      const hints = new Map();
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        ZXing.BarcodeFormat.QR_CODE,
+        ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.EAN_13,
+      ]);
+      qrZXingReader = new ZXing.BrowserMultiFormatReader(hints);
+      qrZXingReader.decodeFromVideoElementContinuously(video, (result, err) => {
+        if (result) handleQRResult(result.getText());
+      });
     } else {
       showToast('QR kütüphanesi yüklenemedi, internet bağlantısını kontrol edin.');
     }
@@ -5364,6 +5364,7 @@ async function startQRScanner(target) {
 
 function closeQRScanner() {
   if (qrInterval) { clearInterval(qrInterval); qrInterval = null; }
+  if (qrZXingReader) { qrZXingReader.reset(); qrZXingReader = null; }
   if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
   document.getElementById('qr-modal').classList.remove('open');
 }
