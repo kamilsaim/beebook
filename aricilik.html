@@ -5350,9 +5350,18 @@ async function startQRScanner(target) {
         ZXing.BarcodeFormat.EAN_13,
       ]);
       qrZXingReader = new ZXing.BrowserMultiFormatReader(hints);
-      qrZXingReader.decodeFromVideoElementContinuously(video, (result, err) => {
-        if (result) handleQRResult(result.getText());
-      });
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      qrInterval = setInterval(() => {
+        if (!video.videoWidth) return;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        try {
+          const result = qrZXingReader.decodeFromCanvas(canvas);
+          if (result) handleQRResult(result.getText());
+        } catch(e) {}
+      }, 300);
     } else {
       showToast('QR kütüphanesi yüklenemedi, internet bağlantısını kontrol edin.');
     }
@@ -5364,7 +5373,7 @@ async function startQRScanner(target) {
 
 function closeQRScanner() {
   if (qrInterval) { clearInterval(qrInterval); qrInterval = null; }
-  if (qrZXingReader) { qrZXingReader.reset(); qrZXingReader = null; }
+  if (qrZXingReader) { try { qrZXingReader.reset(); } catch(e) {} qrZXingReader = null; }
   if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
   document.getElementById('qr-modal').classList.remove('open');
 }
