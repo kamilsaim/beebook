@@ -5350,18 +5350,9 @@ async function startQRScanner(target) {
         ZXing.BarcodeFormat.EAN_13,
       ]);
       qrZXingReader = new ZXing.BrowserMultiFormatReader(hints);
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      qrInterval = setInterval(() => {
-        if (!video.videoWidth) return;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0);
-        try {
-          const result = qrZXingReader.decodeFromCanvas(canvas);
-          if (result) handleQRResult(result.getText());
-        } catch(e) {}
-      }, 300);
+      qrZXingReader.decodeFromVideoElementContinuously(video, (result, err) => {
+        if (result) handleQRResult(result.getText());
+      }).catch(() => {});
     } else {
       showToast('QR kütüphanesi yüklenemedi, internet bağlantısını kontrol edin.');
     }
@@ -5443,7 +5434,7 @@ function dismissInAppBanner() {
 
 // ======================== INIT ========================
 // Sürüm tek yerden yönetilir — her sürüm değişiminde SADECE burayı güncelle.
-const APP_VERSION = '2.6.2';
+const APP_VERSION = '2.6.3';
 function init() {
   const vs = document.getElementById('app-version-splash');
   if (vs) vs.textContent = 'v' + APP_VERSION;
