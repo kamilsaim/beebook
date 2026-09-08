@@ -5412,13 +5412,82 @@ const QR_PASSES = [
   [0.33, 0.04, 0.34, 0.92, 90],  // dikey tutulan plaka
 ];
 
-function qrScanFrame(source, vw, vh) {
-  for (const [xr, yr, wr, hr, rot] of QR_PASSES) {
-    const sw = Math.round(vw * wr), sh = Math.round(vh * hr);
+// Ekrandaki sarı kutunun VIDEO KOORDINATLARINDAKİ karşılığı.
+// Kritik: video 1080x1920 (dikey) gelirken kutu 4/3 yatay + object-fit:cover ile
+// gösteriliyor; yani görüntünün dikeyde sadece bir kısmı görünür. Naif oranlarla
+// (vh*0.33) taramak kutunun ÇOK dışını tarar ve kadraja giren büyük rakamlar
+// satır taramasını bozar. Bu yüzden cover dönüşümü tersine çevriliyor.
+function qrRoiInVideo(video, vw, vh) {
+  const el = document.querySelector('.qr-roi');
+  const box = video.getBoundingClientRect();
+  if (!el || !box.width || !box.height) {
+    return { sx: vw * 0.04, sy: vh * 0.33, sw: vw * 0.92, sh: vh * 0.34 };
+  }
+  const r = el.getBoundingClientRect();
+  const scale = Math.max(box.width / vw, box.height / vh);   // object-fit: cover
+  const offX = (box.width - vw * scale) / 2;
+  const offY = (box.height - vh * scale) / 2;
+  return {
+    sx: (r.left - box.left - offX) / scale,
+    sy: (r.top - box.top - offY) / scale,
+    sw: r.width / scale,
+    sh: r.height / scale,
+  };
+}
+
+// ROI çevresinde kademeli genişleyen pencereler üretir (nişan hatasını tolere etmek için).
+// Oranlar QR_PASSES'ten değil, gerçek ROI'den türetilir.
+function qrRoiPasses(roi, vw, vh) {
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const cx = roi.sx + roi.sw / 2, cy = roi.sy + roi.sh / 2;
+  const out = [];
+  for (const [fw, fh] of [[1, 1], [0.65, 1], [0.42, 1], [1.35, 1.6], [1, 2.2]]) {
+    const w = roi.sw * fw, h = roi.sh * fh;
+    for (const dy of (fh > 1.5 ? [0] : [0, -roi.sh, roi.sh])) {
+      const sx = clamp(cx - w / 2, 0, vw - 1);
+      const sy = clamp(cy - h / 2 + dy, 0, vh - 1);
+      out.push({ sx, sy, sw: Math.min(w, vw - sx), sh: Math.min(h, vh - sy), rot: 0 });
+    }
+  }
+  out.push({ sx: 0, sy: 0, sw: vw, sh: vh, rot: 0 });                 // tam kare (QR)
+  out.push({ sx: cx - roi.sh, sy: 0, sw: roi.sh * 2, sh: vh, rot: 90 }); // dikey plaka
+  return out;
+}
+
+function qrScanFrame(source, vw, vh, roi) {
+  const passes = roi
+    ? qrRoiPasses(roi, vw, vh)
+    : QR_PASSES.map(([xr, yr, wr, hr, rot]) => ({
+        sx: Math.round(vw * xr), sy: Math.round(vh * yr),
+        sw: Math.round(vw * wr), sh: Math.round(vh * hr), rot }));
+  for (const p of passes) {
+    const sw = Math.round(p.sw), sh = Math.round(p.sh);
     if (sw < 40 || sh < 20) continue;
-    const cv = qrDrawRegion(source, Math.round(vw * xr), Math.round(vh * yr), sw, sh, rot);
-    const text = qrDecodeCanvas(cv);
+    const text = qrDecodeCanvas(qrDrawRegion(source, Math.round(p.sx), Math.round(p.sy), sw, sh, p.rot));
     if (text) return text;
+  }
+  return null;
+}
+
+// Fotoğraf için: kadraj bilinmediğinden tüm görsel üst üste binen karolara bölünüp
+// doğal çözünürlükte taranır. Canlı taramanın aksine tek seferlik, süre önemli değil.
+function qrScanTiled(img) {
+  const W = img.width, H = img.height;
+  const direct = qrDecodeCanvas(qrDrawRegion(img, 0, 0, W, H, 0));
+  if (direct) return direct;
+  for (const cols of [2, 3, 5]) {
+    const tw = Math.round(W / cols * 1.6), th = Math.round(H / cols * 1.6);
+    const stepX = Math.round(tw / 2), stepY = Math.round(th / 2);
+    for (let y = 0; y + th <= H || y === 0; y += stepY) {
+      for (let x = 0; x + tw <= W || x === 0; x += stepX) {
+        const sw = Math.min(tw, W - x), sh = Math.min(th, H - y);
+        if (sw < 60 || sh < 30) continue;
+        for (const rot of [0, 90]) {
+          const t = qrDecodeCanvas(qrDrawRegion(img, x, y, sw, sh, rot));
+          if (t) return t;
+        }
+      }
+    }
   }
   return null;
 }
@@ -5484,10 +5553,9 @@ async function startQRScanner(target) {
           // BarcodeDetector tam kareyi kendi tarar; yetmezse ROI'yi de dene
           let codes = await detector.detect(video);
           if (!codes.length) {
-            const roi = QR_PASSES[0];
+            const r = qrRoiInVideo(video, vw, vh);
             codes = await detector.detect(qrDrawRegion(video,
-              Math.round(vw * roi[0]), Math.round(vh * roi[1]),
-              Math.round(vw * roi[2]), Math.round(vh * roi[3]), 0));
+              Math.round(r.sx), Math.round(r.sy), Math.round(r.sw), Math.round(r.sh), 0));
           }
           if (codes.length) { handleQRResult(codes[0].rawValue); return; }
           qrSetDebug('last', 'yok');
@@ -5495,7 +5563,7 @@ async function startQRScanner(target) {
         return;
       }
 
-      const text = qrScanFrame(video, vw, vh);
+      const text = qrScanFrame(video, vw, vh, qrRoiInVideo(video, vw, vh));
       if (text) { handleQRResult(text); return; }
       qrSetDebug('last', 'yok');
     }
@@ -5511,8 +5579,11 @@ function qrFromPhoto(event) {
   const file = event.target.files && event.target.files[0];
   event.target.value = '';
   if (!file) return;
+  showToast('Fotoğraf taranıyor…');
   const img = new Image();
   img.onload = async () => {
+    qrSetDebug('last', 'foto taranıyor');
+    await new Promise(r => setTimeout(r, 30));   // toast'ın çizilmesine izin ver
     // ÖLÇÜLDÜ: küçültmek barkodu okunmaz hale getiriyor (1.6 px/modül altı = kayıp).
     // Bu yüzden fotoğraf DOĞAL çözünürlükte taranır.
     let text = null;
@@ -5524,16 +5595,15 @@ function qrFromPhoto(event) {
           const det = new BarcodeDetector({ formats: use });
           let codes = await det.detect(img);
           if (!codes.length) {
-            const roi = QR_PASSES[0];
             codes = await det.detect(qrDrawRegion(img,
-              Math.round(img.width * roi[0]), Math.round(img.height * roi[1]),
-              Math.round(img.width * roi[2]), Math.round(img.height * roi[3]), 0));
+              Math.round(img.width * 0.1), Math.round(img.height * 0.1),
+              Math.round(img.width * 0.8), Math.round(img.height * 0.8), 0));
           }
           if (codes.length) text = codes[0].rawValue;
         }
       } catch (e) {}
     }
-    if (!text) text = qrScanFrame(img, img.width, img.height);
+    if (!text) text = qrScanTiled(img);
     URL.revokeObjectURL(img.src);
     if (text) handleQRResult(text);
     else showToast('Barkod okunamadı — barkodu kadraja yaklaştırıp net çekmeyi dene');
@@ -5616,7 +5686,7 @@ function dismissInAppBanner() {
 
 // ======================== INIT ========================
 // Sürüm tek yerden yönetilir — her sürüm değişiminde SADECE burayı güncelle.
-const APP_VERSION = '2.6.5';
+const APP_VERSION = '2.6.6';
 function init() {
   const vs = document.getElementById('app-version-splash');
   if (vs) vs.textContent = 'v' + APP_VERSION;
