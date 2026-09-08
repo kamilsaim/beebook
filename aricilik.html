@@ -5479,21 +5479,39 @@ function qrRoiPasses(roi, vw, vh) {
   return out;
 }
 
+// Hangi pencerenin tuttugunu OGRENIR ve bir dahakine onu ilk sirada dener.
+// Gerekcesi: canli testte barkod ancak 13. (en son, 90 derece dondurulmus)
+// pencerede okundu ve bu ~100 kare surdu. Hangi pencerenin isleyecegi cihaza,
+// plakanin tutulusuna ve kamera yonelimine gore degisir; sabit bir siralamayla
+// tahmin etmek yerine basarili pencere settings'e yazilir.
 function qrScanFrame(source, vw, vh, roi) {
   const passes = roi
     ? qrRoiPasses(roi, vw, vh)
     : QR_PASSES.map(([xr, yr, wr, hr, rot]) => ({
         sx: Math.round(vw * xr), sy: Math.round(vh * yr),
         sw: Math.round(vw * wr), sh: Math.round(vh * hr), rot }));
-  let n = 0;
-  for (const p of passes) {
-    const sw = Math.round(p.sw), sh = Math.round(p.sh);
-    if (sw < 40 || sh < 20) continue;
-    n++;
-    const text = qrDecodeCanvas(qrDrawRegion(source, Math.round(p.sx), Math.round(p.sy), sw, sh, p.rot));
-    if (text) { qrSetDebug('last', 'pencere ' + n + ' tuttu'); return text; }
+
+  // gecerli pencereler + en son ise yarayani one al
+  const valid = passes.filter(p => Math.round(p.sw) >= 40 && Math.round(p.sh) >= 20);
+  const order = valid.map((p, i) => i);
+  const fav = settings.qrLastPass;
+  if (Number.isInteger(fav) && fav > 0 && fav <= order.length) {
+    order.splice(order.indexOf(fav - 1), 1);
+    order.unshift(fav - 1);
   }
-  qrSetDebug('last', n + ' pencere denendi');
+
+  for (let k = 0; k < order.length; k++) {
+    const idx = order[k];
+    const p = valid[idx];
+    const text = qrDecodeCanvas(qrDrawRegion(source,
+      Math.round(p.sx), Math.round(p.sy), Math.round(p.sw), Math.round(p.sh), p.rot));
+    if (text) {
+      qrSetDebug('last', 'pencere ' + (idx + 1) + ' tuttu' + (k === 0 ? ' (ilk denemede)' : ''));
+      if (settings.qrLastPass !== idx + 1) { settings.qrLastPass = idx + 1; saveSettings(); }
+      return text;
+    }
+  }
+  qrSetDebug('last', order.length + ' pencere denendi');
   return null;
 }
 
@@ -5779,7 +5797,7 @@ function dismissInAppBanner() {
 
 // ======================== INIT ========================
 // Sürüm tek yerden yönetilir — her sürüm değişiminde SADECE burayı güncelle.
-const APP_VERSION = '2.6.8';
+const APP_VERSION = '2.6.9';
 function init() {
   const vs = document.getElementById('app-version-splash');
   if (vs) vs.textContent = 'v' + APP_VERSION;
