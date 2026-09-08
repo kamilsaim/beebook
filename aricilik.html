@@ -2169,8 +2169,11 @@
 <div class="qr-modal-overlay" id="qr-modal">
   <div style="color:white; font-size:16px; font-weight:700">📷 QR Kod Okuyucu</div>
   <div class="qr-frame"><video id="qr-video" autoplay playsinline muted></video></div>
-  <div style="color:rgba(255,255,255,0.8); font-size:13px">Kovan QR kodunu kamera önüne tutun</div>
+  <div style="color:rgba(255,255,255,0.8); font-size:13px; text-align:center; max-width:300px">QR veya plaka barkodunu kameraya yakın ve net tutun</div>
+  <div id="qr-debug" style="color:rgba(255,255,255,0.45); font-size:11px; font-family:monospace"></div>
+  <input type="file" id="qr-photo-input" accept="image/*" capture="environment" style="display:none" onchange="qrFromPhoto(event)">
   <div style="display:flex; gap:12px">
+    <button class="btn btn-secondary" onclick="document.getElementById('qr-photo-input').click()">🖼️ Fotoğraftan oku</button>
     <button class="btn btn-secondary" onclick="closeQRScanner()">İptal</button>
   </div>
 </div>
@@ -5318,54 +5321,173 @@ function renderOzet() {
   document.getElementById('ozet-stock').innerHTML = stockRows.join('') || '';
 }
 
-// ======================== QR SCANNER ========================
+// ======================== QR / BARKOD SCANNER ========================
+// Tarım Bakanlığı arıcı plakalarında Code128 gibi LINEER barkod da bulunur.
+// Lineer barkod QR'dan çok daha yüksek çözünürlük ister (dar çubuk başına >=2px),
+// bu yüzden 1080p istenir ve kare hem tam hem de yatay şerit olarak denenir.
 let qrStream = null;
 let qrInterval = null;
 let qrTarget = null;
-let qrZXingReader = null;
+let qrCanvas = null;
+let qrZXReader = null;
+let qrDebug = { engine: '-', res: '-', frames: 0, last: '-' };
+
+const QR_FORMATS = ['qr_code', 'code_128', 'code_39', 'ean_13', 'itf', 'codabar'];
+
+function qrSetDebug(k, v) {
+  qrDebug[k] = v;
+  const el = document.getElementById('qr-debug');
+  if (el) el.textContent = `${qrDebug.engine} · ${qrDebug.res} · kare:${qrDebug.frames} · ${qrDebug.last}`;
+}
+
+function qrMakeZXReader() {
+  const hints = new Map();
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+    ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39,
+    ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.CODABAR,
+  ]);
+  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+  const r = new ZXing.MultiFormatReader();
+  r.setHints(hints);
+  return r;
+}
+
+// Canvas'ı ZXing ile çöz; başarısızsa 90° döndürüp tekrar dener (dikey tutulan plaka için)
+function qrDecodeCanvas(canvas) {
+  if (!window.ZXing) return null;
+  if (!qrZXReader) qrZXReader = qrMakeZXReader();
+  const src = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
+  let bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(src));
+  try { return qrZXReader.decode(bmp).getText(); } catch (e) { qrZXReader.reset(); }
+  try {
+    bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(src.rotateCounterClockwise()));
+    return qrZXReader.decode(bmp).getText();
+  } catch (e) { qrZXReader.reset(); }
+  return null;
+}
 
 async function startQRScanner(target) {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     showToast('Kamera desteklenmiyor'); return;
   }
   qrTarget = target;
+  qrDebug = { engine: '-', res: '-', frames: 0, last: 'başlıyor' };
   document.getElementById('qr-modal').classList.add('open');
+  const video = document.getElementById('qr-video');
   try {
-    qrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    const video = document.getElementById('qr-video');
-    video.srcObject = qrStream;
-    if ('BarcodeDetector' in window) {
-      const detector = new BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13'] });
-      qrInterval = setInterval(async () => {
-        try {
-          const barcodes = await detector.detect(video);
-          if (barcodes.length > 0) handleQRResult(barcodes[0].rawValue);
-        } catch(e) {}
-      }, 400);
-    } else if (window.ZXing) {
-      const hints = new Map();
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-        ZXing.BarcodeFormat.QR_CODE,
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.EAN_13,
-      ]);
-      qrZXingReader = new ZXing.BrowserMultiFormatReader(hints);
-      qrZXingReader.decodeFromVideoElementContinuously(video, (result, err) => {
-        if (result) handleQRResult(result.getText());
-      }).catch(() => {});
-    } else {
-      showToast('QR kütüphanesi yüklenemedi, internet bağlantısını kontrol edin.');
+    // Lineer barkod için yüksek çözünürlük + sürekli odak şart
+    const constraints = {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920 }, height: { ideal: 1080 },
+        focusMode: 'continuous',
+      }
+    };
+    try {
+      qrStream = await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (e) {
+      // focusMode/çözünürlük desteklenmiyorsa sade kısıtla tekrar dene
+      qrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
     }
+    video.srcObject = qrStream;
+    video.setAttribute('playsinline', '');
+    video.muted = true;
+    // iOS: play() elle çağrılmalı; ZXing'in kendi "playing" event beklemesine güvenilmez
+    try { await video.play(); } catch (e) {}
+
+    let detector = null;
+    if ('BarcodeDetector' in window) {
+      try {
+        const supported = await BarcodeDetector.getSupportedFormats();
+        const use = QR_FORMATS.filter(f => supported.includes(f));
+        if (use.length) { detector = new BarcodeDetector({ formats: use }); qrSetDebug('engine', 'BD:' + use.length); }
+      } catch (e) {}
+    }
+    if (!detector) qrSetDebug('engine', window.ZXing ? 'ZXing' : 'YOK');
+    if (!detector && !window.ZXing) {
+      showToast('Barkod kütüphanesi yüklenemedi, internet bağlantısını kontrol edin.');
+      return;
+    }
+
+    if (!qrCanvas) qrCanvas = document.createElement('canvas');
+    const ctx = qrCanvas.getContext('2d', { willReadFrequently: true });
+
+    qrInterval = setInterval(async () => {
+      if (!qrStream) return;
+      const vw = video.videoWidth, vh = video.videoHeight;
+      if (!vw || !vh) { qrSetDebug('last', 'video 0x0'); return; }
+      qrSetDebug('res', vw + 'x' + vh);
+      qrSetDebug('frames', qrDebug.frames + 1);
+
+      if (detector) {
+        try {
+          const codes = await detector.detect(video);
+          if (codes.length) { handleQRResult(codes[0].rawValue); return; }
+          qrSetDebug('last', 'yok');
+        } catch (e) { qrSetDebug('last', 'BD hata'); }
+        return;
+      }
+
+      // ZXing yolu: 1) tam kare  2) ortadaki geniş yatay şerit (lineer barkod için)
+      const passes = [
+        { sx: 0, sy: 0, sw: vw, sh: vh },
+        { sx: 0, sy: Math.round(vh * 0.3), sw: vw, sh: Math.round(vh * 0.4) },
+      ];
+      for (const p of passes) {
+        qrCanvas.width = p.sw; qrCanvas.height = p.sh;
+        ctx.drawImage(video, p.sx, p.sy, p.sw, p.sh, 0, 0, p.sw, p.sh);
+        const text = qrDecodeCanvas(qrCanvas);
+        if (text) { handleQRResult(text); return; }
+      }
+      qrSetDebug('last', 'yok');
+    }, 300);
   } catch(e) {
     closeQRScanner();
     showToast('Kamera erişimi reddedildi');
   }
 }
 
+// Fotoğraftan oku — canlı akış okuyamazsa, kamera fotoğrafı çok daha yüksek
+// çözünürlüklü olduğu için lineer barkodda belirgin şekilde başarılı olur.
+function qrFromPhoto(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  const img = new Image();
+  img.onload = async () => {
+    if (!qrCanvas) qrCanvas = document.createElement('canvas');
+    const ctx = qrCanvas.getContext('2d', { willReadFrequently: true });
+    const max = 2200;
+    const scale = Math.min(1, max / Math.max(img.width, img.height));
+    qrCanvas.width = Math.round(img.width * scale);
+    qrCanvas.height = Math.round(img.height * scale);
+    ctx.drawImage(img, 0, 0, qrCanvas.width, qrCanvas.height);
+    let text = null;
+    if ('BarcodeDetector' in window) {
+      try {
+        const supported = await BarcodeDetector.getSupportedFormats();
+        const use = QR_FORMATS.filter(f => supported.includes(f));
+        if (use.length) {
+          const codes = await new BarcodeDetector({ formats: use }).detect(qrCanvas);
+          if (codes.length) text = codes[0].rawValue;
+        }
+      } catch (e) {}
+    }
+    if (!text) text = qrDecodeCanvas(qrCanvas);
+    URL.revokeObjectURL(img.src);
+    if (text) handleQRResult(text);
+    else showToast('Barkod okunamadı — barkodu kareye yakın ve net çekmeyi dene');
+  };
+  img.onerror = () => showToast('Fotoğraf açılamadı');
+  img.src = URL.createObjectURL(file);
+}
+
 function closeQRScanner() {
   if (qrInterval) { clearInterval(qrInterval); qrInterval = null; }
-  if (qrZXingReader) { try { qrZXingReader.reset(); } catch(e) {} qrZXingReader = null; }
+  if (qrZXReader) { try { qrZXReader.reset(); } catch(e) {} qrZXReader = null; }
   if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+  const v = document.getElementById('qr-video');
+  if (v) v.srcObject = null;
   document.getElementById('qr-modal').classList.remove('open');
 }
 
@@ -5374,10 +5496,10 @@ function handleQRResult(value) {
   if (qrTarget === 'search') {
     document.getElementById('hive-search').value = value;
     filterHives();
-    showToast('QR: ' + value + ' arandı');
+    showToast('Okundu: ' + value);
   } else if (qrTarget === 'hive-num') {
     document.getElementById('hive-num').value = value;
-    showToast('QR: ' + value + ' girildi');
+    showToast('Okundu: ' + value);
   }
 }
 
@@ -5434,7 +5556,7 @@ function dismissInAppBanner() {
 
 // ======================== INIT ========================
 // Sürüm tek yerden yönetilir — her sürüm değişiminde SADECE burayı güncelle.
-const APP_VERSION = '2.6.3';
+const APP_VERSION = '2.6.4';
 function init() {
   const vs = document.getElementById('app-version-splash');
   if (vs) vs.textContent = 'v' + APP_VERSION;
