@@ -473,7 +473,12 @@
   /* Kare çerçeve KALDIRILDI: barkod geniş ve yatay; kare hedef kullanıcıyı barkodu
      küçültmeye zorluyordu. Hedef kutusu artık taranan ROI ile birebir aynı
      (QR_PASSES[0] = x %4, y %33, genişlik %92, yükseklik %34). */
-  .qr-frame { position: relative; width: min(92vw, 440px); aspect-ratio: 4 / 3; border-radius: 16px; overflow: hidden; background: #000; }
+  /* aspect-ratio JS'ten videonun GERÇEK oranina ayarlanir (qr-frame.style.aspectRatio).
+     Sabit 4/3 birakilirsa dikey 1080x1920 goruntu object-fit:cover ile kirpilir ve
+     kullanici karenin sadece ~%42'sini gorur — kameranin gordugu ile ekranda gorunen
+     ayni olmadigi icin nisan almak imkansizlasir (olculdu). Oran esitlenince kirpma
+     sifirlanir ve sari kutu birebir taranan bolgeyi gosterir. */
+  .qr-frame { position: relative; width: min(92vw, 440px); max-height: 62vh; aspect-ratio: 4 / 3; border-radius: 16px; overflow: hidden; background: #000; }
   #qr-video { width: 100%; height: 100%; object-fit: cover; display: block; }
   .qr-roi { position: absolute; left: 4%; top: 33%; width: 92%; height: 34%;
     border: 3px solid var(--honey); border-radius: 10px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.45); }
@@ -5480,12 +5485,15 @@ function qrScanFrame(source, vw, vh, roi) {
     : QR_PASSES.map(([xr, yr, wr, hr, rot]) => ({
         sx: Math.round(vw * xr), sy: Math.round(vh * yr),
         sw: Math.round(vw * wr), sh: Math.round(vh * hr), rot }));
+  let n = 0;
   for (const p of passes) {
     const sw = Math.round(p.sw), sh = Math.round(p.sh);
     if (sw < 40 || sh < 20) continue;
+    n++;
     const text = qrDecodeCanvas(qrDrawRegion(source, Math.round(p.sx), Math.round(p.sy), sw, sh, p.rot));
-    if (text) return text;
+    if (text) { qrSetDebug('last', 'pencere ' + n + ' tuttu'); return text; }
   }
+  qrSetDebug('last', n + ' pencere denendi');
   return null;
 }
 
@@ -5540,6 +5548,16 @@ async function startQRScanner(target) {
     video.muted = true;
     // iOS: play() elle çağrılmalı; ZXing'in kendi "playing" event beklemesine güvenilmez
     try { await video.play(); } catch (e) {}
+    // Onizleme kutusunu videonun gercek oranina esitle — kirpma olmasin, kullanici
+    // kameranin gordugunun aynisini gorsun (bkz. .qr-frame CSS notu)
+    const syncAspect = () => {
+      if (!video.videoWidth || !video.videoHeight) return;
+      const frame = video.closest('.qr-frame');
+      if (frame) frame.style.aspectRatio = video.videoWidth + ' / ' + video.videoHeight;
+    };
+    syncAspect();
+    video.addEventListener('loadedmetadata', syncAspect);
+    video.addEventListener('resize', syncAspect);
 
     let detector = null;
     if ('BarcodeDetector' in window) {
@@ -5585,7 +5603,6 @@ async function startQRScanner(target) {
 
       const text = qrScanFrame(video, vw, vh, qrRoiInVideo(video, vw, vh));
       if (text) { handleQRResult(text); return; }
-      qrSetDebug('last', 'yok');
     }
   } catch(e) {
     closeQRScanner();
@@ -5762,7 +5779,7 @@ function dismissInAppBanner() {
 
 // ======================== INIT ========================
 // Sürüm tek yerden yönetilir — her sürüm değişiminde SADECE burayı güncelle.
-const APP_VERSION = '2.6.7';
+const APP_VERSION = '2.6.8';
 function init() {
   const vs = document.getElementById('app-version-splash');
   if (vs) vs.textContent = 'v' + APP_VERSION;
