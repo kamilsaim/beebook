@@ -10,8 +10,10 @@
 <link rel="icon" type="image/png" id="favicon-link" href="">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="window._sbFailed=true"></script>
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<!-- Sürümler kilitli + SRI: CDN içeriği değişirse/bozulursa tarayıcı çalıştırmaz. Güncellerken hash'i yeniden hesapla:
+     curl -sL URL | openssl dgst -sha384 -binary | openssl base64 -A -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window._sbFailed=true"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js" integrity="sha384-BzBxP10ZE72aitqj5UMmUsbKFliP/DZqA8Wq+BNNhlIJDGoEd1tpkMYXOg9+n6sB" crossorigin="anonymous"></script>
 <title>Beebook - Arıcının El Defteri</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Playfair+Display:wght@700&display=swap');
@@ -1382,7 +1384,7 @@
           <button class="btn btn-success" style="flex:1" onclick="exportData()">📥 Yedek İndir</button>
           <button class="btn btn-secondary" style="flex:1" onclick="document.getElementById('import-file2').click()">📂 Yedek Yükle</button>
         </div>
-        <input type="file" id="import-file2" accept=".json" style="display:none" onchange="importData2(event)">
+        <input type="file" id="import-file2" accept=".json" style="display:none" onchange="importData(event)">
         <div id="backup-info2" style="font-size:12px; color:var(--text-mid); line-height:1.8"></div>
       </div>
 
@@ -2219,6 +2221,8 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 let _sb = null;
 let currentUser = null;
 const ADMIN_EMAIL = 'saimkamil@gmail.com';
+// Kullanıcı girdisini HTML'e basmadan önce kaçışla (XSS + bozuk işaretleme koruması)
+function esc(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function isAdmin() { return !!(currentUser?.email === ADMIN_EMAIL); }
 let isOfflineMode = false;
 let syncPending = false;
@@ -2263,7 +2267,7 @@ function getNavIcon(page) { return (settings.navIcons && settings.navIcons[page]
 function navIconRaw(page) {
   const custom = settings.navIcons && settings.navIcons[page];
   if (!custom && NAV_SVG[page]) return NAV_SVG[page];
-  return getNavIcon(page);
+  return esc(getNavIcon(page));
 }
 function navIconMarkup(page) {
   const raw = navIconRaw(page);
@@ -2393,7 +2397,7 @@ function getExpenseTypes() { return (settings.expenseTypes && settings.expenseTy
 function populateSelect(selId, options, curVal) {
   const sel = document.getElementById(selId); if (!sel) return;
   const cur = curVal !== undefined ? curVal : sel.value;
-  sel.innerHTML = options.map(o => { const v = typeof o==='string'?o:o.v; const l = typeof o==='string'?o:o.l; return `<option value="${v}"${v===cur?' selected':''}>${l}</option>`; }).join('');
+  sel.innerHTML = options.map(o => { const v = typeof o==='string'?o:o.v; const l = typeof o==='string'?o:o.l; return `<option value="${esc(v)}"${v===cur?' selected':''}>${esc(l)}</option>`; }).join('');
 }
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
@@ -2709,8 +2713,8 @@ function renderInventory() {
     <div class="list-item">
       <div class="list-item-icon">📋</div>
       <div class="list-item-content">
-        <div class="list-item-title">${it.name || 'İsimsiz'}</div>
-        <div class="list-item-sub"><span style="color:${st.color};font-weight:700">${st.icon} ${st.label}</span>${it.note ? ' · ' + it.note : ''}</div>
+        <div class="list-item-title">${esc(it.name || 'İsimsiz')}</div>
+        <div class="list-item-sub"><span style="color:${st.color};font-weight:700">${st.icon} ${st.label}</span>${it.note ? ' · ' + esc(it.note) : ''}</div>
       </div>
       <div class="list-item-right">
         <div class="list-item-date" style="font-size:18px;font-weight:800;color:var(--text-dark)">${fmt(Number(it.qty) || 0)}</div>
@@ -2773,7 +2777,7 @@ function openInventoryReportModal() {
   const rows = sorted.map(it => {
     const st = invStatus(it.status);
     return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--card-line);font-size:13px">
-      <span>${st.icon} ${it.name || 'İsimsiz'}</span>
+      <span>${st.icon} ${esc(it.name || 'İsimsiz')}</span>
       <span style="font-weight:700">${fmt(Number(it.qty) || 0)}</span>
     </div>`;
   }).join('') || '<div style="color:var(--text-soft);font-size:12px;padding:16px 0">Henüz malzeme yok</div>';
@@ -2828,7 +2832,7 @@ function renderRecentHiveOps() {
     <div class="list-item" style="padding:8px 0;background:none;box-shadow:none;border-bottom:1px solid #F5EDD8">
       <div class="list-item-icon">🏠</div>
       <div class="list-item-content">
-        <div class="list-item-title">Kovan #${h.num} — ${h.lastAction || 'Eklendi'}</div>
+        <div class="list-item-title">Kovan #${esc(h.num)} — ${esc(h.lastAction || 'Eklendi')}</div>
         <div class="list-item-sub">${fmtDate(h.updatedAt || h.createdAt)}</div>
       </div>
     </div>
@@ -2879,7 +2883,7 @@ function renderDashboard() {
       <div class="list-item" style="padding:10px 0; background:none; box-shadow:none; border-bottom:1px solid #F5EDD8">
         <div class="list-item-icon">${tx.icon}</div>
         <div class="list-item-content">
-          <div class="list-item-title">${tx.label}</div>
+          <div class="list-item-title">${esc(tx.label)}</div>
           <div class="list-item-sub">${fmtDate(tx.date)}</div>
         </div>
         <div class="list-item-right">
@@ -2903,7 +2907,7 @@ function renderDashboard() {
   document.getElementById('season-info-card').innerHTML = activeSeason ? `
     <div style="display:flex; justify-content:space-between; align-items:center">
       <div>
-        <div style="font-weight:800;font-size:15px">${activeSeason.name}</div>
+        <div style="font-weight:800;font-size:15px">${esc(activeSeason.name)}</div>
         <div style="font-size:12px; color:var(--text-soft); margin-top:2px">${(() => { const r = getActiveSeasonRange(); if (!r) return activeSeason.year + ' Sezonu'; return (r.start ? fmtDate(r.start) : '…') + ' → ' + (r.end ? fmtDate(r.end) : 'devam ediyor'); })()}</div>
       </div>
       <span class="badge badge-green">Aktif</span>
@@ -2923,7 +2927,7 @@ function renderTaskList() {
   list.innerHTML = data.tasks.map(t => `
     <div class="task-item">
       <div class="task-checkbox ${t.done ? 'checked' : ''}" onclick="toggleTask('${t.id}')">${t.done ? '✓' : ''}</div>
-      <div class="task-text ${t.done ? 'done' : ''}">${t.text}</div>
+      <div class="task-text ${t.done ? 'done' : ''}">${esc(t.text)}</div>
       <button onclick="deleteTask('${t.id}')" style="background:none;border:none;font-size:16px;color:#CCC;cursor:pointer">✕</button>
     </div>
   `).join('');
@@ -2955,11 +2959,11 @@ function renderHives() {
   const genEl = document.getElementById('hive-gen-filter');
   if (raceEl) {
     const cur = currentRaceFilter;
-    raceEl.innerHTML = `<option value="">Tüm Irklar</option>` + races.map(r => `<option value="${r}"${r===cur?' selected':''}>${r}</option>`).join('');
+    raceEl.innerHTML = `<option value="">Tüm Irklar</option>` + races.map(r => `<option value="${esc(r)}"${r===cur?' selected':''}>${esc(r)}</option>`).join('');
   }
   if (genEl) {
     const cur = currentGenFilter;
-    genEl.innerHTML = `<option value="">Tüm Kuşaklar</option>` + gens.map(g => `<option value="${g}"${g===cur?' selected':''}>${g}</option>`).join('');
+    genEl.innerHTML = `<option value="">Tüm Kuşaklar</option>` + gens.map(g => `<option value="${esc(g)}"${g===cur?' selected':''}>${esc(g)}</option>`).join('');
   }
 
   document.getElementById('hive-count').textContent = hives.length;
@@ -2986,10 +2990,10 @@ function renderHives() {
           <div class="hive-type-svg-list">${getHiveTypeSvg(h.type, h.floors)}</div>
           <div class="list-item-content">
             <div style="display:flex; align-items:center; gap:6px">
-              <div class="list-item-title">#${h.num} — ${h.type}</div>
+              <div class="list-item-title">#${esc(h.num)} — ${esc(h.type)}</div>
               ${showQDot ? `<div style="width:16px;height:16px;border-radius:50%;${qDotStyle};flex-shrink:0"></div>` : ''}
             </div>
-            <div class="list-item-sub">${h.race || ''}${h.generation ? ' · ' + h.generation : ''}${h.floors > 1 ? ' · ' + h.floors + ' kat' : ''} · ${queenLabel[h.queenStatus] || ''}</div>
+            <div class="list-item-sub">${esc(h.race || '')}${h.generation ? ' · ' + esc(h.generation) : ''}${h.floors > 1 ? ' · ' + h.floors + ' kat' : ''} · ${queenLabel[h.queenStatus] || ''}</div>
             <div class="hive-strength" style="margin-top:5px">${dots}</div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0">
@@ -3013,11 +3017,11 @@ function renderHives() {
           <div class="hive-queen-badge">${qIcon}</div>
           <div class="hive-type-svg">${getHiveTypeSvg(h.type, h.floors)}</div>
           <div style="display:flex; align-items:center; gap:6px">
-            <div class="hive-card-num">#${h.num}</div>
+            <div class="hive-card-num">#${esc(h.num)}</div>
             ${hasQueen ? `<div style="width:20px;height:20px;border-radius:50%;${qDotStyle};flex-shrink:0"></div>` : ''}
           </div>
-          <div class="hive-card-type">${h.type}</div>
-          <div class="hive-card-race">${h.race || ''} ${h.generation ? '· ' + h.generation : ''}</div>
+          <div class="hive-card-type">${esc(h.type)}</div>
+          <div class="hive-card-race">${esc(h.race || '')} ${h.generation ? '· ' + esc(h.generation) : ''}</div>
           <div class="hive-strength">${dots}</div>
         </div>
       `;
@@ -3133,20 +3137,20 @@ function showHiveDetail(id) {
   document.getElementById('hive-detail-content').innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px">
       <div>
-        <div style="font-family:'Playfair Display',serif; font-size:24px">Kovan #${h.num}</div>
-        <div style="font-size:13px; color:var(--text-soft)">${h.type}</div>
+        <div style="font-family:'Playfair Display',serif; font-size:24px">Kovan #${esc(h.num)}</div>
+        <div style="font-size:13px; color:var(--text-soft)">${esc(h.type)}</div>
       </div>
       ${showQDot ? `<div style="width:24px;height:24px;border-radius:50%;${qColorStyle};margin-top:4px"></div>` : ''}
     </div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px">
       <div class="stat-box"><div style="font-size:13px; font-weight:700; color:var(--text-mid)">${queenLabel[h.queenStatus] || '—'}</div><div class="stat-lbl">Ana Arı</div></div>
       <div class="stat-box"><div class="hive-strength" style="justify-content:center">${dots}</div><div class="stat-lbl">Güç: ${h.strength}/5</div></div>
-      <div class="stat-box"><div style="font-weight:800; font-size:14px">${h.race || '—'}</div><div class="stat-lbl">Irk</div></div>
-      <div class="stat-box"><div style="font-weight:800; font-size:14px">${h.generation || '—'}</div><div class="stat-lbl">Kuşak</div></div>
-      ${h.frames ? `<div class="stat-box"><div style="font-weight:800; font-size:14px">${h.frames}</div><div class="stat-lbl">Çerçeve</div></div>` : ''}
+      <div class="stat-box"><div style="font-weight:800; font-size:14px">${esc(h.race || '—')}</div><div class="stat-lbl">Irk</div></div>
+      <div class="stat-box"><div style="font-weight:800; font-size:14px">${esc(h.generation || '—')}</div><div class="stat-lbl">Kuşak</div></div>
+      ${h.frames ? `<div class="stat-box"><div style="font-weight:800; font-size:14px">${esc(h.frames)}</div><div class="stat-lbl">Çerçeve</div></div>` : ''}
       ${h.floors ? `<div class="stat-box"><div style="font-weight:800; font-size:14px">${h.floors}</div><div class="stat-lbl">Kat</div></div>` : ''}
     </div>
-    ${h.notes ? `<div class="card card-honey" style="margin-bottom:16px"><div class="card-title">📝 Notlar</div><div style="font-size:14px; line-height:1.6">${h.notes}</div></div>` : ''}
+    ${h.notes ? `<div class="card card-honey" style="margin-bottom:16px"><div class="card-title">📝 Notlar</div><div style="font-size:14px; line-height:1.6">${esc(h.notes)}</div></div>` : ''}
     <div style="display:flex; gap:10px">
       <button class="btn btn-secondary" style="flex:1" onclick="closeModal('hive-detail-modal')">Kapat</button>
       <button class="btn btn-primary" style="flex:1" onclick="editHive('${h.id}')">✏️ Düzenle</button>
@@ -3186,6 +3190,13 @@ function deleteHive(id) {
   closeModal('hive-detail-modal');
   showConfirm('Kovani Sil', 'Bu kovanı silmek istediğinizden emin misiniz?', () => {
     data.hives = data.hives.filter(h => h.id !== id);
+    // Arazi düzenindeki konumu da kaldır (ana arı serilerindeki damızlık/başlatıcı bağları geçmiş bilgisi olarak kalır)
+    const lay = data.araziLayout;
+    if (lay && lay.positions && lay.positions[id]) {
+      delete lay.positions[id];
+      lay._up = Date.now();
+      delete araziPositions[id];
+    }
     saveData();
     renderHives();
     showToast('Kovan silindi');
@@ -3354,16 +3365,17 @@ function renderQueens() {
     const timeline = s.transfer ? buildQueenTimeline(s.transfer) : '';
     const hiveMap = {};
     data.hives.forEach(h => hiveMap[h.id] = h.num);
-    const motherInfo = s.motherHive ? ` · Damızlık: #${hiveMap[s.motherHive]||'?'}` : '';
-    const starterInfo = s.starterHive ? ` · Başlatıcı: #${hiveMap[s.starterHive]||'?'}` : '';
-    const raceInfo = s.race ? `${s.race}${s.generation ? ' · ' + s.generation : ''}` : '';
+    const hiveRef = id => hiveMap[id] ? '#' + hiveMap[id] : '(silinmiş kovan)';
+    const motherInfo = s.motherHive ? ` · Damızlık: ${hiveRef(s.motherHive)}` : '';
+    const starterInfo = s.starterHive ? ` · Başlatıcı: ${hiveRef(s.starterHive)}` : '';
+    const raceInfo = s.race ? `${esc(s.race)}${s.generation ? ' · ' + esc(s.generation) : ''}` : '';
     const queens = s.queens || [];
     const queensSummary = queens.length ? `<div style="margin-top:8px; font-size:12px; color:var(--text-soft)">${queens.filter(q=>q.status==='kovana_aktarildi').length} kovana aktarıldı · ${queens.filter(q=>q.status==='satildi').length} satıldı · ${queens.filter(q=>q.status==='oldu').length} öldü · ${queens.filter(q=>q.status==='pending').length} bekliyor</div>` : '';
     return `
       <div class="series-card">
         <div class="series-header">
           <div>
-            <div class="series-title">${s.name}</div>
+            <div class="series-title">${esc(s.name)}</div>
             <div class="series-dates">${raceInfo}${motherInfo}${starterInfo}</div>
             <div class="series-dates">Transfer: ${fmtDate(s.transfer)} · Çıkış: ${fmtDate(exitDate)}</div>
           </div>
@@ -3381,7 +3393,7 @@ function renderQueens() {
         </div>
         <div class="progress-bar mt-8"><div class="progress-fill" style="width:${acceptRate}%"></div></div>
         ${queensSummary}
-        ${s.notes ? `<div style="font-size:12px; color:var(--text-soft); margin-top:8px">${s.notes}</div>` : ''}
+        ${s.notes ? `<div style="font-size:12px; color:var(--text-soft); margin-top:8px">${esc(s.notes)}</div>` : ''}
         <button class="btn btn-secondary btn-sm btn-full" style="margin-top:10px" onclick="openSeriesResult('${s.id}')">📋 Sonuçları Gir / Güncelle</button>
       </div>
     `;
@@ -3419,7 +3431,7 @@ function openSeriesModal() {
 }
 
 function populateHiveSelects() {
-  const opts = '<option value="">-- Seç --</option>' + data.hives.map(h => `<option value="${h.id}">#${h.num} (${h.race || h.type})</option>`).join('');
+  const opts = '<option value="">-- Seç --</option>' + data.hives.map(h => `<option value="${h.id}">#${esc(h.num)} (${esc(h.race || h.type)})</option>`).join('');
   document.getElementById('series-mother-hive').innerHTML = opts;
   document.getElementById('series-starter-hive').innerHTML = opts;
 }
@@ -3603,7 +3615,7 @@ function updateResultEmergedList() {
 }
 
 function renderResultQueenList(queens) {
-  const hiveOpts = data.hives.map(h => `<option value="${h.id}">#${h.num}</option>`).join('');
+  const hiveOpts = data.hives.map(h => `<option value="${h.id}">#${esc(h.num)}</option>`).join('');
   document.getElementById('result-queen-list').innerHTML = queens.map((q, i) => `
     <div style="display:flex;align-items:center;gap:6px;background:var(--smoke);border-radius:8px;padding:8px">
       <span style="font-size:12px;font-weight:800;color:var(--text-soft);min-width:20px">${i+1}.</span>
@@ -3681,7 +3693,7 @@ function renderMilk() {
       <div class="list-item-icon">🥛</div>
       <div class="list-item-content">
         <div class="list-item-title">${fmt(m.amount)} gram</div>
-        <div class="list-item-sub">${m.race ? m.race + ' · ' : ''}${m.hiveCount ? m.hiveCount + ' kovan · ' : ''}${m.note || ''}</div>
+        <div class="list-item-sub">${m.race ? esc(m.race) + ' · ' : ''}${m.hiveCount ? esc(m.hiveCount) + ' kovan · ' : ''}${esc(m.note || '')}</div>
       </div>
       <div class="list-item-right">
         <div class="list-item-date">${fmtDate(m.date)}</div>
@@ -3706,11 +3718,18 @@ function saveMilk() {
     race: document.getElementById('milk-race')?.value || '',
     note: document.getElementById('milk-note').value
   };
-  if (editId) { const idx = data.milk.findIndex(x => x.id === editId); if (idx >= 0) data.milk[idx] = m; }
-  else {
+  if (!data.stock) data.stock = [];
+  // Hasatın stok girişi milkId ile bağlıdır; düzenleme/silme bu bağ üzerinden stoğu günceller.
+  // Bağsız eski hasatlarda (milkId öncesi) stok kaydına dokunulmaz.
+  const stockRec = { product: 'ari_sutu', action: 'in', amount: Number(amount), unit: 'gr', date: m.date, note: 'Hasat' + (m.note ? ': ' + m.note : ''), milkId: m.id };
+  if (editId) {
+    const idx = data.milk.findIndex(x => x.id === editId);
+    if (idx >= 0) data.milk[idx] = m;
+    const si = data.stock.findIndex(e => e.milkId === editId);
+    if (si >= 0) data.stock[si] = { ...data.stock[si], ...stockRec };
+  } else {
     data.milk.push(m);
-    if (!data.stock) data.stock = [];
-    data.stock.push({ id: genId(), product: 'ari_sutu', action: 'in', amount: Number(amount), unit: 'gr', date: m.date, note: 'Hasat' + (m.note ? ': ' + m.note : '') });
+    data.stock.push({ id: genId(), ...stockRec });
   }
   saveData(); closeModal('milk-modal'); renderMilk(); showToast('Arı sütü kaydedildi ve stoğa eklendi');
 }
@@ -3718,6 +3737,7 @@ function saveMilk() {
 function deleteMilk(id) {
   showConfirm('Kaydı Sil', 'Bu kaydı silmek istiyor musunuz?', () => {
     data.milk = data.milk.filter(m => m.id !== id);
+    data.stock = (data.stock || []).filter(e => e.milkId !== id);
     saveData(); renderMilk(); showToast('Kayıt silindi');
   });
 }
@@ -3788,7 +3808,7 @@ function renderSales() {
       ? `<div style="font-weight:700;font-size:13px;color:var(--purple-special)">${s.payment === 'hediye' ? '🎁' : '🌙'} Ücretsiz</div>`
       : `<div class="list-item-amount">${fmt(s.total)} ₺</div>`;
     const soldHiveNums = (s.soldHives||[])
-      .map(hid => { const h = data.hives.find(x => x.id === hid); return h ? '#'+h.num : null; })
+      .map(hid => { const h = data.hives.find(x => x.id === hid); return h ? '#'+esc(h.num) : null; })
       .filter(Boolean);
     const hiveStr = soldHiveNums.length ? ` · Kovan: ${soldHiveNums.join(', ')}` : '';
     const productLabel = getSaleProductLabel(s);
@@ -3800,10 +3820,10 @@ function renderSales() {
       <div class="list-item-icon">${typeIcon[s.type]||'📦'}</div>
       <div class="list-item-content">
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:4px">
-          <span class="list-item-title" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.customer || 'Müşteri'}</span>
+          <span class="list-item-title" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.customer || 'Müşteri')}</span>
           <span style="font-size:11px;color:var(--text-soft);white-space:nowrap;flex-shrink:0">${fmtDate(s.date)}</span>
         </div>
-        <div style="font-size:13px;font-weight:700;color:var(--honey-dark)">${productLabel}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--honey-dark)">${esc(productLabel)}</div>
         <div class="list-item-sub">${payBadge[s.payment]||''}${s.orderStatus==='preorder'?' <span class="badge badge-yellow">📋 Ön Sipariş</span>':''}${hiveStr}</div>
         ${paidInfo}
       </div>
@@ -3850,7 +3870,7 @@ function openSaleReportModal() {
   else {
     for (const g of Object.values(groups)) {
       html += `<div style="background:var(--smoke);border-radius:12px;padding:12px;margin-bottom:10px">
-        <div style="font-weight:800;font-size:14px;margin-bottom:8px">${g.icon} ${g.name}</div>
+        <div style="font-weight:800;font-size:14px;margin-bottom:8px">${g.icon} ${esc(g.name)}</div>
         <div style="display:flex;flex-direction:column;gap:5px;font-size:13px">
           ${g.satis>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--text-soft)">💰 Satış (${g.satisAdet} işlem)</span><span style="font-weight:700">${fmt(g.satis)} ${g.unit} · ${fmt(g.satisTl)} ₺</span></div>`:''}
           ${g.hediye>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--purple-special)">🎁 Hediye</span><span style="font-weight:700;color:var(--purple-special)">${fmt(g.hediye)} ${g.unit}</span></div>`:''}
@@ -3871,8 +3891,8 @@ function openSaleReportModal() {
       const paidLine = s.payment==='partial' && s.paidAmount != null ? `<div style="font-size:11px;color:var(--blue-info)">Ödenen: ${fmt(s.paidAmount)} ₺</div>` : '';
       html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--smoke);border-radius:8px;margin-bottom:6px;border-left:3px solid ${s.payment==='partial'?'var(--blue-info)':'var(--amber)'}">
         <div>
-          <div style="font-weight:700;font-size:13px">${s.customer||'Müşteri'} ${badge}</div>
-          <div style="font-size:12px;color:var(--text-soft)">${getSaleProductLabel(s)} · ${fmtDate(s.date)}</div>
+          <div style="font-weight:700;font-size:13px">${esc(s.customer||'Müşteri')} ${badge}</div>
+          <div style="font-size:12px;color:var(--text-soft)">${esc(getSaleProductLabel(s))} · ${fmtDate(s.date)}</div>
           ${paidLine}
         </div>
         <div style="text-align:right">
@@ -3954,7 +3974,7 @@ function renderSaleItems() {
     const stockLevel = (isHoney || isMilk) ? (() => { const l=getStockLevel(stockProduct); const u=isMilk?'gr':(getStockTypes().find(s=>s.v===stockProduct)?.unit||'kg'); return fmt(l)+' '+u; })() : '';
     const priceStyle = isFree ? 'opacity:0.4;pointer-events:none' : '';
     const delBtn = saleItems.length > 1 ? `<button onclick="removeSaleItem(${idx})" style="background:none;border:none;font-size:18px;color:#BBB;cursor:pointer;line-height:1" title="Kaldır">✕</button>` : '';
-    const beeHives = isBee ? data.hives.map(h => `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;font-weight:600"><input type="checkbox" class="bee-hive-cb-${idx}" value="${h.id}" style="width:16px;height:16px;accent-color:var(--honey)"> Kovan #${h.num}${h.type?' ('+h.type+')':''}</label>`).join('') : '';
+    const beeHives = isBee ? data.hives.map(h => `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;font-weight:600"><input type="checkbox" class="bee-hive-cb-${idx}" value="${h.id}" style="width:16px;height:16px;accent-color:var(--honey)"> Kovan #${esc(h.num)}${h.type?' ('+esc(h.type)+')':''}</label>`).join('') : '';
     return `<div style="background:var(--smoke);border-radius:12px;padding:12px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="font-weight:800;font-size:11px;color:var(--text-soft);text-transform:uppercase;letter-spacing:0.5px">ÜRÜN ${idx+1}</span>${delBtn}
@@ -3990,7 +4010,7 @@ function onSaleItemTypeChange(idx) {
   const bg = document.getElementById(`sale-bee-group-${idx}`);
   if (hg) hg.style.display = isHoney ? '' : 'none';
   if (si) si.style.display = (isHoney || isMilk) ? '' : 'none';
-  if (bg) { bg.style.display = isBee ? '' : 'none'; if (isBee && !bg.innerHTML.trim()) bg.innerHTML = data.hives.map(h=>`<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;font-weight:600"><input type="checkbox" class="bee-hive-cb-${idx}" value="${h.id}" style="width:16px;height:16px;accent-color:var(--honey)"> Kovan #${h.num}${h.type?' ('+h.type+')':''}</label>`).join(''); }
+  if (bg) { bg.style.display = isBee ? '' : 'none'; if (isBee && !bg.innerHTML.trim()) bg.innerHTML = data.hives.map(h=>`<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;font-weight:600"><input type="checkbox" class="bee-hive-cb-${idx}" value="${h.id}" style="width:16px;height:16px;accent-color:var(--honey)"> Kovan #${esc(h.num)}${h.type?' ('+esc(h.type)+')':''}</label>`).join(''); }
   const product = isMilk ? 'ari_sutu' : (isHoney ? document.getElementById(`sale-honey-type-${idx}`)?.value : null);
   if (product) {
     const level = getStockLevel(product);
@@ -4067,9 +4087,16 @@ function saveSale() {
     const td = parseFloat(item.total) || 0;
     const total = isFree ? 0 : (td > 0 ? td : Number(item.qty)*Number(item.price));
     const soldHives = item.type === 'bee' ? [...document.querySelectorAll(`.bee-hive-cb-0:checked`)].map(cb => cb.value) : [];
-    const s = { id: editId, type: item.type, customer, date, qty: Number(item.qty), unit: item.unit, price: isFree?0:Number(item.price), total, payment, paidAmount, note, soldHives, honeyType: item.type==='honey'?item.honeyType:undefined, orderStatus };
     const idx = data.sales.findIndex(x => x.id === editId);
+    const old = idx >= 0 ? data.sales[idx] : null;
+    // ...old: batchId gibi formda olmayan alanlar korunur (çoklu satış grubu kopmasın)
+    const s = { ...(old || {}), id: editId, type: item.type, customer, date, qty: Number(item.qty), unit: item.unit, price: isFree?0:Number(item.price), total, payment, paidAmount, note, soldHives, honeyType: item.type==='honey'?item.honeyType:undefined, orderStatus };
     if (idx >= 0) data.sales[idx] = s;
+    // Bağlı stok çıkışını güncelle. Eski (saleId bağsız) satışlarda stok kaydı yoksa
+    // yeni kayıt açılmaz — aksi halde elle düşülmüş eski stok ikinci kez düşerdi.
+    const hadStock = old && saleStockProduct(old);
+    const linked = (data.stock || []).some(e => e.saleId === editId);
+    if (linked || !hadStock) upsertSaleStock(s, payment);
   } else {
     const validItems = saleItems.filter(item => item.qty);
     if (!validItems.length) { showToast('En az bir ürün için miktar girin'); return; }
@@ -4084,17 +4111,28 @@ function saveSale() {
       const soldHives = item.type === 'bee' ? [...document.querySelectorAll(`.bee-hive-cb-${i}:checked`)].map(cb => cb.value) : [];
       const s = { id: genId(), type: item.type, customer, date, qty: Number(item.qty), unit: item.unit, price: isFree?0:Number(item.price), total, payment, paidAmount, note, soldHives, honeyType: item.type==='honey'?item.honeyType:undefined, orderStatus, batchId };
       data.sales.push(s);
-      let stockProduct = null;
-      if (s.type === 'milk') stockProduct = 'ari_sutu';
-      else if (s.type === 'honey') stockProduct = s.honeyType || 'suzme_bal';
-      if (stockProduct) {
-        if (!data.stock) data.stock = [];
-        const label = isFree ? (payment==='hediye'?'Hediye':'Zekat') : 'Satış';
-        data.stock.push({ id: genId(), product: stockProduct, action: 'out', amount: Number(item.qty), unit: item.unit, date, note: label+': '+(customer||'Müşteri'), saleId: s.id });
-      }
+      upsertSaleStock(s, payment);
     }
   }
   saveData(); closeModal('sale-modal'); renderSales(); renderDashboard(); showToast('Satış kaydedildi');
+}
+
+// Satışın stoktan düşeceği ürün (yoksa null — örn. arı/ana arı satışı)
+function saleStockProduct(s) {
+  if (s.type === 'milk') return 'ari_sutu';
+  if (s.type === 'honey') return s.honeyType || 'suzme_bal';
+  return null;
+}
+
+// Satışa bağlı stok 'out' kaydını oluşturur/günceller/kaldırır (saleId ile eşleşir)
+function upsertSaleStock(s, payment) {
+  if (!data.stock) data.stock = [];
+  const product = saleStockProduct(s);
+  const i = data.stock.findIndex(e => e.saleId === s.id);
+  if (!product) { if (i >= 0) data.stock.splice(i, 1); return; }
+  const label = payment === 'hediye' ? 'Hediye' : payment === 'zekat' ? 'Zekat' : 'Satış';
+  const rec = { id: i >= 0 ? data.stock[i].id : genId(), product, action: 'out', amount: Number(s.qty), unit: s.unit, date: s.date, note: label + ': ' + (s.customer || 'Müşteri'), saleId: s.id };
+  if (i >= 0) data.stock[i] = rec; else data.stock.push(rec);
 }
 
 function deleteSale(id) {
@@ -4187,8 +4225,8 @@ function renderStockList() {
     return `<div class="list-item">
       <div class="list-item-icon">${p.icon}</div>
       <div class="list-item-content">
-        <div class="list-item-title">${p.label}</div>
-        <div class="list-item-sub">${e.note||''} · ${fmtDate(e.date)}</div>
+        <div class="list-item-title">${esc(p.label)}</div>
+        <div class="list-item-sub">${esc(e.note||'')} · ${fmtDate(e.date)}</div>
       </div>
       <div class="list-item-right">
         <div class="list-item-amount ${e.action==='out'?'expense':''}">${e.action==='in'?'+':'-'}${fmt(e.amount)} ${e.unit||p.unit}</div>
@@ -4283,7 +4321,8 @@ function saveStockEntry() {
   const unit = getStockTypes().find(st => st.v === product)?.unit || 'adet';
   if (!data.stock) data.stock = [];
   const entry = { id: editId || genId(), product, action: 'in', amount, unit, date: document.getElementById('stock-date').value || today(), note: document.getElementById('stock-note').value };
-  if (editId) { const idx = data.stock.findIndex(x => x.id === editId); if (idx >= 0) data.stock[idx] = entry; }
+  // ...eski kayıt: milkId gibi bağ alanları elle düzenlemede kaybolmasın
+  if (editId) { const idx = data.stock.findIndex(x => x.id === editId); if (idx >= 0) data.stock[idx] = { ...data.stock[idx], ...entry }; }
   else data.stock.push(entry);
   const unitPrice = parseFloat(document.getElementById('stock-unit-price').value);
   if (unitPrice > 0) { if (!settings.stockPrices) settings.stockPrices = {}; settings.stockPrices[product] = unitPrice; saveSettings(); }
@@ -4370,7 +4409,7 @@ function renderExpenses() {
     return `<div class="list-item">
       <div class="list-item-icon">${expIcon(e.type)}</div>
       <div class="list-item-content">
-        <div class="list-item-title">${e.desc || expLabel(e.type)}</div>
+        <div class="list-item-title">${esc(e.desc || expLabel(e.type))}</div>
         <div class="list-item-sub">${expLabel(e.type)} · ${fmtDate(e.date)}${isPending?' '+expPayBadge[e.payment]:''}</div>
         ${paidInfo}
       </div>
@@ -4585,7 +4624,7 @@ function renderCalTaskList() {
     const items = grouped[date].map(t => `
       <div class="task-item">
         <div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div>
-        <div class="task-text ${t.done?'done':''}">${t.text}</div>
+        <div class="task-text ${t.done?'done':''}">${esc(t.text)}</div>
         <button onclick="deleteTask('${t.id}')" style="background:none;border:none;font-size:16px;color:#CCC;cursor:pointer">✕</button>
       </div>
     `).join('');
@@ -4650,7 +4689,7 @@ function renderSeasons() {
     <div class="list-item" style="position:relative">
       <div class="list-item-icon">🌸</div>
       <div class="list-item-content">
-        <div class="list-item-title">${s.name}</div>
+        <div class="list-item-title">${esc(s.name)}</div>
         <div class="list-item-sub">${fmtDate(seasonStartOf(s))} başlangıç · ${s.id === settings.activeSeason ? '✅ Aktif Sezon' : 'Pasif'}</div>
       </div>
       <div style="display:flex; gap:6px; align-items:center">
@@ -4665,7 +4704,7 @@ function showSeasonModal() {
   document.getElementById('season-modal-list').innerHTML = data.seasons.map(s => `
     <div class="list-item" onclick="setActiveSeason('${s.id}'); closeModal('season-modal')">
       <div class="list-item-icon">🌸</div>
-      <div class="list-item-content"><div class="list-item-title">${s.name}</div><div class="list-item-sub">${fmtDate(seasonStartOf(s))} →</div></div>
+      <div class="list-item-content"><div class="list-item-title">${esc(s.name)}</div><div class="list-item-sub">${fmtDate(seasonStartOf(s))} →</div></div>
       ${s.id === settings.activeSeason ? '<span class="badge badge-green">Aktif</span>' : ''}
     </div>
   `).join('');
@@ -4763,19 +4802,35 @@ function importData(event) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = function(e) {
-    try {
-      const backup = JSON.parse(e.target.result);
-      if (!backup.data) throw new Error('Geçersiz dosya');
-      showConfirm('Yedek Yükle', 'Mevcut tüm veriler silinecek ve yedek yüklenecek. Emin misiniz?', () => {
-        data = backup.data;
-        if (backup.settings) settings = { ...settings, ...backup.settings };
-        saveData(); saveSettings(); renderDashboard(); showToast('Yedek başarıyla yüklendi');
-        renderBackup();
-      });
-    } catch(err) { showToast('Geçersiz yedek dosyası'); }
+    let imported;
+    try { imported = normalizeBackup(JSON.parse(e.target.result)); }
+    catch(err) { showToast('Geçersiz yedek dosyası' + (err.message ? ': ' + err.message : '')); return; }
+    showConfirm('Yedek Yükle', `Mevcut tüm veriler silinecek ve yedek yüklenecek (${imported.data.hives.length} kovan, ${imported.data.sales.length} satış). Emin misiniz?`, () => {
+      data = imported.data;
+      if (imported.settings) settings = { ...settings, ...imported.settings };
+      if (!data.seasons.some(x => x.id === settings.activeSeason)) settings.activeSeason = data.seasons[0].id;
+      saveData(); saveSettings(); updateSeasonBadge(); navigate(currentPage); showToast('Yedek başarıyla yüklendi');
+      renderBackup();
+    });
   };
   reader.readAsText(file);
   event.target.value = '';
+}
+
+// Yedek dosyasını doğrular ve eksik koleksiyonları tamamlar (eski sürüm yedekleri:
+// örn. v2.5 öncesinde 'inventory' yok). Biçim bozuksa Error fırlatır — mevcut veriye dokunulmaz.
+function normalizeBackup(backup) {
+  const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+  if (!isObj(backup) || !isObj(backup.data)) throw new Error('veri bölümü yok');
+  const d = { ...backup.data };
+  BB_SYNC_COLLECTIONS.forEach(c => {
+    if (d[c] === undefined || d[c] === null) d[c] = [];
+    if (!Array.isArray(d[c])) throw new Error(`'${c}' liste değil`);
+    d[c] = d[c].filter(r => isObj(r) && r.id != null);
+  });
+  if (!d.seasons.length) d.seasons = [{ id: 's' + new Date().getFullYear(), year: new Date().getFullYear(), name: new Date().getFullYear() + ' Sezonu', active: true }];
+  if (d.deleted !== undefined && !Array.isArray(d.deleted)) delete d.deleted;
+  return { data: d, settings: isObj(backup.settings) ? backup.settings : null };
 }
 
 // ======================== SETTINGS ========================
@@ -4804,7 +4859,7 @@ function _listItemHtml(label, i, total, moveUpFn, moveDownFn, removeFn, editFn) 
   const isFirst = i === 0, isLast = i === total - 1;
   const btnS = 'background:none;border:1px solid #DDD;border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer;';
   return `<div style="display:flex;align-items:center;gap:5px;padding:7px 0;border-bottom:1px solid var(--smoke)">
-    <span style="flex:1;font-size:13px;font-weight:600">${label}</span>
+    <span style="flex:1;font-size:13px;font-weight:600">${esc(label)}</span>
     ${editFn ? `<button onclick="${editFn}(${i})" style="${btnS}" title="Düzenle">✏️</button>` : ''}
     <button onclick="${moveUpFn}(${i})" style="${btnS}${isFirst?'opacity:0.3;':''}" ${isFirst?'disabled':''}>↑</button>
     <button onclick="${moveDownFn}(${i})" style="${btnS}${isLast?'opacity:0.3;':''}" ${isLast?'disabled':''}>↓</button>
@@ -4838,9 +4893,9 @@ function renderSettingLists() {
     const pages = [{p:'dashboard',n:'Ana Sayfa'},{p:'ozet',n:'Özet'},{p:'hives',n:'Kovanlar'},{p:'queens',n:'Ana Arı'},{p:'milk',n:'Arı Sütü'},{p:'sales',n:'Satışlar'},{p:'stock',n:'Stok'},{p:'expenses',n:'Giderler'},{p:'settings',n:'Ayarlar'}];
     navEl.innerHTML = pages.map(({p,n}) => `
       <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--smoke)">
-        <span style="font-size:20px;width:28px;text-align:center">${getNavIcon(p)}</span>
+        <span style="font-size:20px;width:28px;text-align:center">${esc(getNavIcon(p))}</span>
         <span style="flex:1;font-size:13px;font-weight:600">${n}</span>
-        <input id="nav-icon-${p}" value="${getNavIcon(p)}" style="width:52px;text-align:center;font-size:18px;border:1px solid var(--comb-dark);border-radius:8px;padding:4px" maxlength="4">
+        <input id="nav-icon-${p}" value="${esc(getNavIcon(p))}" style="width:52px;text-align:center;font-size:18px;border:1px solid var(--comb-dark);border-radius:8px;padding:4px" maxlength="4">
         <button onclick="setNavIcon('${p}',document.getElementById('nav-icon-${p}').value)" style="background:var(--honey);color:white;border:none;border-radius:8px;padding:4px 8px;font-size:12px;cursor:pointer">✓</button>
       </div>
     `).join('');
@@ -4986,7 +5041,7 @@ function renderSeasonsInSettings() {
     <div class="list-item" style="padding:10px 0; background:none; box-shadow:none; border-bottom:1px solid #F0EAD8">
       <div class="list-item-icon" style="font-size:20px">🌸</div>
       <div class="list-item-content">
-        <div class="list-item-title">${s.name}</div>
+        <div class="list-item-title">${esc(s.name)}</div>
         <div class="list-item-sub">${fmtDate(seasonStartOf(s))} →</div>
       </div>
       <div style="display:flex; gap:6px; align-items:center">
@@ -5154,8 +5209,8 @@ function showOzetHives(filterType, filterValue, label) {
       <div class="list-item" style="cursor:pointer" onclick="closeModal('ozet-hive-list-modal');navigate('hives');setTimeout(()=>showHiveDetail('${h.id}'),300)">
         <div class="list-item-icon">🏠</div>
         <div class="list-item-content">
-          <div class="list-item-title">Kovan #${h.num}</div>
-          <div class="list-item-sub">${h.type || ''} · ${h.race || ''} ${h.generation ? '· ' + h.generation : ''}</div>
+          <div class="list-item-title">Kovan #${esc(h.num)}</div>
+          <div class="list-item-sub">${esc(h.type || '')} · ${esc(h.race || '')} ${h.generation ? '· ' + esc(h.generation) : ''}</div>
         </div>
         <div class="list-item-right" style="font-size:12px;text-align:right;color:var(--text-soft)">${queenLabel[h.queenStatus] || ''}</div>
       </div>`).join('')
@@ -5207,9 +5262,9 @@ function renderOzet() {
   const raceEntries = Object.entries(races).sort((a,b)=>b[1]-a[1]);
   const maxRace = Math.max(...Object.values(races), 1);
   document.getElementById('ozet-race-dist').innerHTML = raceEntries.length ? raceEntries.map(([race, cnt]) => `
-    <div style="margin-bottom:8px;cursor:pointer" onclick="showOzetHives('race','${race.replace(/'/g,"\\'")}','${race.replace(/'/g,"\\'")} Irkı')">
+    <div style="margin-bottom:8px;cursor:pointer" onclick="showOzetHives('race',${esc(JSON.stringify(race))},${esc(JSON.stringify(race + ' Irkı'))})">
       <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:3px">
-        <span>${race}</span><span style="color:var(--honey-dark)">${cnt} kovan (${Math.round(cnt/total*100)}%) ›</span>
+        <span>${esc(race)}</span><span style="color:var(--honey-dark)">${cnt} kovan (${Math.round(cnt/total*100)}%) ›</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${cnt/maxRace*100}%"></div></div>
     </div>
@@ -5221,9 +5276,9 @@ function renderOzet() {
   const genEntries = Object.entries(gens).sort((a,b)=>b[1]-a[1]);
   const maxGen = Math.max(...Object.values(gens), 1);
   document.getElementById('ozet-gen-dist').innerHTML = genEntries.length ? genEntries.map(([gen, cnt]) => `
-    <div style="margin-bottom:8px;cursor:pointer" onclick="showOzetHives('gen','${gen.replace(/'/g,"\\'")}','${gen.replace(/'/g,"\\'")} Kuşağı')">
+    <div style="margin-bottom:8px;cursor:pointer" onclick="showOzetHives('gen',${esc(JSON.stringify(gen))},${esc(JSON.stringify(gen + ' Kuşağı'))})">
       <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:3px">
-        <span>${gen}</span><span style="color:var(--purple-special)">${cnt} kovan ›</span>
+        <span>${esc(gen)}</span><span style="color:var(--purple-special)">${cnt} kovan ›</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${cnt/maxGen*100}%;background:linear-gradient(90deg,var(--purple-special),#a29bfe)"></div></div>
     </div>
@@ -5688,26 +5743,6 @@ function handleQRResult(value) {
   }
 }
 
-function importData2(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const backup = JSON.parse(e.target.result);
-      if (!backup.data) throw new Error('Geçersiz dosya');
-      showConfirm('Yedek Yükle', 'Mevcut tüm veriler silinecek ve yedek yüklenecek. Emin misiniz?', () => {
-        data = backup.data;
-        if (backup.settings) settings = { ...settings, ...backup.settings };
-        saveData(); saveSettings(); renderDashboard(); showToast('Yedek başarıyla yüklendi');
-        renderBackup();
-      });
-    } catch(err) { showToast('Geçersiz yedek dosyası'); }
-  };
-  reader.readAsText(file);
-  event.target.value = '';
-}
-
 // ======================== IN-APP BROWSER UYARISI ========================
 // Facebook/Instagram/X/Threads/Messenger paylaşılan linki kendi WebView'ında açar;
 // bu WebView'lar PWA "Ana Ekrana Ekle" özelliğini desteklemez (platform kısıtı, kodla düzeltilemez).
@@ -5797,7 +5832,7 @@ function dismissInAppBanner() {
 
 // ======================== INIT ========================
 // Sürüm tek yerden yönetilir — her sürüm değişiminde SADECE burayı güncelle.
-const APP_VERSION = '2.6.9';
+const APP_VERSION = '2.6.10';
 function init() {
   const vs = document.getElementById('app-version-splash');
   if (vs) vs.textContent = 'v' + APP_VERSION;
@@ -6212,7 +6247,7 @@ function renderAuthInfoCard() {
       '<div style="display:flex;align-items:center;gap:12px">' +
       '<div style="width:44px;height:44px;background:#1565c0;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:22px;flex-shrink:0">👤</div>' +
       '<div style="flex:1;min-width:0">' +
-      '<div style="font-weight:700;font-size:13px;color:#1565c0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + currentUser.email + '</div>' +
+      '<div style="font-weight:700;font-size:13px;color:#1565c0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(currentUser.email) + '</div>' +
       '<div style="font-size:11px;color:#666;margin-top:2px">✅ Hesap bağlı · Otomatik senkronize</div>' +
       '</div>' +
       '<button onclick="signOut()" style="background:#d63031;color:white;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">Çıkış</button>' +
@@ -6508,12 +6543,12 @@ function araziOpenPopup(id) {
 
   document.getElementById('arazi-pu-body').innerHTML = `
     <div class="arazi-info-row"><span class="arazi-info-lbl">Ana Arı</span><span class="arazi-info-val">${ARAZI_QL[h.queenStatus]||h.queenStatus||'-'}</span></div>
-    <div class="arazi-info-row"><span class="arazi-info-lbl">Irk</span><span class="arazi-info-val">${h.race||'-'}</span></div>
-    <div class="arazi-info-row"><span class="arazi-info-lbl">Kuşak</span><span class="arazi-info-val">${h.generation||'-'}</span></div>
-    <div class="arazi-info-row"><span class="arazi-info-lbl">Tip</span><span class="arazi-info-val">${h.type||'-'}</span></div>
+    <div class="arazi-info-row"><span class="arazi-info-lbl">Irk</span><span class="arazi-info-val">${esc(h.race||'-')}</span></div>
+    <div class="arazi-info-row"><span class="arazi-info-lbl">Kuşak</span><span class="arazi-info-val">${esc(h.generation||'-')}</span></div>
+    <div class="arazi-info-row"><span class="arazi-info-lbl">Tip</span><span class="arazi-info-val">${esc(h.type||'-')}</span></div>
     <div class="arazi-info-row"><span class="arazi-info-lbl">Kat</span><div style="display:flex;gap:4px;align-items:flex-end">${floorViz}</div></div>
     <div class="arazi-info-row"><span class="arazi-info-lbl">Güç</span><div style="display:flex;gap:4px">${dots}</div></div>
-    ${h.notes ? `<div class="arazi-info-row" style="border:none"><span class="arazi-info-lbl">Not</span><span class="arazi-info-val" style="font-size:12px;text-align:right;max-width:200px">${h.notes}</span></div>` : ''}
+    ${h.notes ? `<div class="arazi-info-row" style="border:none"><span class="arazi-info-lbl">Not</span><span class="arazi-info-val" style="font-size:12px;text-align:right;max-width:200px">${esc(h.notes)}</span></div>` : ''}
   `;
 
   document.getElementById('arazi-overlay').classList.add('open');
